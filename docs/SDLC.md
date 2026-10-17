@@ -103,6 +103,7 @@ Created by `scripts/github/labels.sh` (idempotent; rerun after editing it).
 | ---------------------------------------- | -------------------------------------------------------------- | ---------------------------------- |
 | `app:tandem`, `app:rca`, `app:workflows` | The one app an issue/PR changes                                | create-issue, PR author            |
 | `app:utils`                              | Shared `utils/` crate; a merge releases every app              | create-issue, PR author            |
+| `app:cli`                                | The `beagle` base CLI (`cli-base/`), released as app `cli`     | create-issue, PR author            |
 | `release:major`                          | Breaking change: merge cuts `X+1.0.0`                          | create-issue; copied to the PR     |
 | `release:minor`                          | New user-visible feature: merge cuts `X.Y+1.0`                 | create-issue; copied to the PR     |
 | `release:patch`                          | Fix/refactor/internal: merge cuts `X.Y.Z+1` (also the default) | create-issue; copied to the PR     |

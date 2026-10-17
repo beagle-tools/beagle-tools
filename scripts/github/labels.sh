@@ -23,6 +23,7 @@ labels=(
   "app:rca|0e8a16|Beagle RCA (rca/) — CLI/TUI, agent daemon, desktop, web"
   "app:workflows|5319e7|agentd + Agentdesk (workflows/)"
   "app:utils|c5def5|Shared beagle-utils crate (utils/) — releases every app"
+  "app:cli|bfd4f2|The beagle base CLI (cli-base/) — released as beagle-cli-v*"
   "release:major|b60205|Merging cuts a major release of the app (breaking change)"
   "release:minor|fbca04|Merging cuts a minor release of the app (new feature)"
   "release:patch|c2e0c6|Merging cuts a patch release of the app (fix/internal)"

@@ -27,12 +27,15 @@ gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$id" \
 echo "published $tag"
 
 stage=$(mktemp -d)
-patterns=(--pattern "$APP_PRODUCT-*" --pattern 'latest.json')
-if [ -n "$APP_FORMULA" ]; then
-  patterns+=(--pattern "$APP_FORMULA-*")
+patterns=()
+if [ -n "$APP_PRODUCT" ]; then
+  patterns+=(--pattern "$APP_PRODUCT-*" --pattern 'latest.json')
+fi
+if [ -n "$APP_ASSET_PREFIX" ]; then
+  patterns+=(--pattern "$APP_ASSET_PREFIX-*")
 fi
 gh release download "$tag" --dir "$stage" "${patterns[@]}"
-if [ ! -f "$stage/latest.json" ]; then
+if [ -n "$APP_PRODUCT" ] && [ ! -f "$stage/latest.json" ]; then
   # Without it the in-app updater keeps seeing the previous version.
   echo "::warning::$tag has no latest.json — is createUpdaterArtifacts on in tauri.conf.json?"
 fi

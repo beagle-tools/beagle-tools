@@ -23,8 +23,16 @@ test("app paths release only their app", () => {
 });
 
 test("shared inputs release every app", () => {
-  assert.deepEqual(changedApps(["utils/src/fs.rs"]), ["tandem", "rca", "workflows"]);
-  assert.deepEqual(changedApps(["rust-toolchain.toml"]), ["tandem", "rca", "workflows"]);
+  const all = ["tandem", "rca", "workflows", "cli"];
+  assert.deepEqual(changedApps(["utils/src/fs.rs"]), all);
+  assert.deepEqual(changedApps(["rust-toolchain.toml"]), all);
+});
+
+test("the base CLI releases from cli-base/ as app cli", () => {
+  assert.deepEqual(changedApps(["cli-base/src/main.rs"]), ["cli"]);
+  assert.deepEqual(changedApps(["cli-base/Cargo.lock"]), ["cli"]);
+  assert.deepEqual(changedApps(["cli-base/AGENTS.md", "cli-base/docs/x.txt"]), []);
+  assert.equal(isReleaseRelevant("cli", "cli/x.rs"), false);
 });
 
 test("docs-only changes never release", () => {

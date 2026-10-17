@@ -1,0 +1,68 @@
+# The `beagle` base CLI: installs, updates and dispatches to the Beagle
+# extensions (rca, agentd, tandem). Its own cargo workspace, gated like every
+# other one (scripts/ci/rust.sh cli-base).
+[workspace]
+resolver = "2"
+members = ["."]
+
+[workspace.package]
+version = "0.1.0"
+
+# Copied verbatim from ../standards/cargo-lints.toml (the drift check
+# enforces that).
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+dbg_macro = "deny"
+large_enum_variant = "warn"
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+
+[package]
+name = "beagle-cli"
+version.workspace = true
+edition = "2021"
+# std::fs::File::lock (the install lock) is stable since 1.89.
+rust-version = "1.89"
+description = "The `beagle` base CLI: installs, updates and dispatches to Beagle extensions."
+license = "MIT"
+repository = "https://github.com/beagle-tools/beagle-tools"
+publish = false
+
+[lib]
+name = "beagle_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "beagle"
+path = "src/main.rs"
+
+[dependencies]
+beagle-utils = { path = "../utils" }
+crossterm = "0.28"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+toml = "0.8"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true
