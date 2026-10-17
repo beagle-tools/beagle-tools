@@ -5,7 +5,12 @@
 # flagged `published = true` — and only their client-safe sections —
 # reach the output, so the image is safe to ship publicly.
 #
-#   cd rca && docker build -f web/Dockerfile -t beagle-web .
+#   cd rca && docker build --build-context standards=../standards \
+#     -f web/Dockerfile -t beagle-web .
+#
+# The named `standards` context supplies the monorepo's shared
+# tsconfig.base.json, which web/tsconfig.json extends (../../standards from
+# /src/web resolves to /standards).
 #
 # Content is baked in at build time; rebuild to publish new incidents.
 FROM node:24-alpine AS build
@@ -14,6 +19,7 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 WORKDIR /src
 COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./web/
 RUN cd web && corepack pnpm install --frozen-lockfile
+COPY --from=standards tsconfig.base.json /standards/tsconfig.base.json
 COPY web/ ./web/
 COPY rcas/ ./rcas/
 ARG BEAGLE_SITE_URL=""

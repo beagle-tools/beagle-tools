@@ -169,6 +169,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: rca
+          # web/tsconfig.json extends the shared standards/ config, which
+          # lives outside the rca/ context.
+          build-contexts: standards=standards
           file: rca/web/Dockerfile
           push: true
           labels: |
