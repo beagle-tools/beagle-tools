@@ -31,13 +31,15 @@ else
   app_install_notes "$app" "$version" >"$notes"
   # Changelog: PRs since this app's previous tag (sort -V: 0.10 > 0.9).
   prev=$(git tag -l "beagle-$app-v*" | grep -vx "$tag" | sort -V | tail -n1 || true)
-  start=()
-  [ -n "$prev" ] && start=(--notes-start-tag "$prev")
-  gh release create "$tag" --verify-tag --draft --latest=false \
-    --title "Beagle $APP_TITLE v$version" --notes-file "$notes" \
-    --generate-notes ${start[@]+"${start[@]}"} >&2
-  id=$(find_id)
-  [ -n "$id" ] || { echo "created $tag but cannot find its release id" >&2; exit 1; }
+  gen=(-f tag_name="$tag")
+  [ -n "$prev" ] && gen+=(-f previous_tag_name="$prev")
+  { echo; gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" "${gen[@]}" --jq .body; } >>"$notes"
+  # Create through the API: it returns the id directly. Listing right after
+  # `gh release create` can miss a brand-new draft (eventual consistency).
+  id=$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases" \
+    -f tag_name="$tag" -f name="Beagle $APP_TITLE v$version" \
+    -F draft=true -f make_latest=false -F body=@"$notes" --jq .id)
+  [ -n "$id" ] || { echo "created $tag but got no release id" >&2; exit 1; }
   echo "created draft release $tag (id $id)" >&2
 fi
 
