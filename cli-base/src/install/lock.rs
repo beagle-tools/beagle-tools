@@ -17,7 +17,16 @@ const RETRY: Duration = Duration::from_millis(100);
 /// Held for the duration of an install; dropping it releases the lock.
 #[derive(Debug)]
 pub struct InstallLock {
-    _file: File,
+    file: File,
+}
+
+impl Drop for InstallLock {
+    /// Unlocks explicitly rather than relying on the close: the lock belongs
+    /// to the open file description, and a child forked meanwhile (curl, tar,
+    /// another thread's spawn) may still hold a copy of the descriptor.
+    fn drop(&mut self) {
+        let _ = self.file.unlock(); // closing the fd releases it anyway
+    }
 }
 
 /// Takes the lock at `path` for `name`, waiting up to `wait` for another
@@ -35,7 +44,7 @@ pub fn acquire(path: &Path, name: &str, wait: Duration) -> Result<InstallLock> {
     let started = Instant::now();
     loop {
         match file.try_lock() {
-            Ok(()) => return Ok(InstallLock { _file: file }),
+            Ok(()) => return Ok(InstallLock { file }),
             Err(TryLockError::WouldBlock) if started.elapsed() < wait => thread::sleep(RETRY),
             Err(TryLockError::WouldBlock) => {
                 return Err(Error::Locked {
