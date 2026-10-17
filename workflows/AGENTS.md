@@ -63,7 +63,9 @@ assets/notify/      notification icons; one notifier app is built per png
 - **Manifests use `serde(deny_unknown_fields)`.** A manifest using a field
   the running daemon predates is rejected and its agent silently dropped from
   the store on the next tick. So `make install` always restarts the daemon
-  (`make restart-daemon`); never install without it.
+  (`make restart-daemon`); never install without it. Brew installs restart
+  with `agentctl daemon restart` (`make restart-daemon` only finds a
+  `~/.cargo/bin` agentd).
 - **tmux sessions are targeted by exact name** (`=name`) through
   `agent_core::tmux` — tmux's default prefix match can hit the wrong run.
 - **Killing the daemon is safe.** Runs live on in tmux; the startup recovery
@@ -82,16 +84,67 @@ poller thread with its own `Store`.
 
 ```sh
 make install          # cargo install agentd/agentctl/agenttop + restart daemon
+make install-daemon   # first-time launchd setup: `agentctl daemon install`
 make restart-daemon   # launchctl kill + kickstart com.agentd.daemon, verified
 make check            # delegates to the repo root's `make check-workflows`
 ```
 
-Deploying the daemon: `deploy/com.agentd.daemon.plist` is a template
-(`__CARGO_BIN_DIR__`, `__LOG_DIR__` placeholders) for
-`~/Library/LaunchAgents`. `KeepAlive` only revives a crashed daemon, so a
-clean exit stays down until kickstarted. Daemon logs:
-`~/Library/Logs/agentd/agentd.{out,err}.log`.
+Deploying the daemon: `agentctl daemon install|restart|uninstall`
+(`crates/agentctl/src/daemon.rs`, pure parts in `launchd.rs`). The binary
+embeds `deploy/com.agentd.daemon.plist` (a template with `__AGENTD_BIN__`,
+`__CARGO_BIN_DIR__`, `__LOG_DIR__` placeholders), `assets/notify/*.png` and
+`scripts/build-notifier.sh`, so a brew or tarball install needs no
+checkout — keep it that way: anything the setup reads from the repo at run
+time breaks brew users. A Homebrew Cellar path is mapped to the stable
+`<prefix>/bin` so the unit survives `brew upgrade`. `KeepAlive` only
+revives a crashed daemon, so a clean exit stays down until kickstarted.
+Daemon logs: `~/Library/Logs/agentd/agentd.{out,err}.log`.
 
 Notifications prefer `terminal-notifier` (icons) and fall back to
-`osascript`. macOS only shows the sending app's own icon, so run
-`scripts/build-notifier.sh` after adding a png to `assets/notify/`.
+`osascript`. macOS only shows the sending app's own icon, so after adding a
+png to `assets/notify/` re-run `agentctl daemon install` (or
+`scripts/build-notifier.sh`); a test fails until the new png is embedded.
+agentd looks for its stock icons next to the manifests repo, then in
+`<state dir>/assets/notify/` (where `daemon install` unpacks them).
+
+## Testing
+
+Strategy and rules: [`../docs/TESTING.md`](../docs/TESTING.md). Specific
+to this app:
+
+- **Rust:** unit tests beside the code; the crates' integration-style tests
+  live in each crate's `src/tests/`. Anything touching launchd, tmux or
+  the network stays a thin shell over a pure, tested function.
+- **Agentdesk e2e** (`desktop/e2e/*.spec.ts`, `pnpm e2e`): Playwright drives
+  the real React frontend in Chromium, served by `vite --mode e2e` on port
+  1431. In that mode `src/main.tsx` dynamically imports
+  `src/e2e/mockIpc.ts`, which answers every Tauri command from
+  `src/e2e/fixtures.ts` — a small in-memory agentd (`trigger_job` enforces
+  required params and queues a pending run; calls are recorded on
+  `window.__agentdeskE2E.triggers`). `?update=X.Y.Z` makes the updater
+  report an update. The import sits behind `import.meta.env.MODE === "e2e"`,
+  which vite inlines, so production bundles contain no fixtures — keep any
+  new mock code behind that same branch. A new IPC command needs a mock
+  answer, or the specs touching it get `null`.
+- `scripts/set-version.test.mjs` (node:test) runs from Agentdesk's `test`
+  script.
+
+## Releases
+
+Merging to `main` with release-relevant changes under `workflows/` (not
+`*.md` or `docs/`) cuts `beagle-workflows-vX.Y.Z` (patch by default;
+`release:minor` / `release:major` PR labels bump more) — see
+[`../docs/RELEASING.md`](../docs/RELEASING.md). One version covers all of
+workflows: release CI runs `node scripts/set-version.mjs X.Y.Z` from
+`workflows/`, which stamps both cargo workspaces' `[workspace.package]`
+version, their `Cargo.lock` entries, and Agentdesk's `package.json` and
+`tauri.conf.json` (never committed). The release ships:
+
+- `beagle-workflows-<target>.tar.gz` (agentd, agentctl, agenttop) for
+  aarch64/x86_64-apple-darwin → the `beagle-workflows` brew formula;
+- `Agentdesk-macos-{arm64,x64}.dmg` plus signed updater bundles and
+  `latest.json`, mirrored to the rolling `beagle-workflows-latest` release
+  that Agentdesk's updater polls and the `beagle-agentdesk` cask installs.
+
+Agentdesk's in-app version list (`src-tauri/src/commands/updates.rs`) shows
+only `beagle-workflows-v*` releases that carry a `latest.json`.

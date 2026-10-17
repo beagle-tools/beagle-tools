@@ -2,19 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  launchd unit TEMPLATE for agentd. The __PLACEHOLDER__ tokens below are
-  rendered to real paths by install.sh (install_agentd) into
-  ~/Library/LaunchAgents/com.agentd.daemon.plist — do NOT `cp` this file
-  directly (the placeholders won't resolve).
-
-  To (re)generate + load manually:
-    AGENTD_BIN="$(command -v agentd)"
-    sed -e "s|__AGENTD_BIN__|$AGENTD_BIN|g" \
-        -e "s|__CARGO_BIN_DIR__|$(dirname "$AGENTD_BIN")|g" \
-        -e "s|__LOG_DIR__|$HOME/Library/Logs/agentd|g" \
-        deploy/com.agentd.daemon.plist > ~/Library/LaunchAgents/com.agentd.daemon.plist
-    mkdir -p ~/Library/Logs/agentd
-    launchctl load -w ~/Library/LaunchAgents/com.agentd.daemon.plist
+  launchd unit TEMPLATE for agentd. The double-underscore placeholder tokens
+  below are rendered to real paths by `agentctl daemon install` (which
+  embeds this file at build time) into
+  ~/Library/LaunchAgents/com.agentd.daemon.plist, then loaded with
+  launchctl. Do NOT `cp` this file directly: the placeholders won't resolve.
+  `agentctl daemon install --print` shows the rendered unit.
 -->
 <plist version="1.0">
 <dict>

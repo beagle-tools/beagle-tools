@@ -14,7 +14,7 @@ mod error;
 mod poller;
 mod state;
 
-use commands::{dag, jobs, links, logs, pipelines, runs};
+use commands::{dag, jobs, links, logs, pipelines, runs, updates};
 use state::AppState;
 
 /// Start Agentdesk: open the store, start the poller, and run the Tauri
@@ -26,8 +26,16 @@ pub fn run() {
 
     let result = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        // `relaunch()` after an in-app update or version switch.
+        .plugin(tauri_plugin_process::init())
+        // Persists window size/position, including across the updater's
+        // relaunch. Must register before windows are created.
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
+            // Signed self-update against the `beagle-workflows-latest`
+            // mirror (endpoint + pubkey in tauri.conf.json).
+            #[cfg(desktop)]
+            tauri::Manager::app_handle(app).plugin(tauri_plugin_updater::Builder::new().build())?;
             let state = AppState::init()?;
             tauri::Manager::manage(app, state);
             poller::spawn(tauri::Manager::app_handle(app).clone());
@@ -56,6 +64,8 @@ pub fn run() {
             jobs::trigger_job,
             links::run_links,
             links::read_markdown,
+            updates::list_app_releases,
+            updates::install_app_version,
         ])
         .run(tauri::generate_context!());
 

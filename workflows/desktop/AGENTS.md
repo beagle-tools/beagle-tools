@@ -45,6 +45,16 @@ a parallel schema — is the wrong change.
   `ipc` directly.
 - `src/lib/graph.ts` — pure tidy-tree layout for the chain graph. No
   React, so the geometry is testable on its own.
+- **Self-update** — `src/lib/updater.ts` (the only place the updater /
+  process plugin APIs appear), `src/state/updates.ts` (its state, separate
+  from agentd state), `UpdateButton.tsx` (top-bar pill: mount, every 30
+  min, on focus) and `Versions.tsx` (version button + dialog to install any
+  `beagle-workflows-v*` release, including rollbacks, via
+  `src-tauri/src/commands/updates.rs`). Endpoint and pubkey live in
+  `tauri.conf.json`; a failed background check is silent, a failed install
+  goes to the error bar.
+- `src/e2e/` — the Playwright IPC mock and fixtures, loaded only in
+  `vite --mode e2e`; see [`../AGENTS.md`](../AGENTS.md#testing).
 
 **The DAG is not computed here.** The lineage walk and the subtree-cost
 rule live in `agent_core::lineage`, shared with agenttop; tmux session
@@ -65,6 +75,7 @@ the views will quietly disagree.
 make install   # pnpm install
 make dev       # debug build; window titled "Agentdesk Dev"
 make build     # release .app + .dmg
+pnpm e2e       # Playwright against the mocked frontend (no Tauri, no agentd)
 make check     # the root `make check-workflows` gate
 ```
 

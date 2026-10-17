@@ -273,7 +273,7 @@ fn update_parses_an_optional_target_version() {
     match parse(&["update", "--version", "v0.1.0"]) {
         Ok(Command::Update {
             version: Some(version),
-        }) => assert_eq!(version.tag(), "v0.1.0"),
+        }) => assert_eq!(version.tag(), "beagle-rca-v0.1.0"),
         other => panic!("unexpected parse: {other:?}"),
     }
     assert!(parse(&["update", "--version", "latest"]).is_err());

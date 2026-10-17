@@ -1,0 +1,108 @@
+name: release publish
+
+# Reusable: runs once every build for one app version succeeded. Publishes
+# the draft (make_latest=false), mirrors stable-named assets + latest.json
+# onto `beagle-<app>-latest` (scripts/release/publish.sh), then regenerates
+# that app's formula/casks in beagle-tools/homebrew-tap
+# (scripts/release/homebrew.sh). Called by release.yml only.
+on:
+  workflow_call:
+    inputs:
+      app:
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+    secrets:
+      HOMEBREW_TAP_DEPLOY_KEY:
+        required: false
+      HOMEBREW_TAP_TOKEN:
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: publish ${{ inputs.tag }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - name: publish release + update the mirror
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./scripts/release/publish.sh "${{ inputs.app }}" "${{ inputs.tag }}" "${{ inputs.version }}"
+
+  homebrew:
+    name: homebrew tap (${{ inputs.app }})
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      # Secrets can't gate `if:` directly. Prefer the SSH deploy key, fall
+      # back to a token; with neither, skip — the release itself is done.
+      - name: pick tap auth
+        id: auth
+        env:
+          DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+          TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [ -n "$DEPLOY_KEY" ]; then
+            echo "mode=ssh" >> "$GITHUB_OUTPUT"
+          elif [ -n "$TOKEN" ]; then
+            echo "mode=token" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::neither HOMEBREW_TAP_DEPLOY_KEY nor HOMEBREW_TAP_TOKEN is set — skipping the Homebrew tap update for ${{ inputs.tag }}"
+            echo "mode=none" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.auth.outputs.mode != 'none'
+        with:
+          ref: ${{ inputs.tag }}
+          path: src
+      - uses: actions/checkout@v4
+        if: steps.auth.outputs.mode == 'ssh'
+        with:
+          repository: beagle-tools/homebrew-tap
+          ssh-key: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+          path: tap
+      - uses: actions/checkout@v4
+        if: steps.auth.outputs.mode == 'token'
+        with:
+          repository: beagle-tools/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+      - name: render formula + casks
+        if: steps.auth.outputs.mode != 'none'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./src/scripts/release/homebrew.sh "${{ inputs.app }}" "${{ inputs.version }}" tap
+      - name: commit + push
+        if: steps.auth.outputs.mode != 'none'
+        working-directory: tap
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "tap already up to date"
+            exit 0
+          fi
+          git commit -m "beagle-${{ inputs.app }} ${{ inputs.version }}"
+          branch=$(git branch --show-current)
+          # Up to three apps publish in parallel into the same tap: rebase
+          # onto whatever landed meanwhile and retry (they touch disjoint files).
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:$branch"; then exit 0; fi
+            echo "push rejected (attempt $attempt) — rebasing"
+            sleep $((attempt * 3))
+            git pull --rebase origin "$branch"
+          done
+          echo "::error::could not push to homebrew-tap"
+          exit 1

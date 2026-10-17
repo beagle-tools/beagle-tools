@@ -41,6 +41,6 @@ corepack pnpm dev    # local preview
 make check-rca       # from the repo root: the full rca gate
 ```
 
-Deploy and image publishing (`web-v*` tags,
-`.github/workflows/rca-web-image.yml`) are documented in
+Deploy and image publishing (`ghcr.io/beagle-tools/beagle-rca-web`, cut with
+every `beagle-rca-v*` release) are documented in
 [`DEPLOY.md`](DEPLOY.md).

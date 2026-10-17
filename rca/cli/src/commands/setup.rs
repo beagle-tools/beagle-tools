@@ -169,6 +169,7 @@ pub(crate) fn run_skill(action: SkillAction) -> Result<(), Error> {
                             SkillStatus::Missing => {
                                 "not installed — `beagle skill install` adds it"
                             }
+                            SkillStatus::Linked => "symlinked — managed where it points",
                         }
                     } else {
                         "agent not detected here"
@@ -196,6 +197,15 @@ pub(crate) fn run_skill(action: SkillAction) -> Result<(), Error> {
             };
             for agent in targets {
                 for skill in Skill::ALL {
+                    if let Some(link) = skill::linked_target(skill, agent, &home) {
+                        println!(
+                            "- {} /{} skipped: {} is a symlink",
+                            agent.name(),
+                            skill.slug(),
+                            link.display()
+                        );
+                        continue;
+                    }
                     let path = skill::install(skill, agent, &home)?;
                     println!("✓ {} /{} → {}", agent.name(), skill.slug(), path.display());
                 }
@@ -216,7 +226,12 @@ fn offer_skill_install() {
         .into_iter()
         .filter(|a| a.is_present(&home))
         .flat_map(|agent| Skill::ALL.into_iter().map(move |skill| (skill, agent)))
-        .filter(|(skill, agent)| skill::status(*skill, *agent, &home) != SkillStatus::Current)
+        .filter(|(skill, agent)| {
+            !matches!(
+                skill::status(*skill, *agent, &home),
+                SkillStatus::Current | SkillStatus::Linked
+            )
+        })
         .collect();
     if pending.is_empty() {
         return;

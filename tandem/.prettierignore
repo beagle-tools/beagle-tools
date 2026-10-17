@@ -6,3 +6,6 @@ src-tauri/gen
 src-tauri/icons
 src-tauri/capabilities
 CHANGELOG.md
+test-results
+playwright-report
+blob-report

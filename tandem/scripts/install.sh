@@ -10,7 +10,7 @@
 set -eu
 
 REPO="beagle-tools/beagle-tools"
-BASE="https://github.com/$REPO/releases/download/tandem-latest"
+BASE="https://github.com/$REPO/releases/download/beagle-tandem-latest"
 
 say() { printf '\033[1;36m[tandem]\033[0m %s\n' "$1"; }
 fail() {
@@ -68,6 +68,6 @@ case "$os" in
     ;;
   *)
     fail "unsupported OS: $os — on Windows, run:
-  powershell -c \"irm https://raw.githubusercontent.com/$REPO/main/scripts/install.ps1 | iex\""
+  powershell -c \"irm https://raw.githubusercontent.com/$REPO/main/tandem/scripts/install.ps1 | iex\""
     ;;
 esac

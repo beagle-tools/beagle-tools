@@ -1,9 +1,11 @@
 // The top-right brand corner: the BEAGLE ASCII banner (the exact art the
-// TUI renders — see cli/src/banner.rs) and the theme toggle.
+// TUI renders — see cli/src/banner.rs), the theme toggle, and the updater
+// controls (update pill + version list).
 
 import type { JSX } from "react";
 
 import type { Theme } from "../lib/theme";
+import { VersionControls } from "./VersionControls";
 
 const BANNER = ` ___  ___    _     ___  _     ___
 | _ )| __|  /_\\   / __|| |   | __|
@@ -30,6 +32,7 @@ export function Brand({ theme, onToggleTheme }: BrandProps): JSX.Element {
       >
         {theme === "dark" ? "☀" : "☾"}
       </button>
+      <VersionControls />
     </div>
   );
 }

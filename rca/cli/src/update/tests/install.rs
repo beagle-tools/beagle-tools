@@ -24,8 +24,7 @@ fn sha_lines_parse_and_reject_non_digests() {
 #[test]
 fn install_verifies_checksum_extracts_and_swaps_the_binary() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let target = "test-target";
-    let (tarball, sha_file) = fake_release(tmp.path(), target, b"#!/bin/sh\necho new\n");
+    let (tarball, sha_file) = fake_release(tmp.path(), b"#!/bin/sh\necho new\n");
 
     let exe = tmp.path().join("bin").join("beagle");
     fs::create_dir_all(exe.parent().unwrap()).expect("bin dir");
@@ -34,7 +33,6 @@ fn install_verifies_checksum_extracts_and_swaps_the_binary() {
     install(
         &format!("file://{}", tarball.display()),
         &format!("file://{}", sha_file.display()),
-        target,
         &exe,
     )
     .expect("install succeeds");
@@ -50,8 +48,7 @@ fn install_verifies_checksum_extracts_and_swaps_the_binary() {
 #[test]
 fn install_refuses_a_tampered_tarball() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let target = "test-target";
-    let (tarball, sha_file) = fake_release(tmp.path(), target, b"legit");
+    let (tarball, sha_file) = fake_release(tmp.path(), b"legit");
     // Corrupt the tarball after the checksum was published.
     fs::write(&tarball, "tampered bytes").expect("tamper");
 
@@ -61,7 +58,6 @@ fn install_refuses_a_tampered_tarball() {
     let err = install(
         &format!("file://{}", tarball.display()),
         &format!("file://{}", sha_file.display()),
-        target,
         &exe,
     )
     .expect_err("checksum mismatch must fail the install");
@@ -73,28 +69,71 @@ fn install_refuses_a_tampered_tarball() {
     );
 }
 
-/// Builds `beagle-<target>/beagle` into a tarball with a matching
-/// `.sha256`, exactly like the release workflow does.
-fn fake_release(dir: &Path, target: &str, binary: &[u8]) -> (PathBuf, PathBuf) {
-    let pkg = dir.join(format!("beagle-{target}"));
+#[test]
+fn install_also_swaps_a_sibling_beagle_agentd() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let (tarball, sha_file) = fake_release(tmp.path(), b"new-cli");
+    let bin = tmp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin dir");
+    fs::write(bin.join("beagle"), "old-cli").expect("old cli");
+    fs::write(bin.join("beagle-agentd"), "old-daemon").expect("old daemon");
+
+    install(
+        &format!("file://{}", tarball.display()),
+        &format!("file://{}", sha_file.display()),
+        &bin.join("beagle"),
+    )
+    .expect("install succeeds");
+
+    assert_eq!(fs::read(bin.join("beagle")).expect("cli"), b"new-cli");
+    assert_eq!(
+        fs::read(bin.join("beagle-agentd")).expect("daemon"),
+        b"new-daemon"
+    );
+}
+
+#[test]
+fn install_leaves_agentd_alone_when_it_is_not_installed_beside_the_cli() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let (tarball, sha_file) = fake_release(tmp.path(), b"new-cli");
+    let bin = tmp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin dir");
+    fs::write(bin.join("beagle"), "old-cli").expect("old cli");
+
+    install(
+        &format!("file://{}", tarball.display()),
+        &format!("file://{}", sha_file.display()),
+        &bin.join("beagle"),
+    )
+    .expect("install succeeds");
+    assert!(!bin.join("beagle-agentd").exists(), "not created");
+}
+
+/// Builds a `beagle-rca-<target>.tar.gz` whose root holds `beagle` and
+/// `beagle-agentd`, with a matching `.sha256` — the release contract layout.
+fn fake_release(dir: &Path, binary: &[u8]) -> (PathBuf, PathBuf) {
+    let pkg = dir.join("pkg");
     fs::create_dir_all(&pkg).expect("pkg dir");
     fs::write(pkg.join("beagle"), binary).expect("binary");
+    fs::write(pkg.join("beagle-agentd"), "new-daemon").expect("daemon");
 
-    let tarball = dir.join(format!("beagle-{target}.tar.gz"));
+    let asset = super::super::asset_name("test-target");
+    let tarball = dir.join(&asset);
     let status = Command::new("tar")
         .args([
             "-czf",
             &tarball.to_string_lossy(),
             "-C",
-            &dir.to_string_lossy(),
-            &format!("beagle-{target}"),
+            &pkg.to_string_lossy(),
+            "beagle",
+            "beagle-agentd",
         ])
         .status()
         .expect("tar available");
     assert!(status.success(), "tar failed");
 
     let digest = sha256_of(&tarball).expect("digest");
-    let sha_file = dir.join(format!("beagle-{target}.tar.gz.sha256"));
-    fs::write(&sha_file, format!("{digest}  beagle-{target}.tar.gz\n")).expect("sha file");
+    let sha_file = dir.join(format!("{asset}.sha256"));
+    fs::write(&sha_file, format!("{digest}  {asset}\n")).expect("sha file");
     (tarball, sha_file)
 }

@@ -24,6 +24,7 @@ use anyhow::{Context, Result};
 /// Mirrors the key agentd writes when retention hits a problem. Duplicated
 /// rather than shared because agenttop depends on agent-core, not agentd.
 pub const RETENTION_PROBLEM_KEY: &str = "retention_problem";
+use clap::Parser;
 use crossterm::event::{self, Event, KeyEventKind};
 use ratatui::DefaultTerminal;
 
@@ -33,7 +34,14 @@ use crate::keys::Action;
 const POLL_TIMEOUT: Duration = Duration::from_millis(250);
 const REFRESH_EVERY: Duration = Duration::from_secs(1);
 
+/// btop-style live dashboard over the agentd store. Takes no arguments
+/// beyond `--help` / `--version`; everything else is interactive.
+#[derive(Debug, Parser)]
+#[command(name = "agenttop", version, about = "Live dashboard for agentd runs")]
+struct Cli {}
+
 fn main() -> Result<()> {
+    Cli::parse();
     // try_init installs a panic hook that restores the terminal before the
     // panic message prints; the explicit restore below covers the Err path.
     let mut terminal = ratatui::try_init().context("initialize terminal")?;

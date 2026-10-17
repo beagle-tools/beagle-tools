@@ -3,6 +3,9 @@
 # script, so a green local run is a green CI run.
 #
 #   scripts/ci/frontend.sh <package-dir>    e.g. tandem, rca/web
+#
+# The e2e step needs Playwright's Chromium: CI installs it in _frontend.yml;
+# locally `make bootstrap` does (or `pnpm exec playwright install chromium`).
 set -euo pipefail
 
 dir=${1:?usage: scripts/ci/frontend.sh <package-dir>}
@@ -21,8 +24,10 @@ echo "==> [$dir] eslint (zero warnings)"
 "${pnpm[@]}" lint
 echo "==> [$dir] typecheck"
 "${pnpm[@]}" typecheck
-echo "==> [$dir] tests"
+echo "==> [$dir] unit tests (vitest)"
 "${pnpm[@]}" test
 echo "==> [$dir] production build"
 "${pnpm[@]}" build
+echo "==> [$dir] e2e (playwright, chromium)"
+"${pnpm[@]}" e2e
 echo "OK: [$dir] frontend gate green"

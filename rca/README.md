@@ -28,7 +28,7 @@ the TUI is how it explains itself.
    `beagle new 2026-06-30-sendgrid-webhooks --title "..." --severity high`
 2. The investigation is written into that workspace as markdown sections and
    ASCII diagrams — see the data format below and
-   [`../.claude/skills/beagle/SKILL.md`](../.claude/skills/beagle/SKILL.md)
+   [`../skills/beagle/SKILL.md`](../skills/beagle/SKILL.md)
    for the authoring guide Claude follows.
 3. You keep `beagle` open in a terminal. It **watches the filesystem** and
    re-renders live as the investigation is written — no refresh needed.
@@ -54,26 +54,40 @@ deploy/     Helm chart for the web app (see web/DEPLOY.md)
 docs/       the agent-runtime guide
 ```
 
-Each component releases independently: `v*` tags cut CLI binaries (this
-is what `beagle update` tracks), `desktop-v*` tags cut desktop bundles
-(macOS dmg, Linux AppImage/deb), and `web-v*` tags publish the web image —
-grab binaries and bundles from the
-[releases page](https://github.com/matthewmyrick/beagle/releases).
+The CLI, daemon, desktop app and web image ship together as one version,
+released from `main` as `beagle-rca-vX.Y.Z` in the
+[beagle-tools monorepo](https://github.com/beagle-tools/beagle-tools/releases)
+(only when something under `rca/` changed). The rolling `beagle-rca-latest`
+release always holds the newest installers under stable names.
 
 ## Install & run
 
-From a release binary (macOS arm64/x86_64, Linux x86_64 — static musl):
+With Homebrew (macOS / Linux):
 
 ```sh
-curl -fsSL https://github.com/matthewmyrick/beagle/releases/latest/download/beagle-aarch64-apple-darwin.tar.gz \
-  | tar xz && mv beagle-*/beagle /usr/local/bin/
+brew install beagle-tools/tap/beagle-rca                  # CLI: beagle + beagle-agentd
+brew install --cask beagle-tools/tap/beagle-rca-desktop   # the desktop app (macOS)
 ```
 
-Or with cargo:
+From a release tarball (macOS arm64/x86_64, Linux x86_64 — static musl);
+the archive holds `beagle` and `beagle-agentd` at its root:
 
 ```sh
-cargo install --git https://github.com/matthewmyrick/beagle   # from GitHub
-cargo install --path cli                                         # from a checkout
+curl -fsSL https://github.com/beagle-tools/beagle-tools/releases/download/beagle-rca-latest/beagle-rca-aarch64-apple-darwin.tar.gz \
+  | tar xz -C /usr/local/bin beagle beagle-agentd
+```
+
+Swap the target for `x86_64-apple-darwin` or `x86_64-unknown-linux-musl`;
+each tarball has a `.sha256` beside it. The desktop app is
+`Beagle-macos-arm64.dmg` / `Beagle-macos-x64.dmg` /
+`Beagle-linux-x86_64.AppImage` / `Beagle-linux-amd64.deb` in the same
+release, and it updates itself in-app afterwards.
+
+Or with cargo (the repo is a monorepo, so name the packages):
+
+```sh
+cargo install --locked --git https://github.com/beagle-tools/beagle-tools beagle beagle-agentd
+cargo install --locked --path cli                          # from a checkout of rca/
 ```
 
 Then:
@@ -142,20 +156,22 @@ command = ["codex", "exec"] # argv; the prompt + write-up go to its stdin
 prompt = "~/.config/beagle/handoff-prompt.md"
 ```
 
-`beagle update` downloads the release binary for your platform, **verifies
-its sha256** against the published checksum, and atomically swaps the
-installed binary — never a half-written executable. `--version <ver>` moves
+`beagle update` downloads `beagle-rca-<target>.tar.gz` from the
+`beagle-rca-vX.Y.Z` release for your platform, **verifies its sha256** against the published checksum, and atomically swaps the
+installed binary (and a `beagle-agentd` installed beside it) — never a
+half-written executable. `--version <ver>` moves
 to any released version, older or newer, so a bad release is one command to
 back out of. `beagle version list` shows every release (latest and current
 marked); pick one with `j`/`k` + enter to install it. On platforms without
 prebuilt binaries, update via `cargo install` instead.
 
 Every beagle binary bundles the `/beagle` skill (the authoring guide agents
-follow — [`../.claude/skills/beagle/SKILL.md`](../.claude/skills/beagle/SKILL.md)).
+follow — [`../skills/beagle/SKILL.md`](../skills/beagle/SKILL.md)).
 After an update, beagle checks whether the copy installed for **Claude Code**
 (`~/.claude/skills/beagle/SKILL.md`) and **Codex**
 (`~/.codex/prompts/beagle.md`) is stale and offers to refresh it — so the
-skill tracks the binary. Run it anytime with `beagle skill install`, or check
+skill tracks the binary. A skill that is a symlink (e.g. into a checkout
+of this repo's `skills/`) is left alone. Run it anytime with `beagle skill install`, or check
 with `beagle skill status`.
 
 Keys: `j/k` navigate · `enter` open · `b` back to the list · `←/→` / `tab` /

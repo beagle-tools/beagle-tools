@@ -10,8 +10,9 @@ fn v(s: &str) -> Version {
 #[test]
 fn version_parses_with_and_without_the_v_prefix() {
     assert_eq!(v("0.2.0"), v("v0.2.0"));
+    assert_eq!(v("0.2.0"), v("beagle-rca-v0.2.0"));
     assert_eq!(v("1.12.3").to_string(), "1.12.3");
-    assert_eq!(v("0.2.0").tag(), "v0.2.0");
+    assert_eq!(v("0.2.0").tag(), "beagle-rca-v0.2.0");
 }
 
 #[test]
@@ -45,15 +46,15 @@ fn current_version_matches_the_crate() {
 #[test]
 fn releases_parse_filter_and_sort_newest_first() {
     let json = r#"[
-        {"tag_name": "v0.1.0"},
-        {"tag_name": "v0.3.0-rc1", "prerelease": true},
-        {"tag_name": "v0.4.0", "draft": true},
+        {"tag_name": "beagle-rca-v0.1.0"},
+        {"tag_name": "beagle-rca-v0.3.0-rc1", "prerelease": true},
+        {"tag_name": "beagle-rca-v0.4.0", "draft": true},
         {"tag_name": "weird-tag"},
-        {"tag_name": "v0.2.0"}
+        {"tag_name": "beagle-rca-v0.2.0"}
     ]"#;
     let releases = parse_releases(json).expect("parses");
     let tags: Vec<String> = releases.iter().map(|r| r.version.tag()).collect();
-    assert_eq!(tags, ["v0.2.0", "v0.1.0"]);
+    assert_eq!(tags, ["beagle-rca-v0.2.0", "beagle-rca-v0.1.0"]);
 }
 
 #[test]
@@ -68,21 +69,48 @@ fn non_array_release_bodies_error_with_context() {
 
 #[test]
 fn repo_slug_is_owner_slash_name() {
-    assert_eq!(repo_slug(), "matthewmyrick/beagle");
+    assert_eq!(repo_slug(), "beagle-tools/beagle-tools");
 }
 
 #[test]
-fn parse_releases_skips_desktop_tags() {
-    // The repo publishes desktop releases under desktop-v* tags in the
-    // same GitHub release list; the CLI updater must ignore them — this
-    // invariant keeps `beagle update` safe in the multi-component repo.
+fn parse_releases_keeps_only_rca_tags_from_the_monorepo() {
+    // The monorepo publishes every app's releases in one list, plus the
+    // rolling `-latest` mirrors and legacy `v*` tags; only `beagle-rca-v*`
+    // versions are installable by this CLI.
     let json = r#"[
-        {"tag_name": "desktop-v0.1.0"},
+        {"tag_name": "beagle-tandem-v0.9.0"},
+        {"tag_name": "beagle-rca-v0.30.1"},
+        {"tag_name": "beagle-rca-latest"},
+        {"tag_name": "beagle-workflows-v1.0.0"},
         {"tag_name": "v0.7.1"},
         {"tag_name": "desktop-v0.2.0"},
-        {"tag_name": "v0.7.0"}
+        {"tag_name": "beagle-rca-v0.30.0"}
     ]"#;
     let releases = parse_releases(json).expect("parses");
     let tags: Vec<String> = releases.iter().map(|r| r.version.tag()).collect();
-    assert_eq!(tags, ["v0.7.1", "v0.7.0"], "desktop tags are skipped");
+    assert_eq!(tags, ["beagle-rca-v0.30.1", "beagle-rca-v0.30.0"]);
+}
+
+#[test]
+fn from_tag_requires_the_rca_prefix() {
+    assert_eq!(Version::from_tag("beagle-rca-v1.2.3"), Some(v("1.2.3")));
+    assert_eq!(Version::from_tag("v1.2.3"), None);
+    assert_eq!(Version::from_tag("beagle-tandem-v1.2.3"), None);
+    assert_eq!(Version::from_tag("beagle-rca-latest"), None);
+}
+
+#[test]
+fn asset_names_and_urls_follow_the_release_contract() {
+    assert_eq!(
+        asset_name("aarch64-apple-darwin"),
+        "beagle-rca-aarch64-apple-darwin.tar.gz"
+    );
+    assert_eq!(
+        asset_url(
+            v("0.30.0"),
+            "beagle-rca-x86_64-unknown-linux-musl.tar.gz.sha256"
+        ),
+        "https://github.com/beagle-tools/beagle-tools/releases/download/\
+         beagle-rca-v0.30.0/beagle-rca-x86_64-unknown-linux-musl.tar.gz.sha256"
+    );
 }

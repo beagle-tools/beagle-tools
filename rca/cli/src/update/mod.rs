@@ -29,7 +29,9 @@ use crate::error::{Error, Result};
 use install::curl_stdout;
 
 /// The GitHub repository releases come from, as `owner/name`. Derived from
-/// the crate metadata so a fork updates itself from the fork.
+/// the crate metadata so a fork updates itself from the fork. The repo is a
+/// monorepo shared with other apps, so releases are filtered by
+/// [`TAG_PREFIX`].
 #[must_use]
 pub fn repo_slug() -> &'static str {
     REPO_URL
@@ -39,6 +41,24 @@ pub fn repo_slug() -> &'static str {
 
 /// The repository URL from `Cargo.toml`.
 pub const REPO_URL: &str = env!("CARGO_PKG_REPOSITORY");
+
+/// Every rca release is tagged `beagle-rca-vX.Y.Z`; other apps in the
+/// monorepo (`beagle-tandem-v…`, `beagle-workflows-v…`) are ignored.
+pub const TAG_PREFIX: &str = "beagle-rca-v";
+
+/// The release asset holding the CLI binaries (`beagle`, `beagle-agentd`)
+/// for `target`, e.g. `beagle-rca-aarch64-apple-darwin.tar.gz`. A
+/// `<asset>.sha256` file is published beside it.
+#[must_use]
+pub fn asset_name(target: &str) -> String {
+    format!("beagle-rca-{target}.tar.gz")
+}
+
+/// The download URL of `asset` in the versioned release for `version`.
+#[must_use]
+pub fn asset_url(version: Version, asset: &str) -> String {
+    format!("{REPO_URL}/releases/download/{}/{asset}", version.tag())
+}
 
 /// A released version: `MAJOR.MINOR.PATCH`. Ordered so newer sorts greater.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -63,10 +83,17 @@ impl Version {
         })
     }
 
-    /// The git tag for this version, e.g. `v0.2.0`.
+    /// The git tag for this version, e.g. `beagle-rca-v0.2.0`.
     #[must_use]
     pub fn tag(self) -> String {
-        format!("v{self}")
+        format!("{TAG_PREFIX}{self}")
+    }
+
+    /// Parses an rca release tag (`beagle-rca-vX.Y.Z`); `None` for any other
+    /// app's tag or a non-`X.Y.Z` suffix.
+    #[must_use]
+    pub fn from_tag(tag: &str) -> Option<Self> {
+        tag.strip_prefix(TAG_PREFIX)?.parse().ok()
     }
 }
 
@@ -80,7 +107,9 @@ impl FromStr for Version {
     type Err = String;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let bare = s.strip_prefix('v').unwrap_or(s);
+        // Accept what users type: `0.2.0`, `v0.2.0`, or the full tag.
+        let trimmed = s.strip_prefix(TAG_PREFIX).unwrap_or(s);
+        let bare = trimmed.strip_prefix('v').unwrap_or(trimmed);
         let mut parts = bare.split('.');
         let mut next = |name: &str| {
             parts
@@ -122,7 +151,7 @@ pub fn release_target() -> Option<&'static str> {
     }
 }
 
-/// Fetches every published (non-draft, non-prerelease) release, newest
+/// Fetches every published (non-draft, non-prerelease) rca release, newest
 /// first.
 ///
 /// # Errors
@@ -165,7 +194,7 @@ pub fn parse_releases(json: &str) -> Result<Vec<Release>> {
     let mut releases: Vec<Release> = raw
         .iter()
         .filter(|r| !r.draft && !r.prerelease)
-        .filter_map(|r| r.tag_name.parse().ok())
+        .filter_map(|r| Version::from_tag(&r.tag_name))
         .map(|version| Release { version })
         .collect();
     releases.sort_by_key(|release| std::cmp::Reverse(release.version));

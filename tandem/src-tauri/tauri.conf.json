@@ -25,9 +25,9 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQwQ0VBQjM1NDNFNjYwRDIKUldUU1lPWkROYXZPUUhzd1JnWlFqSitkeENFMVlwRkx4WVRxeUoyajRzeSsvaGI4YkYvNVFSN0gK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk4RjRCNTJBQzBENTQ1QUMKUldTc1JkWEFLclgwbUhhWVordG95TUx0bFBVYTNKSWI4dzQvSlluVjhOdVhlMVJVbDlUdlRIQk0K",
       "endpoints": [
-        "https://github.com/beagle-tools/beagle-tools/releases/download/tandem-latest/latest.json"
+        "https://github.com/beagle-tools/beagle-tools/releases/download/beagle-tandem-latest/latest.json"
       ]
     }
   },

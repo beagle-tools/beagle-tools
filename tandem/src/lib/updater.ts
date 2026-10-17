@@ -1,7 +1,7 @@
-// App self-update (via the Tauri updater plugin). Releases are cut by
-// .github/workflows/tandem-release.yml (repo root), which publishes signed update bundles
-// plus a latest.json manifest; the plugin checks that manifest against
-// the running version.
+// App self-update (via the Tauri updater plugin). Release CI (see the repo's
+// docs/SDLC.md) publishes signed update bundles plus a latest.json manifest
+// to the rolling `beagle-tandem-latest` release; the plugin checks that
+// manifest against the running version.
 
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";

@@ -51,6 +51,7 @@ dependencies = [
  "anyhow",
  "beagle-utils",
  "chrono",
+ "clap",
  "crossterm",
  "ratatui",
  "serde_json",

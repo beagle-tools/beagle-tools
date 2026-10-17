@@ -5,3 +5,6 @@ src-tauri/gen
 node_modules
 pnpm-lock.yaml
 Cargo.lock
+test-results
+playwright-report
+blob-report

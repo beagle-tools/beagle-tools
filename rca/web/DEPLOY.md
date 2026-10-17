@@ -92,6 +92,7 @@ own Secret and pass `--set auth.existingSecret=<name>`. See
 
 ## Publishing the image (GHCR)
 
-Pushing a `web-v*` tag builds and publishes the image to
-`ghcr.io/<owner>/beagle-web` (`.github/workflows/rca-web-image.yml`) — the
-web analog of the `v*` (CLI) and `desktop-v*` (desktop) release flows.
+Every rca release (`beagle-rca-vX.Y.Z`, cut from `main` by the repo's
+release automation) publishes the image as
+`ghcr.io/beagle-tools/beagle-rca-web:X.Y.Z` and `:latest`, alongside the CLI
+and desktop builds of the same version.

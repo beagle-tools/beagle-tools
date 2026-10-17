@@ -7,3 +7,7 @@ node_modules/
 # vite/astro cache
 .vercel/
 *.local
+
+# Playwright output
+test-results/
+playwright-report/

@@ -6,6 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 import type {
   AgentNode,
+  AppRelease,
   AgentSpec,
   ForestRow,
   Link,
@@ -44,6 +45,9 @@ export const ipc = {
 
   runLinks: (id: string): Promise<Link[]> => invoke<Link[]>("run_links", { id }),
   readMarkdown: (path: string): Promise<string> => invoke<string>("read_markdown", { path }),
+
+  listAppReleases: (): Promise<AppRelease[]> => invoke<AppRelease[]>("list_app_releases"),
+  installAppVersion: (tag: string): Promise<null> => invoke<null>("install_app_version", { tag }),
 };
 
 // Tauri returns our AppError struct, so an IPC failure arrives as

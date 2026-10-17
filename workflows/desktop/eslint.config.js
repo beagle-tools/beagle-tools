@@ -14,5 +14,8 @@ export default [
     globals,
     reactHooks,
     tsconfigRootDir: import.meta.dirname,
+    // Playwright specs are typed TS under the same rules as the app.
+    files: ["src/**/*.{ts,tsx}", "e2e/**/*.ts"],
+    ignores: ["test-results", "playwright-report", "blob-report"],
   }),
 ];

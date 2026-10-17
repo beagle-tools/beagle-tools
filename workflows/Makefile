@@ -1,4 +1,4 @@
-.PHONY: build check fmt clippy test install restart-daemon clean
+.PHONY: build check fmt clippy test install install-daemon restart-daemon clean
 
 build:
 	cargo build --workspace
@@ -27,6 +27,14 @@ install:
 	cargo install --path crates/agentctl
 	cargo install --path crates/agenttop
 	@$(MAKE) --no-print-directory restart-daemon
+
+# First-time setup (or to repair the unit): render the launchd plist for the
+# agentd that `make install` just put in ~/.cargo/bin, unpack the notification
+# icons, build the branded notifiers, and load the daemon. The plist template,
+# icons and scripts/build-notifier.sh are embedded in agentctl, so this is the
+# same command a brew install runs.
+install-daemon:
+	agentctl daemon install
 
 # Two kickstarts, 12s apart, before giving up. One attempt was still too few:
 # with `cargo install` hammering the disk and two chains running, launchd
@@ -74,5 +82,5 @@ restart-daemon:
 			exit 1; \
 		fi; \
 	else \
-		echo "  agentd is not managed by launchd here — restart it yourself if it is running"; \
+		echo "  agentd is not managed by launchd here — run 'make install-daemon' to set it up"; \
 	fi

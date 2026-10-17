@@ -11,6 +11,7 @@ fn plist_has_label_program_and_keepalive() {
         label: "com.beagle.agentd".to_string(),
         program: PathBuf::from("/usr/local/bin/beagle-agentd"),
         log_dir: PathBuf::from("/home/me/.local/state/beagle-agent/logs"),
+        path: "/opt/homebrew/bin:/usr/bin".to_string(),
     });
 
     assert!(plist.contains("<string>com.beagle.agentd</string>"));
@@ -28,7 +29,7 @@ fn plist_has_label_program_and_keepalive() {
 
 #[test]
 fn unit_has_execstart_and_restart() {
-    let unit = render_unit(&PathBuf::from("/usr/local/bin/beagle-agentd"));
+    let unit = render_unit(&PathBuf::from("/usr/local/bin/beagle-agentd"), "/usr/bin");
     assert!(unit.contains("ExecStart=/usr/local/bin/beagle-agentd"));
     assert!(unit.contains("Restart=always"));
     // Starts on login.
@@ -36,6 +37,47 @@ fn unit_has_execstart_and_restart() {
     assert!(unit.starts_with("[Unit]"));
     assert!(unit.contains("[Service]"));
     assert!(unit.contains("[Install]"));
+}
+
+#[test]
+fn plist_sets_the_daemon_path_so_it_finds_gh_and_claude() {
+    let plist = render_plist(&LaunchdConfig {
+        label: "com.beagle.agentd".to_string(),
+        program: PathBuf::from("/opt/homebrew/bin/beagle-agentd"),
+        log_dir: PathBuf::from("/tmp/logs"),
+        path: "/opt/homebrew/bin:/Users/me/.local/bin:/usr/bin:/bin".to_string(),
+    });
+    assert!(
+        plist.contains(
+            "<key>EnvironmentVariables</key>\n    <dict>\n        <key>PATH</key>\n        \
+             <string>/opt/homebrew/bin:/Users/me/.local/bin:/usr/bin:/bin</string>\n    </dict>"
+        ),
+        "{plist}"
+    );
+}
+
+#[test]
+fn plist_escapes_xml_in_paths() {
+    let plist = render_plist(&LaunchdConfig {
+        label: "com.beagle.agentd".to_string(),
+        program: PathBuf::from("/Users/a&b/bin/beagle-agentd"),
+        log_dir: PathBuf::from("/tmp/logs"),
+        path: "/x<y>:/bin".to_string(),
+    });
+    assert!(plist.contains("<string>/Users/a&amp;b/bin/beagle-agentd</string>"));
+    assert!(plist.contains("<string>/x&lt;y&gt;:/bin</string>"));
+}
+
+#[test]
+fn unit_sets_a_quoted_path_environment() {
+    let unit = render_unit(
+        &PathBuf::from("/usr/local/bin/beagle-agentd"),
+        "/opt/homebrew/bin:/home/me/100%/bin:/usr/bin",
+    );
+    assert!(
+        unit.contains("Environment=\"PATH=/opt/homebrew/bin:/home/me/100%%/bin:/usr/bin\"\n"),
+        "{unit}"
+    );
 }
 
 #[test]

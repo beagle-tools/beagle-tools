@@ -6,7 +6,28 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- rca now ships as one version (CLI, daemon, desktop, web) from the
+  `beagle-tools/beagle-tools` monorepo, tagged `beagle-rca-vX.Y.Z`.
+  `beagle update` / `beagle version list` only consider those tags and
+  download `beagle-rca-<target>.tar.gz` (which also refreshes a
+  `beagle-agentd` installed beside `beagle`).
+- `beagle skill install` leaves symlinked skills alone (e.g. links into a
+  checkout's `skills/`) instead of overwriting the link target.
+
+### Added
+
+- Desktop in-app updates: an update pill in the header (checked on launch,
+  every 30 minutes and on focus) and a version list for installing any
+  `beagle-rca-v*` release, including rollbacks.
+
 ### Fixed
+
+- `beagle agent install` now writes `PATH` into the launchd plist /
+  systemd unit, so the daemon finds `gh` and `claude` instead of running
+  with launchd's bare `/usr/bin:/bin:/usr/sbin:/sbin`. Re-run
+  `beagle agent install` to pick it up.
 
 - The desktop app now finds `gh` (live PR states) when launched from
   Finder/the Dock: `gh` is resolved on an augmented `PATH` (Homebrew,

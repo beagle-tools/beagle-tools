@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Build one branded notifier app per image in assets/notify/*.png. macOS only
-# shows a notification icon that comes from the sending app's bundle, so
+# Build one branded notifier app per image in assets/notify/*.png (or in
+# $AGENTD_NOTIFY_ICONS_DIR — `agentctl daemon install` embeds this script and
+# points it at the icons it unpacked, so brew installs need no repo checkout).
+# macOS only shows a notification icon that comes from the sending app's bundle, so
 # "different icon per pipeline" means "different app per icon". Each gets its
 # own bundle id → its own one-time Allow prompt in System Settings.
 #
@@ -9,7 +11,7 @@
 # file; drop a png here and re-run to add a brand.
 set -euo pipefail
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ICONS_DIR="${AGENTD_NOTIFY_ICONS_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/assets/notify}"
 DEST_DIR="${AGENTD_STATE_DIR:-$HOME/.local/state/agentd}/notifier"
 
 SRC="$(brew --prefix terminal-notifier 2>/dev/null)/terminal-notifier.app"
@@ -22,7 +24,7 @@ mkdir -p "$DEST_DIR"
 TMP_ROOT="$(mktemp -d)"
 trap 'rm -rf "$TMP_ROOT"' EXIT
 
-for png in "$REPO"/assets/notify/*.png; do
+for png in "$ICONS_DIR"/*.png; do
   stem="$(basename "$png" .png)"
   app="$DEST_DIR/$stem.app"
 

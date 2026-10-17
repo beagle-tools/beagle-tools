@@ -22,7 +22,7 @@ const RUST_WORKSPACES = [
   "workflows/desktop",
 ];
 const FRONTENDS = ["tandem", "rca/desktop", "rca/web", "workflows/desktop"];
-const REQUIRED_SCRIPTS = ["format:check", "lint", "typecheck", "test", "build"];
+const REQUIRED_SCRIPTS = ["format:check", "lint", "typecheck", "test", "build", "e2e"];
 const SKIP_DIRS = new Set([".git", "target", "node_modules", "dist", ".astro", "gen"]);
 
 function walk(dir, out = []) {
@@ -118,6 +118,17 @@ for (const app of FRONTENDS) {
   }
   if (!pkg.scripts?.lint?.includes("--max-warnings 0")) {
     fail(`${app}/package.json: lint must run with --max-warnings 0`);
+  }
+  // Testing contract (docs/TESTING.md): vitest for unit tests, Playwright
+  // (Chromium) for e2e, configured at the package root.
+  if (pkg.scripts?.test && !/\bvitest\b/.test(pkg.scripts.test)) {
+    fail(`${app}/package.json: "test" must run vitest`);
+  }
+  if (pkg.scripts?.e2e && !/\bplaywright test\b/.test(pkg.scripts.e2e)) {
+    fail(`${app}/package.json: "e2e" must run \`playwright test\``);
+  }
+  if (!existsSync(join(root, app, "playwright.config.ts"))) {
+    fail(`${app}/playwright.config.ts: missing (see docs/TESTING.md)`);
   }
   if (!existsSync(join(root, app, "pnpm-lock.yaml"))) fail(`${app}: missing pnpm-lock.yaml`);
   if (existsSync(join(root, app, "package-lock.json"))) {

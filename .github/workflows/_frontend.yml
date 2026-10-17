@@ -34,4 +34,23 @@ jobs:
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: pnpm-${{ runner.os }}-${{ inputs.dir }}-${{ hashFiles(format('{0}/pnpm-lock.yaml', inputs.dir)) }}
+      - name: install dependencies (frozen lockfile)
+        working-directory: ${{ inputs.dir }}
+        run: pnpm install --frozen-lockfile
+      - name: locate playwright version
+        id: playwright
+        shell: bash
+        working-directory: ${{ inputs.dir }}
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - name: playwright browser cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-${{ steps.playwright.outputs.version }}
+      # Runs even on a cache hit: --with-deps also installs the apt packages
+      # Chromium needs, which the cache can't hold. The download is skipped
+      # when the cached browser is already present.
+      - name: install playwright chromium
+        working-directory: ${{ inputs.dir }}
+        run: pnpm exec playwright install --with-deps chromium
       - run: ./scripts/ci/frontend.sh "${{ inputs.dir }}"

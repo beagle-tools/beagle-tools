@@ -5,9 +5,11 @@
 
 mod apply;
 mod cli;
+mod daemon;
 mod fmt;
 mod get;
 mod job;
+mod launchd;
 mod logs;
 mod preflight;
 mod run_cmd;
@@ -19,7 +21,7 @@ use agent_core::state::Store;
 use anyhow::Result;
 use clap::Parser;
 
-use crate::cli::{Cli, Command, GetResource};
+use crate::cli::{Cli, Command, DaemonAction, GetResource};
 
 fn main() -> ExitCode {
     match dispatch(Cli::parse()) {
@@ -90,6 +92,11 @@ fn dispatch(cli: Cli) -> Result<ExitCode> {
         Command::Kill { run_id } => run_cmd::kill(&Store::open_default()?, &run_id)?,
         Command::Attach { run_id } => run_cmd::attach(&Store::open_default()?, &run_id)?,
         Command::Status => status::status(&Store::open_default()?)?,
+        Command::Daemon { action } => match action {
+            DaemonAction::Install { print } => daemon::install(print)?,
+            DaemonAction::Restart => daemon::restart()?,
+            DaemonAction::Uninstall => daemon::uninstall()?,
+        },
     }
     Ok(ExitCode::SUCCESS)
 }

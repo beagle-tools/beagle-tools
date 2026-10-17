@@ -23,5 +23,7 @@ export default defineConfig({
 
   test: {
     environment: "jsdom",
+    // e2e/*.spec.ts are Playwright's (`pnpm e2e`), not vitest's.
+    include: ["src/**/*.test.{ts,tsx}"],
   },
 });

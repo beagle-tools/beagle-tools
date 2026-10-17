@@ -14,7 +14,8 @@ export default [
     tseslint,
     globals,
     tsconfigRootDir: import.meta.dirname,
-    files: ["src/**/*.ts"],
+    // Playwright specs are typed TS under the same rules as the site.
+    files: ["src/**/*.ts", "e2e/**/*.ts"],
   }),
   ...astro.configs.recommended,
   {

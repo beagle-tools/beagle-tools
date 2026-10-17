@@ -1,7 +1,7 @@
 //! The bundled beagle skills and installing them for coding agents.
 //!
 //! Each skill's markdown is embedded into the binary at compile time from
-//! the repo's canonical `.claude/skills/<slug>/SKILL.md`, so a release
+//! the repo's canonical `skills/<slug>/SKILL.md`, so a release
 //! carries a snapshot and `beagle update` can offer to install or refresh
 //! them wherever an agent looks — Claude Code
 //! (`~/.claude/skills/<slug>/SKILL.md`) and Codex
@@ -40,15 +40,15 @@ impl Skill {
     #[must_use]
     pub fn markdown(self) -> &'static str {
         match self {
-            Self::Beagle => include_str!("../../../.claude/skills/beagle/SKILL.md"),
-            Self::Review => include_str!("../../../.claude/skills/beagle-review/SKILL.md"),
+            Self::Beagle => include_str!("../../../skills/beagle/SKILL.md"),
+            Self::Review => include_str!("../../../skills/beagle-review/SKILL.md"),
         }
     }
 }
 
 /// The `/beagle` skill markdown. Retained for callers that want the primary
 /// skill directly; equivalent to `Skill::Beagle.markdown()`.
-pub const SKILL_MD: &str = include_str!("../../../.claude/skills/beagle/SKILL.md");
+pub const SKILL_MD: &str = include_str!("../../../skills/beagle/SKILL.md");
 
 /// A coding agent beagle can install its skills for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -125,12 +125,35 @@ pub enum SkillStatus {
     Outdated,
     /// The installed skill matches the bundled version.
     Current,
+    /// The skill file (or, for Claude, its skill directory) is a symlink —
+    /// typically into a checkout of the repo's `skills/` dir. It is managed
+    /// there, so beagle never writes through it.
+    Linked,
+}
+
+/// The symlink that makes `skill` for `agent` externally managed, if any:
+/// the skill file itself or (for Claude) the `<slug>/` directory holding
+/// it. Writing through either would overwrite the link's target — e.g. a
+/// repo checkout — with this binary's snapshot.
+#[must_use]
+pub fn linked_target(skill: Skill, agent: Agent, home: &Path) -> Option<PathBuf> {
+    let file = agent.skill_path(skill, home);
+    let mut candidates = vec![file.clone()];
+    if agent == Agent::Claude {
+        candidates.extend(file.parent().map(Path::to_path_buf));
+    }
+    candidates.into_iter().find(|path| {
+        std::fs::symlink_metadata(path).is_ok_and(|meta| meta.file_type().is_symlink())
+    })
 }
 
 /// Compares the on-disk copy of `skill` for `agent` against the bundled
 /// content.
 #[must_use]
 pub fn status(skill: Skill, agent: Agent, home: &Path) -> SkillStatus {
+    if linked_target(skill, agent, home).is_some() {
+        return SkillStatus::Linked;
+    }
     match std::fs::read_to_string(agent.skill_path(skill, home)) {
         Ok(existing) if existing == agent.content(skill) => SkillStatus::Current,
         Ok(_) => SkillStatus::Outdated,
@@ -139,10 +162,21 @@ pub fn status(skill: Skill, agent: Agent, home: &Path) -> SkillStatus {
 }
 
 /// Writes the bundled `skill` for `agent`, creating parent directories.
+/// Refuses a symlinked target ([`SkillStatus::Linked`]); callers skip those.
 ///
 /// # Errors
-/// [`Error::Io`] if the directories or file cannot be written.
+/// [`Error::Tool`] when the target is a symlink, [`Error::Io`] if the
+/// directories or file cannot be written.
 pub fn install(skill: Skill, agent: Agent, home: &Path) -> Result<PathBuf> {
+    if let Some(link) = linked_target(skill, agent, home) {
+        return Err(Error::Tool {
+            tool: "skill",
+            message: format!(
+                "`{}` is a symlink; it is managed where it points, so beagle leaves it alone",
+                link.display()
+            ),
+        });
+    }
     let path = agent.skill_path(skill, home);
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| Error::io(parent, e))?;

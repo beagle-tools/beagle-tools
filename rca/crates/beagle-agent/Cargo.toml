@@ -1,11 +1,11 @@
 [package]
 name = "beagle-agent"
-version = "0.1.0"
+version = "0.29.0"
 edition = "2021"
 rust-version = "1.79"
 description = "Engine for beagle's native agent runtime: config, state, poller, worktree, runner, and IPC."
 license = "MIT"
-repository = "https://github.com/matthewmyrick/beagle"
+repository = "https://github.com/beagle-tools/beagle-tools"
 
 [dependencies]
 beagle-utils = { path = "../../../utils" }

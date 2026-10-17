@@ -11,7 +11,19 @@ change code in an app.
 | `workflows/` | agentd: a scheduled agent-job daemon with CLIs/TUI (`crates/`) and the Agentdesk desktop app (`desktop/`) | `workflows/AGENTS.md` |
 | `utils/` | `beagle-utils`: Rust helpers shared by two or more apps | `utils/README.md` |
 | `standards/`, `scripts/`, root configs | Shared lint, format, compiler and CI configuration | `docs/CODING_STANDARDS.md` |
-| `.claude/skills/` | The `beagle` / `beagle-review` skills (rca authoring); embedded into the rca binary | `rca/AGENTS.md` |
+| `skills/` | Agent skills: `beagle-create-issue`, `beagle-complete-issue`, and rca's `beagle` / `beagle-review` (embedded into the rca binary). `.claude/skills/*` symlink here | `skills/README.md` |
+| `packaging/`, `scripts/release/` | Homebrew formulas and casks, plus the per-app release pipeline | `docs/RELEASING.md` |
+
+## How work flows
+
+Read the doc for the stage you are in:
+
+| Stage | Doc |
+|---|---|
+| Spec work as GitHub issues → implement → PR → merge → release | [`docs/SDLC.md`](docs/SDLC.md) (skills: `beagle-create-issue`, `beagle-complete-issue`) |
+| What to test, and how test selection works | [`docs/TESTING.md`](docs/TESTING.md) |
+| Running apps locally, browser mode with mocked IPC, tooling setup | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) |
+| What a merge releases, versions, tags, in-app updates, brew | [`docs/RELEASING.md`](docs/RELEASING.md) |
 
 ## Rules that apply to every app
 
@@ -33,22 +45,29 @@ change code in an app.
    create a `package-lock.json`.
 5. **Each cargo workspace has its own `Cargo.lock`.** CI builds with
    `--locked`, so commit lockfile changes along with the dependency change.
+6. **Every PR carries a `release:*` label** when it changes an app:
+   `release:patch` (the default), `release:minor` or `release:major`. Merging
+   to `main` releases only the apps the PR changed, as
+   `beagle-<app>-vX.Y.Z` (see `docs/RELEASING.md`).
 
 ## Verify before you finish
 
 Run these from the repo root. Each runs exactly what CI runs:
 
 ```sh
-make standards          # 400-line rule + shared-config drift
+make standards          # 400-line rule, shared-config drift, CI-script tests
 make check-tandem       # or check-rca / check-workflows / check-utils
+make test-affected      # only the cargo tests your change affects (vs origin/main)
+make e2e-tandem         # Playwright for one frontend (see docs/TESTING.md)
 make check              # everything
 ```
 
 The scripts behind these:
 - `scripts/ci/rust.sh <dir>`: fmt, clippy `-D warnings`, test, and doc
-  `-D warnings`, all `--locked`.
+  `-D warnings`, all `--locked`. With `AFFECTED_BASE=<ref>` (which CI sets on
+  PRs), it tests only the affected packages and their dependents.
 - `scripts/ci/frontend.sh <dir>`: frozen install, prettier, eslint, tsc,
-  vitest and build.
+  vitest, build and Playwright e2e.
 
 ## Cargo workspaces and frontends (all gated in CI)
 

@@ -8,5 +8,13 @@ import tseslint from "typescript-eslint";
 import strictConfig from "../../standards/eslint.base.js";
 
 export default [
-  ...strictConfig({ js, tseslint, globals, reactHooks, tsconfigRootDir: import.meta.dirname }),
+  ...strictConfig({
+    js,
+    tseslint,
+    globals,
+    reactHooks,
+    tsconfigRootDir: import.meta.dirname,
+    // Playwright specs are typed TS under the same rules as the app.
+    files: ["src/**/*.{ts,tsx}", "e2e/**/*.ts"],
+  }),
 ];

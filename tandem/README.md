@@ -72,20 +72,18 @@ sequenceDiagram
 
 ## Install
 
-One-time install; after that Tandem updates itself in-app (an update
-pill appears in the header, and settings → Version can switch or roll
-back to any release).
+Install once; after that Tandem updates itself in-app.
+
+**macOS — Homebrew**
+
+```sh
+brew install --cask beagle-tools/tap/beagle-tandem
+```
 
 **macOS / Linux — one-liner**
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/beagle-tools/beagle-tools/main/tandem/scripts/install.sh | sh
-```
-
-**macOS — Homebrew**
-
-```sh
-brew install --cask matthewmyrick/tap/tandem
 ```
 
 **Windows — one-liner**
@@ -94,16 +92,29 @@ brew install --cask matthewmyrick/tap/tandem
 powershell -c "irm https://raw.githubusercontent.com/beagle-tools/beagle-tools/main/tandem/scripts/install.ps1 | iex"
 ```
 
-**Direct downloads** (stable links, always the latest release):
-[macOS arm64](https://github.com/beagle-tools/beagle-tools/releases/download/tandem-latest/Tandem-macos-arm64.dmg) ·
-[macOS x64](https://github.com/beagle-tools/beagle-tools/releases/download/tandem-latest/Tandem-macos-x64.dmg) ·
-[Windows](https://github.com/beagle-tools/beagle-tools/releases/download/tandem-latest/Tandem-windows-x64-setup.exe) ·
-[Linux AppImage](https://github.com/beagle-tools/beagle-tools/releases/download/tandem-latest/Tandem-linux-x86_64.AppImage) ·
-[Linux deb](https://github.com/beagle-tools/beagle-tools/releases/download/tandem-latest/Tandem-linux-amd64.deb) —
-or browse [all releases](https://github.com/beagle-tools/beagle-tools/releases?q=tandem-v).
+**Direct downloads** (stable links that always point at the latest
+release, served from the rolling `beagle-tandem-latest` release):
+
+| Platform            | Asset                                                                                                                                              |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS Apple silicon | [`Tandem-macos-arm64.dmg`](https://github.com/beagle-tools/beagle-tools/releases/download/beagle-tandem-latest/Tandem-macos-arm64.dmg)             |
+| macOS Intel         | [`Tandem-macos-x64.dmg`](https://github.com/beagle-tools/beagle-tools/releases/download/beagle-tandem-latest/Tandem-macos-x64.dmg)                 |
+| Windows x64         | [`Tandem-windows-x64-setup.exe`](https://github.com/beagle-tools/beagle-tools/releases/download/beagle-tandem-latest/Tandem-windows-x64-setup.exe) |
+| Linux AppImage      | [`Tandem-linux-x86_64.AppImage`](https://github.com/beagle-tools/beagle-tools/releases/download/beagle-tandem-latest/Tandem-linux-x86_64.AppImage) |
+| Linux deb           | [`Tandem-linux-amd64.deb`](https://github.com/beagle-tools/beagle-tools/releases/download/beagle-tandem-latest/Tandem-linux-amd64.deb)             |
+
+Every version is also its own release, tagged `beagle-tandem-vX.Y.Z`:
+[browse them](https://github.com/beagle-tools/beagle-tools/releases?q=beagle-tandem-v).
+
+**Updating.** Tandem checks for a new release on launch, every 30
+minutes and when the window regains focus. When one exists, an
+**update** button appears in the header: one click downloads the signed
+bundle, installs it and restarts. **Settings › Version** lists every
+published release and can switch to any of them, including rolling back
+to an older one. Every bundle is signature-checked either way.
 
 > macOS note: builds aren't notarized yet. The install script and the
-> Homebrew cask handle the quarantine flag for you; for a manual dmg
+> Homebrew cask clear the quarantine flag for you; for a manual dmg
 > install, right-click → Open on first launch.
 
 ## Building from source

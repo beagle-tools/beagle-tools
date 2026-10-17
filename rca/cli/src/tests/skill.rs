@@ -116,3 +116,49 @@ fn is_present_follows_the_config_directory() {
     assert!(Agent::Claude.is_present(home));
     assert!(!Agent::Codex.is_present(home));
 }
+
+#[cfg(unix)]
+#[test]
+fn install_refuses_to_write_through_a_symlinked_skill_dir() {
+    let home = tempfile::tempdir().expect("home");
+    let checkout = tempfile::tempdir().expect("checkout");
+    // A repo checkout's `skills/beagle/SKILL.md`, linked into ~/.claude/skills.
+    let repo_skill = checkout.path().join("skills").join("beagle");
+    std::fs::create_dir_all(&repo_skill).expect("repo skill dir");
+    std::fs::write(repo_skill.join("SKILL.md"), "repo copy").expect("repo skill");
+    let skills_dir = home.path().join(".claude").join("skills");
+    std::fs::create_dir_all(&skills_dir).expect("skills dir");
+    std::os::unix::fs::symlink(&repo_skill, skills_dir.join("beagle")).expect("symlink");
+
+    assert_eq!(
+        status(Skill::Beagle, Agent::Claude, home.path()),
+        SkillStatus::Linked
+    );
+    let err = install(Skill::Beagle, Agent::Claude, home.path()).expect_err("refused");
+    assert!(err.to_string().contains("symlink"), "{err}");
+    assert_eq!(
+        std::fs::read_to_string(repo_skill.join("SKILL.md")).expect("read"),
+        "repo copy",
+        "the checkout is untouched"
+    );
+    // Unlinked skills still install normally.
+    install(Skill::Review, Agent::Claude, home.path()).expect("review installs");
+}
+
+#[cfg(unix)]
+#[test]
+fn install_refuses_a_symlinked_skill_file() {
+    let home = tempfile::tempdir().expect("home");
+    let target = home.path().join("elsewhere.md");
+    std::fs::write(&target, "mine").expect("target");
+    let prompts = home.path().join(".codex").join("prompts");
+    std::fs::create_dir_all(&prompts).expect("prompts");
+    std::os::unix::fs::symlink(&target, prompts.join("beagle.md")).expect("symlink");
+
+    assert_eq!(
+        status(Skill::Beagle, Agent::Codex, home.path()),
+        SkillStatus::Linked
+    );
+    assert!(install(Skill::Beagle, Agent::Codex, home.path()).is_err());
+    assert_eq!(std::fs::read_to_string(&target).expect("read"), "mine");
+}

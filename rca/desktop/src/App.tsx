@@ -24,6 +24,7 @@ import "./styles/content.css";
 import "./styles/overlays.css";
 import "./styles/prs.css";
 import "./styles/agents.css";
+import "./styles/updates.css";
 
 export default function App(): JSX.Element {
   const { theme, toggleTheme } = useTheme();

@@ -10,3 +10,4 @@ pub mod links;
 pub mod logs;
 pub mod pipelines;
 pub mod runs;
+pub mod updates;

@@ -145,17 +145,22 @@ Whatever the model:
 - `kill_on_drop` or explicit group-kill, so no child process is orphaned.
 
 ### Tests
-- New parsing, caching, persistence and process logic ships with unit tests.
-- **Every bug fix ships with a regression test.**
-- Tests never touch the network. They never touch the real filesystem
-  outside `tempfile` directories _(from rca)_. They never need a TTY and never
-  sleep _(from rca)_.
-- Data models get serde round-trip tests plus tests that invalid input is
-  rejected. _(from rca)_
-- Layout: use an inline `#[cfg(test)] mod tests` while it fits the 400-line
-  rule. Otherwise use a sibling file wired with
-  `#[cfg(test)] #[path = "tests/<module>.rs"] mod tests;`. Cross-module tests
-  go in the crate's top-level `tests/`.
+Full strategy, per-crate-type guidance and the checklist:
+[`TESTING.md`](TESTING.md). The rules:
+- New logic ships with unit tests. **Every bug fix ships with a regression
+  test** that fails without the fix.
+- No network, no sleeping, no TTY, no real filesystem outside `tempfile`
+  dirs. _(from rca)_
+- Data models get serde round-trip tests plus invalid-input rejection tests;
+  IPC types get a test pinning their JSON. _(from rca)_
+- Parsers and formatters get `proptest` properties where an invariant holds
+  for all inputs.
+- Unit tests beside the code (`#[cfg(test)] mod tests`, or
+  `#[path = "tests/<module>.rs"]` once the file nears 400 lines);
+  cross-module tests in the crate's `tests/`; doc-tests on public `utils/`
+  APIs.
+- Put a test in the crate that owns the behavior: PRs only run tests for the
+  affected packages and their dependents.
 
 ### Dependencies _(from rca)_
 A new runtime dependency needs a reason in the PR description: what it does,
@@ -211,10 +216,16 @@ already in the app's lockfile.
 - No floating promises: every promise is awaited or explicitly handled.
 
 ### Tests _(from rca)_
-- Every app has a `test` script (vitest), and CI runs it.
-- Pure logic in `src/lib/` gets unit tests. Components with behavior get
-  render tests (`@testing-library/react`).
-- No snapshot tests: they assert everything and therefore nothing.
+Full strategy: [`TESTING.md`](TESTING.md). The rules:
+- `test` runs vitest; `e2e` runs Playwright (Chromium) from
+  `playwright.config.ts` at the package root. Both run in CI.
+- Pure logic in `src/lib/` gets unit tests; type guards get accept and reject
+  cases. Components with behavior get `@testing-library/react` tests that
+  query by role/label/text.
+- Tauri frontends run e2e against `vite --mode e2e`, which installs `mockIPC`
+  fixtures (never in the production bundle). An IPC change updates the TS
+  type, its guard test and the e2e fixture in the same PR.
+- No snapshot tests, no `.only`/`.skip`, no fixed sleeps.
 
 ## 4. Workflow
 

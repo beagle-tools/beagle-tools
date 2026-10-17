@@ -104,7 +104,7 @@ pub enum Error {
     /// No prebuilt release binary exists for this platform.
     #[error(
         "no prebuilt binary for {target}; install from source instead: \
-         cargo install --git {repo}"
+         cargo install --git {repo} beagle"
     )]
     UnsupportedTarget {
         /// The compile-time target triple.

@@ -75,7 +75,7 @@ enabled = true
 trigger = { kind = "rca-status", status = "agent" }
 
 # The git repository the agent implements changes in. `~/` is expanded.
-target_repo = "~/GitHub/matthewmyrick/beagle"
+target_repo = "~/GitHub/beagle-tools/beagle-tools"
 
 # A custom prompt file handed to the headless claude session (see below).
 prompt = "~/.config/beagle/prompts/rca-remediation.txt"

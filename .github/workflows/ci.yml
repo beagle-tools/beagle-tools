@@ -8,6 +8,11 @@ name: ci
 #
 # Every app gets the same checks from the same scripts (scripts/ci/*.sh,
 # scripts/check-*.{sh,mjs}); `make check` runs them identically locally.
+#
+# Two levels of selection: `changes` skips whole apps a PR doesn't touch;
+# inside a Rust gate that runs, pull requests test only the cargo packages
+# the diff affects (scripts/ci/affected.mjs, see docs/TESTING.md). Pushes to
+# main test every package of every gated workspace.
 on:
   push:
     branches: [main]
@@ -56,6 +61,7 @@ jobs:
               - *shared
               - "rca/**"
               - ".claude/skills/**"
+              - "skills/**"
             workflows:
               - *shared
               - "workflows/**"
@@ -70,12 +76,15 @@ jobs:
           node-version-file: .nvmrc
       - run: ./scripts/check-file-length.sh
       - run: node scripts/check-standards.mjs
+      - name: unit tests for the CI scripts (test selection)
+        run: node --test scripts/ci/*.test.mjs
 
   utils:
     needs: changes
     if: needs.changes.outputs.utils == 'true'
     uses: ./.github/workflows/_rust.yml
     with:
+      affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
       dir: utils
 
   tandem-rust:
@@ -83,6 +92,7 @@ jobs:
     if: needs.changes.outputs.tandem == 'true'
     uses: ./.github/workflows/_rust.yml
     with:
+      affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
       dir: tandem
       tauri: true
 
@@ -98,6 +108,7 @@ jobs:
     if: needs.changes.outputs.rca == 'true'
     uses: ./.github/workflows/_rust.yml
     with:
+      affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
       dir: rca
 
   rca-desktop-rust:
@@ -105,6 +116,7 @@ jobs:
     if: needs.changes.outputs.rca == 'true'
     uses: ./.github/workflows/_rust.yml
     with:
+      affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
       dir: rca/desktop/src-tauri
       tauri: true
 
@@ -127,6 +139,7 @@ jobs:
     if: needs.changes.outputs.workflows == 'true'
     uses: ./.github/workflows/_rust.yml
     with:
+      affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
       dir: workflows
 
   workflows-desktop-rust:
@@ -134,6 +147,7 @@ jobs:
     if: needs.changes.outputs.workflows == 'true'
     uses: ./.github/workflows/_rust.yml
     with:
+      affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
       dir: workflows/desktop
       tauri: true
 

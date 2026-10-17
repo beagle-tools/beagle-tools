@@ -4,6 +4,8 @@ import { DagPage } from "./components/DagPage";
 import { JobLauncher } from "./components/JobLauncher";
 import { JobPage } from "./components/JobPage";
 import { JobsPage } from "./components/JobsPage";
+import { UpdateButton } from "./components/UpdateButton";
+import { VersionButton } from "./components/Versions";
 import { useShortcuts } from "./lib/shortcuts";
 import type { PipelineSummary } from "./lib/types";
 import { useStore } from "./state/store";
@@ -96,6 +98,8 @@ export default function App(): ReactElement {
                 .flatMap((p) => p.active_steps)
                 .join(", ")}`}
         </span>
+        <UpdateButton />
+        <VersionButton />
         <button
           className="primary"
           onClick={() => {

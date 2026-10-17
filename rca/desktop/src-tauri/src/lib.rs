@@ -2,13 +2,15 @@
 //!
 //! Modules: `dto` (the IPC contract, mirrored by `src/types.ts`), `commands`
 //! (the invoke surface), `error` (the typed command error, serialized as a
-//! plain message string), and `agents` (the beagle-agentd control proxy + live
-//! status emitter). This file only assembles the app.
+//! plain message string), `agents` (the beagle-agentd control proxy + live
+//! status emitter), and `updates` (release listing + version install for the
+//! in-app updater). This file only assembles the app.
 
 mod agents;
 mod commands;
 mod dto;
 mod error;
+mod updates;
 
 /// Builds and runs the Tauri application.
 ///
@@ -20,7 +22,11 @@ mod error;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
+            #[cfg(desktop)]
+            app.handle()
+                .plugin(tauri_plugin_updater::Builder::new().build())?;
             // Stream live beagle-agentd status to the frontend for its lifetime.
             agents::spawn_status_emitter(app.handle().clone());
             Ok(())
@@ -38,7 +44,9 @@ pub fn run() {
             agents::agents_status,
             agents::start_agent,
             agents::stop_agent,
-            agents::reload_agents_config
+            agents::reload_agents_config,
+            updates::list_app_releases,
+            updates::install_app_version
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

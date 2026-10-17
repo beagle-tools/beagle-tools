@@ -82,6 +82,29 @@ pub enum Command {
     },
     /// One-screen summary of agents and runs.
     Status,
+    /// Run agentd under launchd (macOS): install, restart, or remove it.
+    Daemon {
+        #[command(subcommand)]
+        action: DaemonAction,
+    },
+}
+
+/// `agentctl daemon` actions.
+#[derive(Debug, Subcommand)]
+pub enum DaemonAction {
+    /// Write ~/Library/LaunchAgents/com.agentd.daemon.plist for the agentd
+    /// installed next to this agentctl, unpack the notification icons, build
+    /// the branded notifiers, and (re)load the daemon.
+    Install {
+        /// Only print the rendered launchd unit; change nothing.
+        #[arg(long)]
+        print: bool,
+    },
+    /// Restart the daemon — run after every upgrade so the new agentd
+    /// reconciles manifests.
+    Restart,
+    /// Stop the daemon and remove its launchd unit (state and logs stay).
+    Uninstall,
 }
 
 /// Resources listable via `agentctl get`.

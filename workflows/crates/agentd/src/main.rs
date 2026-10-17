@@ -147,13 +147,47 @@ fn run_tick(
     Ok(())
 }
 
-/// A stock icon shipped in the manifests repo: resolve the (usually
-/// symlinked) manifests dir and look under `../assets/notify/`.
+/// A stock icon: first the manifests repo's (resolve the usually symlinked
+/// manifests dir and look under `../assets/notify/`), then the copy
+/// `agentctl daemon install` unpacks into `<state>/assets/notify/` — a brew
+/// install has no repo to look in.
 fn default_icon(manifests: &Path, name: &str) -> Option<PathBuf> {
-    let repo = std::fs::canonicalize(manifests)
-        .ok()?
-        .parent()?
-        .to_path_buf();
-    let icon = repo.join("assets/notify").join(name);
-    icon.is_file().then_some(icon)
+    let state = paths::state_dir().ok();
+    stock_icon(manifests, state.as_deref(), name)
+}
+
+fn stock_icon(manifests: &Path, state_dir: Option<&Path>, name: &str) -> Option<PathBuf> {
+    let from_repo = std::fs::canonicalize(manifests)
+        .ok()
+        .and_then(|m| m.parent().map(|repo| repo.join("assets/notify").join(name)));
+    let from_state = state_dir.map(|s| s.join("assets/notify").join(name));
+    [from_repo, from_state]
+        .into_iter()
+        .flatten()
+        .find(|icon| icon.is_file())
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::stock_icon;
+
+    #[test]
+    fn stock_icon_prefers_the_repo_then_the_state_dir() {
+        let tmp = std::env::temp_dir().join(format!("agentd-icon-test-{}", std::process::id()));
+        let manifests = tmp.join("repo/manifests");
+        let state = tmp.join("state");
+        std::fs::create_dir_all(&manifests).unwrap();
+        std::fs::create_dir_all(state.join("assets/notify")).unwrap();
+        std::fs::write(state.join("assets/notify/agentd.png"), b"x").unwrap();
+        let found = stock_icon(&manifests, Some(&state), "agentd.png").unwrap();
+        assert!(found.starts_with(&state));
+
+        std::fs::create_dir_all(tmp.join("repo/assets/notify")).unwrap();
+        std::fs::write(tmp.join("repo/assets/notify/agentd.png"), b"x").unwrap();
+        let found = stock_icon(&manifests, Some(&state), "agentd.png").unwrap();
+        assert!(found.ends_with("repo/assets/notify/agentd.png"));
+        assert_eq!(stock_icon(&manifests, None, "missing.png"), None);
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
 }

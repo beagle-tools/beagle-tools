@@ -1,0 +1,124 @@
+name: release cli
+
+# Reusable: cross-builds one app's CLI binaries for every target in
+# `matrix`, packs each target into `<asset-prefix>-<target>.tar.gz` (+ .sha256,
+# scripts/release/package-cli.sh) and uploads them to the draft release.
+# Called by release.yml only.
+on:
+  workflow_call:
+    inputs:
+      app-dir:
+        description: app root holding scripts/set-version.mjs (rca, workflows)
+        required: true
+        type: string
+      cargo-dir:
+        description: cargo workspace that builds the binaries
+        required: true
+        type: string
+      packages:
+        description: space-separated cargo packages to build (-p each)
+        required: true
+        type: string
+      bins:
+        description: space-separated binary names that go into the tarball
+        required: true
+        type: string
+      asset-prefix:
+        description: tarball name prefix (beagle-rca, beagle-workflows)
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      matrix:
+        description: 'JSON list of {"target": rust triple, "os": runner}'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: ${{ inputs.asset-prefix }} (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(inputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      # The pinned toolchain (rust-toolchain.toml) overrides any `stable`
+      # install, so the cross target must be added to that toolchain.
+      - name: install pinned toolchain + target
+        run: |
+          rustup toolchain install
+          rustup target add "${{ matrix.target }}"
+      - name: install musl tools
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ inputs.cargo-dir }}
+          key: release-${{ matrix.target }}
+
+      # Stamps every Cargo.toml/Cargo.lock version so `--version` reports the
+      # release and `--locked` still holds — CI only, never committed.
+      - name: stamp release version
+        working-directory: ${{ inputs.app-dir }}
+        run: node scripts/set-version.mjs "${{ inputs.version }}"
+
+      - name: build
+        working-directory: ${{ inputs.cargo-dir }}
+        env:
+          PACKAGES: ${{ inputs.packages }}
+        run: |
+          set -euo pipefail
+          args=()
+          for p in $PACKAGES; do args+=(-p "$p"); done
+          cargo build --release --locked --target "${{ matrix.target }}" "${args[@]}"
+
+      - name: package
+        env:
+          BINS: ${{ inputs.bins }}
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC2086 # BINS is a space-separated list
+          ./scripts/release/package-cli.sh "${{ inputs.asset-prefix }}" "${{ matrix.target }}" \
+            "${{ inputs.cargo-dir }}/target/${{ matrix.target }}/release" dist $BINS
+
+      - name: smoke test (native targets)
+        if: >
+          (runner.os == 'Linux' && contains(matrix.target, 'linux')) ||
+          (runner.os == 'macOS' && runner.arch == 'ARM64' && matrix.target == 'aarch64-apple-darwin')
+        env:
+          BINS: ${{ inputs.bins }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          dir="${{ inputs.cargo-dir }}/target/${{ matrix.target }}/release"
+          for bin in $BINS; do
+            out=$("$dir/$bin" --version)
+            echo "$bin: $out"
+            case "$out" in
+              *"$VERSION"*) ;;
+              *) echo "::error::$bin --version does not report $VERSION"; exit 1 ;;
+            esac
+          done
+
+      - name: upload to the draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release upload "${{ inputs.tag }}" dist/* --clobber

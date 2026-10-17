@@ -13,9 +13,9 @@ to whatever is broken, a crash, a hung redraw or a broken terminal is a P0.
 
 **Authoring RCAs is not covered here.** If you are debugging an incident or
 writing one up, use the `/beagle` skill
-([`../.claude/skills/beagle/SKILL.md`](../.claude/skills/beagle/SKILL.md));
+([`../skills/beagle/SKILL.md`](../skills/beagle/SKILL.md));
 to answer questions about an existing RCA, `/beagle-review`
-([`../.claude/skills/beagle-review/SKILL.md`](../.claude/skills/beagle-review/SKILL.md)).
+([`../skills/beagle-review/SKILL.md`](../skills/beagle-review/SKILL.md)).
 Both skills are embedded into the `beagle` binary (`cli/src/skill.rs`,
 `include_str!`), so editing them changes what `beagle skill install` ships.
 
@@ -78,7 +78,7 @@ truncation) come from `beagle-utils` (`../utils`) — don't re-add local copies.
 Everything under `rcas/` is read by the TUI, desktop, web, the daemon, the
 skills and humans with a text editor. A change to it is a **breaking change**:
 it needs a migration note in the PR and updates to
-`../.claude/skills/beagle/SKILL.md` and the `README.md` "Data format" section.
+`../skills/beagle/SKILL.md` and the `README.md` "Data format" section.
 
 ```text
 rcas/<slug>/          slug: [a-z0-9-], 1..=64 chars (RcaId)
@@ -169,23 +169,29 @@ make web              # astro dev server
 
 ## Releases
 
-Each component releases independently from `main` by tag:
+rca is **one version** across `cli`, `crates/*`, `desktop` (Tauri +
+`package.json`) and `web`. Release automation (repo root, see
+[`../AGENTS.md`](../AGENTS.md)) cuts `beagle-rca-vX.Y.Z` after a merge to
+`main` that touched `rca/` (docs-only changes don't release); the bump is
+patch unless the PR carries `release:minor` / `release:major`. Don't bump
+versions by hand — CI runs `node scripts/set-version.mjs X.Y.Z` (from
+`rca/`), which stamps every manifest plus the matching `Cargo.lock` entries,
+and never commits the result. Its tests (`scripts/set-version.test.mjs`) run
+in `desktop`'s `pnpm test`.
 
-| Tag | Workflow | What ships |
-|---|---|---|
-| `v<version>` | `.github/workflows/rca-release.yml` | CLI binaries (macOS arm64/x86_64, Linux x86_64-musl) + sha256; what `beagle update` tracks |
-| `desktop-v<version>` | `.github/workflows/rca-release-desktop.yml` | desktop bundles (see `desktop/AGENTS.md`) |
-| `web-v<version>` | `.github/workflows/rca-web-image.yml` | the `beagle-web` container image |
+What ships, per release (and mirrored with stable names to the rolling
+`beagle-rca-latest` release):
 
-For a CLI release:
-1. Bump `version` in `cli/Cargo.toml`.
-2. Move the `[Unreleased]` notes in `CHANGELOG.md` under the new version.
-3. Commit `chore(release): vX.Y.Z`, then tag and push `vX.Y.Z`.
+| Asset | Consumer |
+|---|---|
+| `beagle-rca-<target>.tar.gz` + `.sha256` (`beagle`, `beagle-agentd` at the root; aarch64/x86_64-apple-darwin, x86_64-unknown-linux-musl) | `beagle update`, `brew install beagle-tools/tap/beagle-rca` |
+| `Beagle-macos-{arm64,x64}.dmg`, `Beagle-linux-x86_64.AppImage`, `Beagle-linux-amd64.deb` + `latest.json` | the desktop updater, `brew install --cask beagle-tools/tap/beagle-rca-desktop` |
+| `ghcr.io/beagle-tools/beagle-rca-web:X.Y.Z` / `:latest` | `web/DEPLOY.md` |
 
-The release workflow re-runs the rca Rust gate. It refuses to publish when
-the tag doesn't match `cli/Cargo.toml`. The asset names
-(`beagle-<target>.tar.gz`) are what the self-updater downloads, so don't
-rename them.
+The self-updater (`cli/src/update/`) only considers `beagle-rca-v*` tags and
+downloads exactly those asset names, so don't rename them. The desktop
+updater checks `beagle-rca-latest/latest.json`; its rollback list filters by
+the same tag prefix (`desktop/src-tauri/src/updates.rs`).
 
 Bug reports should include:
 - OS and terminal

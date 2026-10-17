@@ -57,3 +57,17 @@ export interface AgentsEvent {
   status?: AgentsStatus;
   error?: string;
 }
+
+// The in-app updater. Mirrors desktop/src-tauri/src/dto.rs's AppRelease.
+
+/** One published rca release for the version list, newest first. */
+export interface AppRelease {
+  /** `X.Y.Z`, from the tag. */
+  version: string;
+  /** The full tag, e.g. `beagle-rca-v0.30.0`. */
+  tag: string;
+  /** RFC 3339 publish time, when known. */
+  published_at: string | null;
+  /** Whether the release carries an updater manifest (`latest.json`). */
+  installable: boolean;
+}

@@ -142,3 +142,12 @@ export interface PipelineDetail {
   /** Newest first. */
   chains: ChainView[];
 }
+
+/** One published Agentdesk version (`commands::updates::AppRelease`). */
+export interface AppRelease {
+  version: string;
+  tag: string;
+  published_at: string | null;
+  /** False when the release has no updater manifest to install from. */
+  installable: boolean;
+}

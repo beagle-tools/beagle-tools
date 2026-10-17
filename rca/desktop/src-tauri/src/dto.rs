@@ -65,3 +65,17 @@ pub struct CorpusLine {
     pub line: usize,
     pub text: String,
 }
+
+/// One published desktop release for the version picker, newest first.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AppRelease {
+    /// `X.Y.Z`, from the tag.
+    pub version: String,
+    /// The full tag, e.g. `beagle-rca-v0.30.0`.
+    pub tag: String,
+    /// RFC 3339 publish time, when GitHub reports one.
+    pub published_at: Option<String>,
+    /// Whether the release carries an updater manifest (`latest.json`);
+    /// releases without one can't be installed in-app.
+    pub installable: bool,
+}

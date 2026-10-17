@@ -104,16 +104,75 @@ make check     # = make check-tandem from the repo root (the CI gate)
 If you changed runtime behavior, run `make dev` and exercise the flow you
 touched.
 
+## Testing
+
+- **Unit (vitest)**: `*.test.ts` beside the code in `src/` (helpers in
+  `src/test/fixtures.ts`). `pnpm test` also runs the node:test suite for
+  `scripts/set-version.mjs` (`scripts/set-version.test.mjs`, which works on
+  a temp copy and never touches the checkout).
+- **Rust**: unit tests beside the code (`#[cfg(test)]`); cross-module
+  integration tests go in a crate's `tests/`.
+- **e2e (Playwright, Chromium)**: specs in `e2e/*.spec.ts`, config in
+  `playwright.config.ts`. `pnpm e2e` starts `vite --mode e2e` on port 1430
+  (clear of `make dev` on 1420) and drives the real frontend in a plain
+  browser. First run: `corepack pnpm exec playwright install chromium`.
+
+### e2e mock mode
+
+In `--mode e2e`, `src/main.tsx` dynamically imports `src/e2e/mockIpc.ts`
+before rendering. It installs `mockIPC` (with `shouldMockEvents`) and
+`mockWindows("main")` from `@tauri-apps/api/mocks`, and answers every
+command in `src/lib/ipc.ts`, plus the plugin calls the UI makes
+(`plugin:app|version`, `plugin:updater|check`, window/opener), with the
+fixtures in `src/e2e/fixtures.ts`. The import sits behind
+`import.meta.env.MODE === "e2e"`, which vite inlines, so production
+builds drop the mock and the fixtures entirely. After changing that
+code, check that `grep -c installIpcMocks dist/assets/*.js` prints 0
+for every file after `pnpm build`.
+
+- **When you add or rename an IPC command**, add it to `mockIPC`'s
+  handler. Unknown commands resolve to `null`, which looks like an empty
+  result rather than an error.
+- **Fixtures** mirror `src/lib/types.ts` and are type-checked against it,
+  so a type change that breaks them fails `pnpm typecheck`.
+- **Knobs**: `?update=X.Y.Z` on the page URL makes the updater report an
+  update, so the header button shows. With no knob, no update exists.
+- **Selectors**: prefer roles and visible text over classes. Specs are
+  typed TS under the shared ESLint rules.
+
 ## Releases
 
-`.github/workflows/tandem-release.yml` releases on every push to `main`
-that touches app code (including `utils/` and `rust-toolchain.toml`).
-Tags are `tandem-vX.Y.Z`. The bump size comes from the merged PR's
-label: `release:major`, `release:minor` or `release:patch` (the default).
-A commit that is already tagged `tandem-v*` is released as-is.
-`scripts/set-version.mjs` stamps the version into the bundle. Builds go
-into a draft release that is published only after every platform has
-uploaded, and they are then mirrored to the rolling `tandem-latest`
-release. That release backs the in-app updater, `scripts/install.sh`,
-`install.ps1` and the Homebrew cask. Tandem releases are never marked
-`latest`, because that pointer belongs to the rca CLI.
+Release CI (see the repo's `docs/SDLC.md`) cuts a Tandem release when a
+merge to `main` touches release-relevant paths: `tandem/**` except
+`**/*.md` and `tandem/docs/**`, plus `utils/**` and
+`rust-toolchain.toml`.
+
+- **Tags** are `beagle-tandem-vX.Y.Z`, one GitHub release each, titled
+  `Beagle Tandem vX.Y.Z`. They are published with `make_latest=false`,
+  because no app owns the repo's "latest" pointer.
+- **Bump size** comes from the merged PR's label: `release:major`,
+  `release:minor`, or patch when there is no label. A commit that
+  already carries a `beagle-tandem-v*` tag is released as-is. The first
+  release uses the current version-file value.
+- **Versions are stamped in CI only.**
+  `node scripts/set-version.mjs X.Y.Z`, run from `tandem/`, stamps
+  `package.json`, `src-tauri/tauri.conf.json`, `Cargo.toml`'s
+  `[workspace.package] version`, and the workspace members' `Cargo.lock`
+  entries, so `--locked` builds still work. Never commit the stamped
+  files.
+- **The mirror.** Each release refreshes the rolling
+  `beagle-tandem-latest` release, which holds the stable-named installers
+  (`Tandem-macos-arm64.dmg`, `Tandem-macos-x64.dmg`,
+  `Tandem-windows-x64-setup.exe`, `Tandem-linux-x86_64.AppImage`,
+  `Tandem-linux-amd64.deb`) and `latest.json`. That release backs:
+  - the in-app updater: the `plugins.updater` endpoint and pubkey in
+    `tauri.conf.json`;
+  - `scripts/install.sh` and `install.ps1`;
+  - the Homebrew cask (`brew install --cask beagle-tools/tap/beagle-tandem`).
+    The cask's source is root `packaging/homebrew/`, which release CI
+    owns, not this directory.
+- **Rollback.** Settings › Version (`src-tauri/src/commands/updates.rs`)
+  lists the releases whose tag starts with `TAG_PREFIX = "beagle-tandem-v"`.
+  It installs one through that tag's own `latest.json`, and the signature
+  check applies either way. If you change the tag scheme, update
+  `TAG_PREFIX` and its tests in the same change.

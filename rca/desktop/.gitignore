@@ -25,3 +25,7 @@ dist-ssr
 
 # Vite dev cache
 .vite
+
+# Playwright output
+test-results
+playwright-report

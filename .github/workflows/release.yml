@@ -1,0 +1,231 @@
+name: release
+
+# Continuous delivery for the monorepo: every push to main releases exactly
+# the apps whose release-relevant paths changed (docs/RELEASING.md has the
+# whole policy). Per app: plan computes + pushes the `beagle-<app>-vX.Y.Z`
+# tag and creates a DRAFT release, the build jobs upload into it, publish
+# un-drafts it (never repo-wide "latest") and mirrors the stable-named
+# assets onto `beagle-<app>-latest`, and homebrew regenerates the tap.
+#
+# Versioning (scripts/release/lib.mjs): a tag for the app already at HEAD
+# is released as-is; else the app's highest tag is bumped by the merged
+# PR's release:major / release:minor label (default patch); no tag yet ->
+# the app's version file.
+#
+# Queue race: runs serialize via the concurrency group, so a queued run can
+# wake up after newer merges landed. It then skips (plan sees main moved);
+# the newer push's run releases everything.
+#
+# Secrets: TAURI_SIGNING_PRIVATE_KEY (updater signing, no password);
+# HOMEBREW_TAP_DEPLOY_KEY (SSH, write) or HOMEBREW_TAP_TOKEN for the tap.
+on:
+  push:
+    branches: [main]
+  # Manual re-release: tag HEAD (or not) and run this with the app(s).
+  workflow_dispatch:
+    inputs:
+      apps:
+        description: "apps to release: all, or a comma list of tandem,rca,workflows"
+        required: true
+        default: all
+        type: string
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  plan:
+    name: plan + tag + draft
+    runs-on: ubuntu-latest
+    outputs:
+      tandem: ${{ steps.plan.outputs.tandem }}
+      tandem_tag: ${{ steps.plan.outputs.tandem_tag }}
+      tandem_version: ${{ steps.plan.outputs.tandem_version }}
+      tandem_release_id: ${{ steps.draft.outputs.tandem_release_id }}
+      rca: ${{ steps.plan.outputs.rca }}
+      rca_tag: ${{ steps.plan.outputs.rca_tag }}
+      rca_version: ${{ steps.plan.outputs.rca_version }}
+      rca_release_id: ${{ steps.draft.outputs.rca_release_id }}
+      workflows: ${{ steps.plan.outputs.workflows }}
+      workflows_tag: ${{ steps.plan.outputs.workflows_tag }}
+      workflows_version: ${{ steps.plan.outputs.workflows_version }}
+      workflows_release_id: ${{ steps.draft.outputs.workflows_release_id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: plan releases + push tags
+        id: plan
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BEFORE: ${{ github.event.before }}
+          APPS: ${{ inputs.apps }}
+        run: node scripts/release/plan.mjs --before "$BEFORE" ${APPS:+--apps "$APPS"}
+      - name: create draft releases
+        id: draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLAN: ${{ toJSON(steps.plan.outputs) }}
+        run: |
+          set -euo pipefail
+          git fetch --tags --force --quiet
+          for app in tandem rca workflows; do
+            [ "$(jq -r ".$app" <<<"$PLAN")" = true ] || continue
+            ./scripts/release/draft.sh "$app" \
+              "$(jq -r ".${app}_tag" <<<"$PLAN")" "$(jq -r ".${app}_version" <<<"$PLAN")"
+          done
+
+  # ---- tandem ---------------------------------------------------------------
+  tandem-desktop:
+    needs: plan
+    if: needs.plan.outputs.tandem == 'true'
+    uses: ./.github/workflows/_release-tauri.yml
+    secrets: inherit
+    with:
+      app-dir: tandem
+      project: tandem
+      cargo-dir: tandem
+      product: Tandem
+      tag: ${{ needs.plan.outputs.tandem_tag }}
+      version: ${{ needs.plan.outputs.tandem_version }}
+      release-id: ${{ needs.plan.outputs.tandem_release_id }}
+      matrix: >-
+        [{"name": "macos-arm", "platform": "macos-latest", "args": "--target aarch64-apple-darwin"},
+         {"name": "macos-intel", "platform": "macos-latest", "args": "--target x86_64-apple-darwin"},
+         {"name": "windows", "platform": "windows-latest", "args": ""},
+         {"name": "linux", "platform": "ubuntu-22.04", "args": ""}]
+
+  tandem-publish:
+    needs: [plan, tandem-desktop]
+    uses: ./.github/workflows/_release-publish.yml
+    secrets: inherit
+    with:
+      app: tandem
+      tag: ${{ needs.plan.outputs.tandem_tag }}
+      version: ${{ needs.plan.outputs.tandem_version }}
+
+  # ---- rca ------------------------------------------------------------------
+  rca-cli:
+    needs: plan
+    if: needs.plan.outputs.rca == 'true'
+    uses: ./.github/workflows/_release-cli.yml
+    with:
+      app-dir: rca
+      cargo-dir: rca
+      packages: beagle beagle-agentd
+      bins: beagle beagle-agentd
+      asset-prefix: beagle-rca
+      tag: ${{ needs.plan.outputs.rca_tag }}
+      version: ${{ needs.plan.outputs.rca_version }}
+      matrix: >-
+        [{"target": "aarch64-apple-darwin", "os": "macos-latest"},
+         {"target": "x86_64-apple-darwin", "os": "macos-latest"},
+         {"target": "x86_64-unknown-linux-musl", "os": "ubuntu-latest"}]
+
+  rca-desktop:
+    needs: plan
+    if: needs.plan.outputs.rca == 'true'
+    uses: ./.github/workflows/_release-tauri.yml
+    secrets: inherit
+    with:
+      app-dir: rca
+      project: rca/desktop
+      cargo-dir: rca/desktop/src-tauri
+      product: Beagle
+      tag: ${{ needs.plan.outputs.rca_tag }}
+      version: ${{ needs.plan.outputs.rca_version }}
+      release-id: ${{ needs.plan.outputs.rca_release_id }}
+      matrix: >-
+        [{"name": "macos-arm", "platform": "macos-latest", "args": "--target aarch64-apple-darwin"},
+         {"name": "macos-intel", "platform": "macos-latest", "args": "--target x86_64-apple-darwin"},
+         {"name": "linux", "platform": "ubuntu-22.04", "args": ""}]
+
+  rca-web:
+    name: rca web image
+    needs: plan
+    if: needs.plan.outputs.rca == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.rca_tag }}
+      - uses: docker/setup-buildx-action@v3
+      - name: log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Content (rca/rcas/) is baked in at build time.
+      - name: build + push
+        uses: docker/build-push-action@v6
+        with:
+          context: rca
+          file: rca/web/Dockerfile
+          push: true
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.version=${{ needs.plan.outputs.rca_version }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/beagle-rca-web:${{ needs.plan.outputs.rca_version }}
+            ghcr.io/${{ github.repository_owner }}/beagle-rca-web:latest
+
+  rca-publish:
+    needs: [plan, rca-cli, rca-desktop, rca-web]
+    uses: ./.github/workflows/_release-publish.yml
+    secrets: inherit
+    with:
+      app: rca
+      tag: ${{ needs.plan.outputs.rca_tag }}
+      version: ${{ needs.plan.outputs.rca_version }}
+
+  # ---- workflows ------------------------------------------------------------
+  workflows-cli:
+    needs: plan
+    if: needs.plan.outputs.workflows == 'true'
+    uses: ./.github/workflows/_release-cli.yml
+    with:
+      app-dir: workflows
+      cargo-dir: workflows
+      packages: agentd agentctl agenttop
+      bins: agentd agentctl agenttop
+      asset-prefix: beagle-workflows
+      tag: ${{ needs.plan.outputs.workflows_tag }}
+      version: ${{ needs.plan.outputs.workflows_version }}
+      matrix: >-
+        [{"target": "aarch64-apple-darwin", "os": "macos-latest"},
+         {"target": "x86_64-apple-darwin", "os": "macos-latest"}]
+
+  workflows-desktop:
+    needs: plan
+    if: needs.plan.outputs.workflows == 'true'
+    uses: ./.github/workflows/_release-tauri.yml
+    secrets: inherit
+    with:
+      app-dir: workflows
+      project: workflows/desktop
+      cargo-dir: workflows/desktop
+      product: Agentdesk
+      tag: ${{ needs.plan.outputs.workflows_tag }}
+      version: ${{ needs.plan.outputs.workflows_version }}
+      release-id: ${{ needs.plan.outputs.workflows_release_id }}
+      matrix: >-
+        [{"name": "macos-arm", "platform": "macos-latest", "args": "--target aarch64-apple-darwin"},
+         {"name": "macos-intel", "platform": "macos-latest", "args": "--target x86_64-apple-darwin"}]
+
+  workflows-publish:
+    needs: [plan, workflows-cli, workflows-desktop]
+    uses: ./.github/workflows/_release-publish.yml
+    secrets: inherit
+    with:
+      app: workflows
+      tag: ${{ needs.plan.outputs.workflows_tag }}
+      version: ${{ needs.plan.outputs.workflows_version }}

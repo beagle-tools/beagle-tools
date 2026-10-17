@@ -36,6 +36,9 @@ corepack pnpm tauri dev    # run the app (vite on :1420 + the Rust shell)
 make check-rca             # from the repo root: the full rca gate
 ```
 
-Releases: bump the version in `package.json`, `src-tauri/tauri.conf.json`
-and `src-tauri/Cargo.toml` together, then push a `desktop-v<version>` tag;
-`.github/workflows/rca-release-desktop.yml` refuses mismatched versions.
+Releases: the desktop app ships as part of the one rca version
+(`beagle-rca-vX.Y.Z`, see [`../AGENTS.md`](../AGENTS.md#releases)); release
+CI stamps the version with `../scripts/set-version.mjs`, so never bump it by
+hand. Installed apps update in-app: the header shows an update pill when
+`beagle-rca-latest/latest.json` is newer, and the version button (`v…` in
+the brand corner) lists every `beagle-rca-v*` release for install/rollback.

@@ -9,7 +9,7 @@
 //! agent (tracked by epic #137). Subsystems land module by module; see the
 //! epic's child issues.
 //!
-//! [`beagle-agentd`]: https://github.com/matthewmyrick/beagle
+//! [`beagle-agentd`]: https://github.com/beagle-tools/beagle-tools/tree/main/rca/crates/beagle-agentd
 
 pub mod config;
 pub mod control;

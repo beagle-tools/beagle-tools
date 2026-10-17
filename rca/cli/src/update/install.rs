@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::error::{Error, Result};
 
-use super::{Version, REPO_URL};
+use super::{asset_name, asset_url, Version, REPO_URL};
 
 /// A human description of the build target, for the unsupported-target error.
 const TARGET_DESCRIPTION: &str = if cfg!(target_os = "macos") {
@@ -34,11 +34,10 @@ pub fn update_to(version: Version, exe: &Path) -> Result<()> {
         target: TARGET_DESCRIPTION,
         repo: REPO_URL,
     })?;
-    let base = format!("{REPO_URL}/releases/download/{}", version.tag());
+    let asset = asset_name(target);
     install(
-        &format!("{base}/beagle-{target}.tar.gz"),
-        &format!("{base}/beagle-{target}.tar.gz.sha256"),
-        target,
+        &asset_url(version, &asset),
+        &asset_url(version, &format!("{asset}.sha256")),
         exe,
     )
 }
@@ -47,27 +46,25 @@ pub fn update_to(version: Version, exe: &Path) -> Result<()> {
 /// verifies, extracts, and atomically swaps the binary at `exe`. URL-based
 /// so tests can drive the whole flow with `file://` URLs.
 ///
+/// The tarball holds `beagle` and `beagle-agentd` at its root. When a
+/// `beagle-agentd` already sits next to `exe` (the brew / tarball layout) it
+/// is swapped too, so the CLI and daemon never drift apart.
+///
 /// # Errors
 /// As for [`update_to`], minus the target lookup.
-pub fn install(tarball_url: &str, sha_url: &str, target: &str, exe: &Path) -> Result<()> {
+pub fn install(tarball_url: &str, sha_url: &str, exe: &Path) -> Result<()> {
     let workdir = std::env::temp_dir().join(format!(
         "beagle-update-{}-{}",
         std::process::id(),
         INSTALL_SEQ.fetch_add(1, Ordering::Relaxed),
     ));
     fs::create_dir_all(&workdir).map_err(|e| Error::io(&workdir, e))?;
-    let result = install_in(&workdir, tarball_url, sha_url, target, exe);
+    let result = install_in(&workdir, tarball_url, sha_url, exe);
     let _ = fs::remove_dir_all(&workdir); // best effort; temp dir anyway
     result
 }
 
-fn install_in(
-    workdir: &Path,
-    tarball_url: &str,
-    sha_url: &str,
-    target: &str,
-    exe: &Path,
-) -> Result<()> {
+fn install_in(workdir: &Path, tarball_url: &str, sha_url: &str, exe: &Path) -> Result<()> {
     let tarball = workdir.join("release.tar.gz");
     download(tarball_url, &tarball)?;
     let sha_file = workdir.join("release.tar.gz.sha256");
@@ -83,34 +80,52 @@ fn install_in(
         });
     }
 
+    let extracted = workdir.join("extracted");
+    fs::create_dir_all(&extracted).map_err(|e| Error::io(&extracted, e))?;
     run_tool(
         "tar",
         &[
             "-xzf",
             &tarball.to_string_lossy(),
             "-C",
-            &workdir.to_string_lossy(),
+            &extracted.to_string_lossy(),
         ],
     )?;
-    let new_binary = workdir.join(format!("beagle-{target}")).join("beagle");
+    let new_binary = extracted.join("beagle");
     if !new_binary.is_file() {
         return Err(Error::Tool {
             tool: "tar",
-            message: format!("extracted archive has no `beagle-{target}/beagle` binary inside"),
+            message: "extracted archive has no `beagle` binary at its root".to_owned(),
         });
     }
+    swap_in(&new_binary, exe)?;
 
-    // Stage next to the destination so the final rename is atomic (same
-    // filesystem); `fs::copy` carries the executable bit over from the
-    // extracted file.
-    let staging = exe
+    let new_agentd = extracted.join("beagle-agentd");
+    let installed_agentd = exe
         .parent()
         .unwrap_or_else(|| Path::new("."))
-        .join(".beagle.update");
-    fs::copy(&new_binary, &staging).map_err(|e| Error::io(&staging, e))?;
-    fs::rename(&staging, exe).map_err(|e| {
+        .join("beagle-agentd");
+    if new_agentd.is_file() && installed_agentd.is_file() {
+        swap_in(&new_agentd, &installed_agentd)?;
+    }
+    Ok(())
+}
+
+/// Replaces `dest` with `new_file`: staged next to the destination so the
+/// final rename is atomic (same filesystem); `fs::copy` carries the
+/// executable bit over from the extracted file.
+fn swap_in(new_file: &Path, dest: &Path) -> Result<()> {
+    let name = dest
+        .file_name()
+        .map_or_else(|| "beagle".into(), |n| n.to_string_lossy().into_owned());
+    let staging = dest
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join(format!(".{name}.update"));
+    fs::copy(new_file, &staging).map_err(|e| Error::io(&staging, e))?;
+    fs::rename(&staging, dest).map_err(|e| {
         let _ = fs::remove_file(&staging);
-        Error::io(exe, e)
+        Error::io(dest, e)
     })?;
     Ok(())
 }

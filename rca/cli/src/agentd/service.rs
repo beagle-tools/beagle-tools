@@ -26,6 +26,19 @@ pub struct LaunchdConfig {
     pub program: PathBuf,
     /// Directory for the daemon's stdout/stderr logs.
     pub log_dir: PathBuf,
+    /// The `PATH` the daemon runs with. launchd starts agents with a bare
+    /// `/usr/bin:/bin:/usr/sbin:/sbin`, so without this the daemon cannot
+    /// find `gh`, `claude`, or anything Homebrew installed.
+    pub path: String,
+}
+
+/// Escapes the five XML special characters for a plist `<string>`.
+fn xml_escape(raw: &str) -> String {
+    raw.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
 }
 
 /// Renders a launchd `LaunchAgent` plist that starts the daemon on login and
@@ -51,6 +64,11 @@ pub fn render_plist(config: &LaunchdConfig) -> String {
     <true/>
     <key>ProcessType</key>
     <string>Background</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>{path}</string>
+    </dict>
     <key>StandardOutPath</key>
     <string>{out}</string>
     <key>StandardErrorPath</key>
@@ -58,17 +76,19 @@ pub fn render_plist(config: &LaunchdConfig) -> String {
 </dict>
 </plist>
 "#,
-        label = config.label,
-        program = config.program.display(),
-        out = out_log.display(),
-        err = err_log.display(),
+        label = xml_escape(&config.label),
+        program = xml_escape(&config.program.display().to_string()),
+        path = xml_escape(&config.path),
+        out = xml_escape(&out_log.display().to_string()),
+        err = xml_escape(&err_log.display().to_string()),
     )
 }
 
 /// Renders a `systemd --user` service unit that restarts the daemon on crash
-/// and starts it on login (`WantedBy=default.target`).
+/// and starts it on login (`WantedBy=default.target`). `path` becomes the
+/// daemon's `PATH` (the user manager's default lacks `~/.local/bin` etc.).
 #[must_use]
-pub fn render_unit(program: &Path) -> String {
+pub fn render_unit(program: &Path, path: &str) -> String {
     format!(
         "[Unit]\n\
          Description=beagle agent daemon (beagle-agentd)\n\
@@ -76,13 +96,19 @@ pub fn render_unit(program: &Path) -> String {
          \n\
          [Service]\n\
          Type=simple\n\
+         Environment=\"PATH={path}\"\n\
          ExecStart={program}\n\
          Restart=always\n\
          RestartSec=5\n\
          \n\
          [Install]\n\
          WantedBy=default.target\n",
-        program = program.display()
+        program = program.display(),
+        // systemd quoting: escape backslashes and quotes; `%` starts a specifier.
+        path = path
+            .replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('%', "%%"),
     )
 }
 
@@ -149,6 +175,7 @@ fn launchd_install() -> Result<String, String> {
         label: LABEL.to_string(),
         program,
         log_dir,
+        path: beagle_utils::process::augmented_path(),
     };
     let path = plist_path()?;
     if let Some(parent) = path.parent() {
@@ -225,8 +252,11 @@ fn systemd_install() -> Result<String, String> {
         std::fs::create_dir_all(parent)
             .map_err(|err| format!("creating systemd user dir: {err}"))?;
     }
-    std::fs::write(&path, render_unit(&program))
-        .map_err(|err| format!("writing unit {}: {err}", path.display()))?;
+    std::fs::write(
+        &path,
+        render_unit(&program, &beagle_utils::process::augmented_path()),
+    )
+    .map_err(|err| format!("writing unit {}: {err}", path.display()))?;
     systemctl(&["daemon-reload"])?;
     systemctl(&["enable", "--now", UNIT])?;
     Ok(format!(

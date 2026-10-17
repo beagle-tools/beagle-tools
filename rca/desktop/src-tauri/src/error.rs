@@ -84,6 +84,11 @@ pub enum Error {
     /// The daemon answered with a response type this request never expects.
     #[error("unexpected daemon response")]
     UnexpectedResponse,
+
+    /// Listing releases or installing an app version failed; the message
+    /// already says what to try next.
+    #[error("{0}")]
+    Update(String),
 }
 
 impl Serialize for Error {
