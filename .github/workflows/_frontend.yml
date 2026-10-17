@@ -1,0 +1,56 @@
+name: frontend gate
+
+# Reusable frontend gate for one pnpm package. The steps live in
+# scripts/ci/frontend.sh so `make check` runs the identical thing locally.
+on:
+  workflow_call:
+    inputs:
+      dir:
+        description: package directory, relative to the repo root
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: frontend (${{ inputs.dir }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: enable corepack (pnpm pinned by packageManager)
+        run: corepack enable
+      - name: locate pnpm store
+        id: pnpm-store
+        shell: bash
+        working-directory: ${{ inputs.dir }}
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: pnpm store cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-${{ inputs.dir }}-${{ hashFiles(format('{0}/pnpm-lock.yaml', inputs.dir)) }}
+      - name: install dependencies (frozen lockfile)
+        working-directory: ${{ inputs.dir }}
+        run: pnpm install --frozen-lockfile
+      - name: locate playwright version
+        id: playwright
+        shell: bash
+        working-directory: ${{ inputs.dir }}
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - name: playwright browser cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-${{ steps.playwright.outputs.version }}
+      # Runs even on a cache hit: --with-deps also installs the apt packages
+      # Chromium needs, which the cache can't hold. The download is skipped
+      # when the cached browser is already present.
+      - name: install playwright chromium
+        working-directory: ${{ inputs.dir }}
+        run: pnpm exec playwright install --with-deps chromium
+      - run: ./scripts/ci/frontend.sh "${{ inputs.dir }}"

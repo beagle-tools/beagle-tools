@@ -1,0 +1,135 @@
+name: release tauri app
+
+# Reusable: builds one Tauri desktop app for every platform in `matrix`,
+# signs the updater bundles, uploads everything (including latest.json) into
+# the already-created draft release, and adds the stable-named installers
+# (scripts/release/stage-desktop.sh). Called by release.yml only.
+on:
+  workflow_call:
+    inputs:
+      app-dir:
+        description: app root holding scripts/set-version.mjs (tandem, rca, workflows)
+        required: true
+        type: string
+      project:
+        description: Tauri project dir (package.json + src-tauri/), relative to the repo root
+        required: true
+        type: string
+      cargo-dir:
+        description: cargo workspace root of the Tauri crate (its target/ holds the bundles)
+        required: true
+        type: string
+      product:
+        description: productName, the stable asset name prefix (Tandem, Beagle, Agentdesk)
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      release-id:
+        description: id of the draft release to upload into
+        required: true
+        type: string
+      matrix:
+        description: 'JSON list of {"name": macos-arm|macos-intel|windows|linux, "platform": runner, "args": tauri build args}'
+        required: true
+        type: string
+    secrets:
+      TAURI_SIGNING_PRIVATE_KEY:
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ inputs.product }} (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(inputs.matrix) }}
+    runs-on: ${{ matrix.platform }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # The tag, not the branch: a re-run must rebuild exactly what was tagged.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: install tauri system deps (linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev \
+            libayatana-appindicator3-dev librsvg2-dev patchelf \
+            build-essential curl wget file libxdo-dev libssl-dev
+
+      # Same Node/pnpm setup as CI (_frontend.yml): Node from .nvmrc, pnpm
+      # pinned by the package's packageManager via corepack.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: enable corepack (pnpm pinned by packageManager)
+        run: corepack enable
+      - name: locate pnpm store
+        id: pnpm-store
+        working-directory: ${{ inputs.project }}
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: pnpm store cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-${{ inputs.project }}-${{ hashFiles(format('{0}/pnpm-lock.yaml', inputs.project)) }}
+
+      # Same toolchain as CI: rust-toolchain.toml at the repo root. The pinned
+      # toolchain overrides any `stable`, so cross targets go onto it.
+      - name: install pinned toolchain (rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: add macOS cross targets
+        if: runner.os == 'macOS'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ inputs.cargo-dir }}
+          key: release-${{ matrix.name }}
+
+      - name: install frontend deps
+        working-directory: ${{ inputs.project }}
+        run: pnpm install --frozen-lockfile
+
+      # Stamps every version location (package.json, tauri.conf.json,
+      # Cargo.toml + Cargo.lock) — CI only, never committed.
+      - name: stamp release version
+        working-directory: ${{ inputs.app-dir }}
+        run: node scripts/set-version.mjs "${{ inputs.version }}"
+
+      - name: build + upload into the draft release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        with:
+          projectPath: ${{ inputs.project }}
+          tauriScript: pnpm tauri
+          releaseId: ${{ inputs.release-id }}
+          tagName: ${{ inputs.tag }}
+          # Stays a draft until every platform uploaded (release.yml's
+          # publish job) — a half-built latest.json must never reach updaters.
+          releaseDraft: true
+          prerelease: false
+          includeUpdaterJson: true
+          args: ${{ matrix.args }}
+
+      - name: upload stable-named installers
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: >
+          ./scripts/release/stage-desktop.sh "${{ inputs.product }}"
+          "${{ matrix.name }}" "${{ inputs.cargo-dir }}/target" "${{ inputs.tag }}"

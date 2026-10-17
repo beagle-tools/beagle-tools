@@ -1,0 +1,3 @@
+# Beagle (rca)
+
+@AGENTS.md

@@ -1,0 +1,10 @@
+/* Entry point: vite inlines these at build time. Split because the
+   400-line ceiling applies to CSS too, and one long stylesheet is
+   exactly the file nobody can find anything in. */
+@import "./base.css";
+@import "./components.css";
+@import "./runlist.css";
+@import "./dag.css";
+@import "./jobs.css";
+@import "./transcript.css";
+@import "./updates.css";

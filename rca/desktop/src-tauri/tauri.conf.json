@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Beagle",
+  "version": "0.29.0",
+  "identifier": "com.matthewmyrick.beagle",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "beagle \u2014 RCA workspaces",
+        "width": 1150,
+        "height": 780
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk4RjRCNTJBQzBENTQ1QUMKUldTc1JkWEFLclgwbUhhWVordG95TUx0bFBVYTNKSWI4dzQvSlluVjhOdVhlMVJVbDlUdlRIQk0K",
+      "endpoints": [
+        "https://github.com/beagle-tools/beagle-tools/releases/download/beagle-rca-latest/latest.json"
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "mainBinaryName": "Beagle"
+}

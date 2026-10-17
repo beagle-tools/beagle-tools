@@ -1,0 +1,66 @@
+# Optional declarative Tandem config — for dotfiles users.
+#
+# Place at ~/.config/tandem/tandem.yaml (or point $TANDEM_CONFIG at it).
+# Everything here is optional; anything present overrides the GUI
+# settings in memory at startup. Agents are upserted by name, so the
+# file is the source of truth for the agents it declares. Delete the
+# file and Tandem is fully GUI-managed again.
+
+orgs:
+  - matthewmyrick
+
+# Repo shown on a fresh, uncached launch — omit to land on the picker.
+default_repo: matthewmyrick/code-review
+
+# Seeded into the sidebar whenever a repo is opened.
+pr_filters:
+  author: ""
+  label: ""
+  query: ""
+  hide_drafts: true
+
+# opened-asc | opened-desc | updated-desc | number-asc | number-desc
+pr_sort: opened-desc
+
+# false = inbox tabs scope to the selected repo
+inbox_all_repos: false
+
+# how often (minutes) the review-status lists refresh in the background;
+# 0 turns it off
+refresh_minutes: 5
+
+agents:
+  - name: claude-reviewer
+    runner:
+      kind: claude_headless
+    auth:
+      kind: cli_session
+    model: null # null = CLI default; or "fable", "opus", ...
+    allowed_tools: [Read, Grep, Glob, Write]
+    append_system_prompt: null
+    prompt: >-
+      Review this pull request for correctness bugs, security issues,
+      and significant maintainability problems. Prefer few high-signal
+      comments over many nits.
+    env: {}
+    network_allowlist:
+      - https://api.anthropic.com
+      - https://claude.ai
+    timeout_minutes: 15
+
+  - name: codex-reviewer
+    runner:
+      kind: codex_headless
+    auth:
+      kind: cli_session
+    model: gpt-5-codex
+    allowed_tools: []
+    append_system_prompt: null
+    prompt: >-
+      Focus on logic errors and edge cases in this diff.
+    env: {}
+    network_allowlist:
+      - https://api.openai.com
+      - https://chatgpt.com
+      - https://auth.openai.com
+    timeout_minutes: 15

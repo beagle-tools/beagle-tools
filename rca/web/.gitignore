@@ -1,0 +1,13 @@
+# build output
+dist/
+# generated types
+.astro/
+# deps
+node_modules/
+# vite/astro cache
+.vercel/
+*.local
+
+# Playwright output
+test-results/
+playwright-report/

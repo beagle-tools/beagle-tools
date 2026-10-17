@@ -1,0 +1,23 @@
+kind: Agent
+name: hello
+runner: claude
+model: haiku
+# No schedule: manual-trigger only. Doubles as the smoke test for the job +
+# parameter machinery:
+#   agentctl -j hello                      -> refused, explains it needs `name`
+#   agentctl -j hello -p name=matt         -> runs, style defaults to plain
+#   agentctl -j hello -p name=matt,style=excited
+workdir: ~
+prompt: prompts/hello.md
+# Declaring params closes the set: `name` must be supplied, `style` falls back
+# to its default, and anything else is rejected as a typo before a run is
+# queued. An agent with no `params:` block keeps accepting free-form -p.
+params:
+  - name: name
+    required: true
+    description: who to greet
+  - name: style
+    required: false
+    default: plain
+    description: "plain | excited"
+timeout_minutes: 5

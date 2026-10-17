@@ -1,0 +1,8 @@
+kind: Agent
+name: fanout
+runner: script
+# Manual for the demo; give it a schedule (e.g. "*/10 * * * *") to make it a
+# polling DAG root.
+workdir: ~
+command: sh ~/.config/agentd/manifests/demo/scripts/fanout.sh
+timeout_minutes: 2

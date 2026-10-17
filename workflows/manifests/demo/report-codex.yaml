@@ -1,0 +1,11 @@
+kind: Agent
+name: report-codex
+runner: codex
+workdir: ~
+prompt: prompts/report.md
+timeout_minutes: 5
+
+# A step: demo/fanout triggers it. Said outright because it has never
+# run, and the inference (has this agent ever started a chain?) cannot
+# tell a step from a job until one of them does.
+entrypoint: false

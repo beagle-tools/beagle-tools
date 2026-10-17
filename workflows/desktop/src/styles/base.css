@@ -1,0 +1,175 @@
+/* Tokens and page shell. Component rules live in components.css, the DAG
+   page in dag.css.
+
+   Tokyo Night-ish, to sit beside the terminal agenttop runs in rather
+   than clash with it. */
+:root {
+  --bg: #121419;
+  --bg-raised: #1a1d25;
+  --bg-sunken: #0e1015;
+  --border: #272b36;
+  --border-strong: #353a49;
+  --fg: #c0caf5;
+  --fg-muted: #6d7595;
+  --accent: #7aa2f7;
+  --ok: #9ece6a;
+  --warn: #e0af68;
+  --err: #f7768e;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+
+  /* One spacing scale, so panels line up without per-component guesses. */
+  --gap: 10px;
+  --pad: 14px;
+  --radius: 10px;
+
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #dfe4f0;
+    --bg-raised: #ffffff;
+    --bg-sunken: #eef1f8;
+    --border: #bcc5da;
+    --border-strong: #9ca7c4;
+    --fg: #1f2437;
+    --fg-muted: #596182;
+    --accent: #2e5fd4;
+    --ok: #38793c;
+    --warn: #8a5a00;
+    --err: #b4263c;
+    color-scheme: light;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font:
+    13px/1.5 -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    system-ui,
+    sans-serif;
+}
+.muted {
+  color: var(--fg-muted);
+}
+.small {
+  font-size: 11px;
+}
+.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-family: var(--mono);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 9px 16px;
+  background: var(--bg-sunken);
+  border-bottom: 1px solid var(--border);
+}
+.brand {
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+/* The page switch sits centred, away from both the brand and the one
+   button that starts spending money. */
+.seg.nav {
+  margin: 0 auto;
+}
+.topbar .primary {
+  margin-left: auto;
+}
+.seg.nav + .primary {
+  margin-left: 0;
+}
+
+.errorbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  background: color-mix(in srgb, var(--err) 18%, var(--bg));
+  border-bottom: 1px solid var(--err);
+}
+
+/* A page is the area under the top bar. Panels float on it with a gap,
+   so regions read as separate surfaces rather than as one grid chopped
+   up by hairlines. */
+.page,
+.split {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: var(--gap);
+  padding: var(--gap);
+  background: var(--bg);
+}
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px var(--pad);
+  min-height: 42px;
+  background: var(--bg-sunken);
+  border-bottom: 1px solid var(--border);
+}
+.panel-head h2 {
+  margin: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+}
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.panel-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+.sidebar {
+  width: 330px;
+  flex: none;
+}
+
+.empty {
+  padding: 32px 20px;
+  text-align: center;
+}

@@ -1,0 +1,111 @@
+/* ---------- site header / footer ---------- */
+
+.site-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-soft);
+}
+
+.site-header .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--fg);
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+.brand-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+
+.theme-toggle {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  color: var(--fg);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.theme-toggle:hover {
+  transform: rotate(18deg) scale(1.08);
+  border-color: var(--accent);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.site-tagline {
+  color: var(--fg-faint);
+  font-size: 0.85rem;
+}
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  margin-top: 72px;
+  padding: 28px 0;
+  color: var(--fg-faint);
+  font-size: 0.82rem;
+}
+
+.site-footer .wrap {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* ---------- badges ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.badge-resolved {
+  color: var(--resolved);
+  background: var(--resolved-soft);
+}
+
+.badge-ongoing {
+  color: var(--ongoing);
+  background: var(--accent-soft);
+}

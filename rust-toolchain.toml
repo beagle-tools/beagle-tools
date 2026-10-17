@@ -1,0 +1,7 @@
+# One pinned toolchain for every Rust workspace in the monorepo. CI installs
+# exactly this, so a new stable release can never turn main red overnight
+# with lints nobody has seen yet. Bump it in its own PR.
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

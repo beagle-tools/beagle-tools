@@ -1,0 +1,116 @@
+/* The runs sidebar: two-line rows, scannable at 330px.
+
+   A row leads with a state dot and the AGENT name, because that is what
+   you look for; the project, age and cost are the second line, dimmer.
+   Duration and cost right-align on their own lines so the two columns
+   stay put as values change width. */
+.runlist {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 7px var(--pad) 5px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--fg-muted);
+}
+.group-head .count {
+  font-family: var(--mono);
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 0 7px;
+  letter-spacing: 0;
+}
+
+.runlist ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.runlist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 9px var(--pad);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  /* The selected row grows a left bar; reserving it on every row stops
+     the text shifting sideways as the selection moves. */
+  border-left: 2px solid transparent;
+}
+.runlist li:hover {
+  background: var(--bg-sunken);
+}
+.runlist li.selected {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-raised));
+  border-left-color: var(--accent);
+}
+
+.runlist .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex: none;
+  background: var(--fg-muted);
+}
+.runlist li.running .dot,
+.runlist li.pending .dot {
+  background: var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+.runlist li.succeeded .dot {
+  background: var(--ok);
+}
+.runlist li.failed .dot,
+.runlist li.killed .dot {
+  background: var(--err);
+}
+.runlist li.timedout .dot {
+  background: var(--warn);
+}
+@media (prefers-reduced-motion: reduce) {
+  .runlist .dot {
+    animation: none;
+  }
+}
+
+.rl-body {
+  flex: 1;
+  min-width: 0;
+}
+.rl-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.rl-agent {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rl-sub {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rl-right {
+  margin-left: auto;
+  flex: none;
+  color: var(--fg-muted);
+}
+.exit {
+  color: var(--err);
+  font-family: var(--mono);
+}

@@ -1,0 +1,13 @@
+kind: Agent
+name: report-claude
+runner: claude
+workdir: ~
+prompt: prompts/report.md
+# Headless claude needs Bash allowed to read the parent's data file.
+allowed_tools: [Bash]
+timeout_minutes: 5
+
+# A step: demo/fanout triggers it. Said outright because it has never
+# run, and the inference (has this agent ever started a chain?) cannot
+# tell a step from a job until one of them does.
+entrypoint: false
