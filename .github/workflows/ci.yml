@@ -31,6 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       utils: ${{ steps.filter.outputs.utils }}
+      cli-base: ${{ steps.filter.outputs.cli-base }}
       tandem: ${{ steps.filter.outputs.tandem }}
       rca: ${{ steps.filter.outputs.rca }}
       workflows: ${{ steps.filter.outputs.workflows }}
@@ -54,6 +55,9 @@ jobs:
               - "utils/**"
             utils:
               - *shared
+            cli-base:
+              - *shared
+              - "cli-base/**"
             tandem:
               - *shared
               - "tandem/**"
@@ -76,8 +80,9 @@ jobs:
           node-version-file: .nvmrc
       - run: ./scripts/check-file-length.sh
       - run: node scripts/check-standards.mjs
-      - name: unit tests for the CI scripts (test selection)
-        run: node --test scripts/ci/*.test.mjs
+      # Same list as the Makefile's SCRIPT_TESTS.
+      - name: unit tests for repo scripts (test selection, release plan, version stamping)
+        run: node --test scripts/ci/*.test.mjs scripts/release/*.test.mjs cli-base/scripts/*.test.mjs
 
   utils:
     needs: changes
@@ -86,6 +91,14 @@ jobs:
     with:
       affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
       dir: utils
+
+  cli-base:
+    needs: changes
+    if: needs.changes.outputs.cli-base == 'true'
+    uses: ./.github/workflows/_rust.yml
+    with:
+      affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+      dir: cli-base
 
   tandem-rust:
     needs: changes
@@ -165,6 +178,7 @@ jobs:
       - changes
       - standards
       - utils
+      - cli-base
       - tandem-rust
       - tandem-frontend
       - rca-rust

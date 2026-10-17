@@ -9,6 +9,7 @@ change code in an app.
 | `tandem/` | Tandem: Tauri desktop app for reviewing GitHub PRs alongside coding agents | `tandem/AGENTS.md` |
 | `rca/` | Beagle: RCA workspaces, with a TUI/CLI (`cli/`), an agent daemon (`crates/`), a desktop app (`desktop/`) and a static site (`web/`) | `rca/AGENTS.md` |
 | `workflows/` | agentd: a scheduled agent-job daemon with CLIs/TUI (`crates/`) and the Agentdesk desktop app (`desktop/`) | `workflows/AGENTS.md` |
+| `cli-base/` | `beagle`: the base CLI that installs, updates and dispatches to each app's CLI extension | `cli-base/AGENTS.md` |
 | `utils/` | `beagle-utils`: Rust helpers shared by two or more apps | `utils/README.md` |
 | `standards/`, `scripts/`, root configs | Shared lint, format, compiler and CI configuration | `docs/CODING_STANDARDS.md` |
 | `skills/` | Agent skills: `beagle-create-issue`, `beagle-complete-issue`, and rca's `beagle` / `beagle-review` (embedded into the rca binary). `.claude/skills/*` symlink here | `skills/README.md` |
@@ -48,7 +49,8 @@ Read the doc for the stage you are in:
 6. **Every PR carries a `release:*` label** when it changes an app:
    `release:patch` (the default), `release:minor` or `release:major`. Merging
    to `main` releases only the apps the PR changed, as
-   `beagle-<app>-vX.Y.Z` (see `docs/RELEASING.md`).
+   `beagle-<app>-vX.Y.Z` (see `docs/RELEASING.md`; `cli-base/` releases as
+   app `cli`).
 
 ## Verify before you finish
 
@@ -56,7 +58,7 @@ Run these from the repo root. Each runs exactly what CI runs:
 
 ```sh
 make standards          # 400-line rule, shared-config drift, CI-script tests
-make check-tandem       # or check-rca / check-workflows / check-utils
+make check-tandem       # or check-rca / check-workflows / check-utils / check-cli-base
 make test-affected      # only the cargo tests your change affects (vs origin/main)
 make e2e-tandem         # Playwright for one frontend (see docs/TESTING.md)
 make check              # everything
@@ -73,6 +75,7 @@ The scripts behind these:
 
 - **Rust:**
   - `utils`
+  - `cli-base`
   - `tandem`
   - `rca` (cli and crates)
   - `rca/desktop/src-tauri`

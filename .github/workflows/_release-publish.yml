@@ -96,7 +96,7 @@ jobs:
           fi
           git commit -m "beagle-${{ inputs.app }} ${{ inputs.version }}"
           branch=$(git branch --show-current)
-          # Up to three apps publish in parallel into the same tap: rebase
+          # Several apps publish in parallel into the same tap: rebase
           # onto whatever landed meanwhile and retry (they touch disjoint files).
           for attempt in 1 2 3 4 5; do
             if git push origin "HEAD:$branch"; then exit 0; fi

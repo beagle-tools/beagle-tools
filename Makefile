@@ -11,18 +11,23 @@ NVM_DIR := $(HOME)/.nvm
 NODE_BIN_DIR := $(shell ls -d $(NVM_DIR)/versions/node/*/bin 2>/dev/null | sort -V | tail -1)
 export PATH := $(HOME)/.cargo/bin:$(NODE_BIN_DIR):$(PATH)
 
-.PHONY: help check standards check-utils check-tandem check-rca check-workflows
+# node:test suites for repo scripts no app gate hosts: CI test selection,
+# release planning, and cli-base's version stamping.
+SCRIPT_TESTS := scripts/ci/*.test.mjs scripts/release/*.test.mjs cli-base/scripts/*.test.mjs
+
+.PHONY: help check standards check-utils check-cli-base check-tandem check-rca check-workflows
 
 help:
 	@echo "make check            - every gate CI runs (standards + all apps)"
 	@echo "make standards        - 400-line rule + shared-config drift check"
 	@echo "make check-utils      - shared Rust crate"
+	@echo "make check-cli-base   - the beagle base CLI (cli-base/)"
 	@echo "make check-tandem     - tandem (rust + frontend)"
 	@echo "make check-rca        - rca (cli/crates, desktop rust + frontend, web)"
 	@echo "make check-workflows  - workflows (crates, desktop rust + frontend)"
 	@echo ""
 	@echo "make test-affected [BASE=origin/main] - cargo tests for packages changed since BASE (+ dependents)"
-	@echo "make test-scripts     - unit tests for the CI scripts (test selection)"
+	@echo "make test-scripts     - unit tests for repo scripts (test selection, release plan, version stamping)"
 	@echo "make e2e-<app>        - Playwright e2e: tandem, rca-desktop, rca-web, workflows-desktop"
 	@echo ""
 	@echo "make bootstrap        - install/verify the local toolchain on macOS (idempotent)"
@@ -30,15 +35,18 @@ help:
 	@echo "make dev APP=<target> [BROWSER=1] [ARGS=...]  - start an app (or make dev-<target>)"
 	@echo "                        targets: ./scripts/dev/run.sh --list"
 
-check: standards check-utils check-tandem check-rca check-workflows
+check: standards check-utils check-cli-base check-tandem check-rca check-workflows
 
 standards:
 	./scripts/check-file-length.sh;
 	node scripts/check-standards.mjs;
-	node --test scripts/ci/*.test.mjs;
+	node --test $(SCRIPT_TESTS);
 
 check-utils:
 	./scripts/ci/rust.sh utils;
+
+check-cli-base:
+	./scripts/ci/rust.sh cli-base;
 
 check-tandem:
 	./scripts/ci/rust.sh tandem;
@@ -59,7 +67,7 @@ check-workflows:
 # Same selection CI applies to pull requests (docs/TESTING.md). Includes
 # uncommitted and untracked files, so it works before you commit.
 BASE ?= origin/main
-RUST_WORKSPACES := utils tandem rca rca/desktop/src-tauri workflows workflows/desktop
+RUST_WORKSPACES := utils cli-base tandem rca rca/desktop/src-tauri workflows workflows/desktop
 
 .PHONY: test-affected test-scripts e2e e2e-tandem e2e-rca-desktop e2e-rca-web e2e-workflows-desktop
 
@@ -69,7 +77,7 @@ test-affected:
 	done
 
 test-scripts:
-	node --test scripts/ci/*.test.mjs;
+	node --test $(SCRIPT_TESTS);
 
 e2e: e2e-tandem e2e-rca-desktop e2e-rca-web e2e-workflows-desktop
 

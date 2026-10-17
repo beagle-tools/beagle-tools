@@ -2,11 +2,15 @@
 // plan.mjs wires it to git/gh. The rules are the release contract in
 // docs/RELEASING.md — change both together.
 
-/** Apps that release, and where each one's first version comes from. */
+/**
+ * Apps that release, and where each one's first version comes from. `dir`
+ * is the app's directory when it differs from the app name.
+ */
 export const APPS = {
   tandem: { versionFile: "tandem/src-tauri/tauri.conf.json", kind: "json" },
   rca: { versionFile: "rca/cli/Cargo.toml", kind: "cargo-package" },
   workflows: { versionFile: "workflows/Cargo.toml", kind: "cargo-workspace" },
+  cli: { dir: "cli-base", versionFile: "cli-base/Cargo.toml", kind: "cargo-workspace" },
 };
 
 /** Paths compiled into every app: a change here releases all of them. */
@@ -28,7 +32,7 @@ export function isUnknownBefore(before) {
 
 /**
  * Whether a changed path should release `app`. Docs-only changes never do:
- * `**\/*.md` and `<app>/docs/**` are excluded everywhere, except for files
+ * `**\/*.md` and `<dir>/docs/**` are excluded everywhere, except for files
  * an app embeds (EXTRA_PREFIXES).
  */
 export function isReleaseRelevant(app, path) {
@@ -36,8 +40,9 @@ export function isReleaseRelevant(app, path) {
   if (path.endsWith(".md")) return false;
   if (SHARED_FILES.has(path)) return true;
   if (SHARED_PREFIXES.some((p) => path.startsWith(p))) return true;
-  if (!path.startsWith(`${app}/`)) return false;
-  return !path.startsWith(`${app}/docs/`);
+  const dir = APPS[app]?.dir ?? app;
+  if (!path.startsWith(`${dir}/`)) return false;
+  return !path.startsWith(`${dir}/docs/`);
 }
 
 /** The apps any of `paths` releases, in APPS order. */

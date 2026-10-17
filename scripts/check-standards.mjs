@@ -15,6 +15,7 @@ const fail = (msg) => errors.push(msg);
 // .github/workflows/ci.yml, so nothing ships without a gate.
 const RUST_WORKSPACES = [
   "utils",
+  "cli-base",
   "tandem",
   "rca",
   "rca/desktop/src-tauri",
