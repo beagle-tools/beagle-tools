@@ -1,0 +1,666 @@
+# Changelog
+
+All notable changes to this project are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
+[Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+### Changed
+
+- rca now ships as one version (CLI, daemon, desktop, web) from the
+  `beagle-tools/beagle-tools` monorepo, tagged `beagle-rca-vX.Y.Z`.
+  `beagle update` / `beagle version list` only consider those tags and
+  download `beagle-rca-<target>.tar.gz` (which also refreshes a
+  `beagle-agentd` installed beside `beagle`).
+- `beagle skill install` leaves symlinked skills alone (e.g. links into a
+  checkout's `skills/`) instead of overwriting the link target.
+
+### Added
+
+- Desktop in-app updates: an update pill in the header (checked on launch,
+  every 30 minutes and on focus) and a version list for installing any
+  `beagle-rca-v*` release, including rollbacks.
+
+### Fixed
+
+- `beagle agent install` now writes `PATH` into the launchd plist /
+  systemd unit, so the daemon finds `gh` and `claude` instead of running
+  with launchd's bare `/usr/bin:/bin:/usr/sbin:/sbin`. Re-run
+  `beagle agent install` to pick it up.
+
+- The desktop app now finds `gh` (live PR states) when launched from
+  Finder/the Dock: `gh` is resolved on an augmented `PATH` (Homebrew,
+  `~/.local/bin`, the login shell's `PATH`) instead of the minimal GUI one.
+- Settings-overlay (`S`) config writes are now fsynced before the
+  atomic rename, so a crash can no longer leave a truncated config.
+
+### Changed
+
+- Notifications resolve `terminal-notifier`/`osascript`/`notify-send` on the
+  same augmented `PATH`; `beagle agent install` also finds `beagle-agentd`
+  there (and now requires the file to be executable).
+- Path helpers (XDG dirs, `~` expansion, atomic writes) come from the shared
+  `beagle-utils` crate; an empty `$HOME` is treated as unset everywhere.
+
+## [0.29.0] - 2026-08-27
+
+### Added
+
+- Linear ticket sync now works through the **`linear` CLI** (`mode =
+  "cli"`), not just the API: beagle runs `linear issue view {id} --json`
+  (overridable via a `command` argv in `[tickets.linear]`) and scans the
+  output for linked PR URLs — shape-agnostic, so any CLI/format works.
+  The `/beagle` skill now tells agents to attach a ticket with
+  `beagle ticket add` and sync it.
+
+## [0.28.0] - 2026-08-25
+
+### Added
+
+- **Tracking tickets**: attach a Linear or GitHub issue to an RCA with
+  `beagle ticket add <slug> <ref>` (URL or `ABC-123` id), or `I` in the
+  TUI. `beagle ticket list` shows them; a new `tickets` field holds them
+  in `rca.toml`.
+- **`beagle ticket sync [<slug>]`**: polls each attached ticket for its
+  linked PRs and auto-attaches any new ones to the RCA's `prs`
+  (idempotent — already-attached PRs are ignored), so the existing PR
+  indicator and merge-based lifecycle auto-advance light up. Access per
+  platform is config-driven: `[tickets.github]` / `[tickets.linear]` with
+  `mode = "cli"` (shell out to `gh` / `curl`) or `"api"` (HTTP with a
+  `token`). No new dependency — it shells out and parses with the
+  existing JSON support (#134-adjacent).
+
+## [0.27.0] - 2026-08-07
+
+### Added
+
+- `P` attaches a PR from inside the TUI: a floating prompt takes a PR
+  URL and attaches it to the selected incident via the same
+  `Store::add_pr` as `beagle pr add` (validated, idempotent). Enter
+  attaches, esc cancels; a bad URL keeps the prompt open to fix (#134).
+
+## [0.26.1] - 2026-08-07
+
+### Fixed
+
+- The content line cursor no longer doubles a blank line into two
+  highlighted rows. The full-width bar is now painted onto the frame
+  buffer instead of faked with trailing spaces — an all-whitespace line
+  padded to the width wrapped to a second row, pushing content down
+  (#131).
+
+## [0.26.0] - 2026-08-07
+
+### Added
+
+- Visual-line selection in the content pane: `v` starts a selection at
+  the cursor line, `j`/`k` extend it (highlighted light orange), `v` or
+  esc cancels, and `y` yanks the selected lines and ends the selection.
+- The content line cursor now highlights the **full row width**, so it's
+  visible on blank/gap lines too.
+
+### Changed
+
+- `y` in the content pane yanks the line (or selection); the incident-id
+  yank moved to **`Y`** (shift-Y), which works from either pane (#128).
+
+## [0.25.0] - 2026-08-07
+
+### Added
+
+- Content **line cursor + copy-line** (vim-style). With the content pane
+  focused, `j`/`k` (and `g`/`G`, page keys) move a highlighted line cursor
+  and the view follows it; `y` yanks the line under the cursor — the raw
+  source text, so a command copies exactly as written. In the incident
+  list, `y` still yanks the id (#124).
+- Syntax highlighting for fenced code. Code blocks now render between dim
+  delimiters — `╭─ python ─…` at the top (with the language) and `╰─…` at
+  the bottom — so a block's extent is obvious, and the code is coloured by
+  a small dependency-free tokenizer: comments dim, strings green, numbers
+  yellow, and language keywords (python, bash/sh, rust; generic fallback)
+  magenta (#124).
+
+## [0.24.0] - 2026-08-07
+
+### Added
+
+- Optional **Commands** tab: a new `commands.md` section holding the test
+  commands to run to validate the RCA's theory (bash in code fences). It
+  is opt-in — never scaffolded — and its tab appears **only when the file
+  exists**, so incidents without one are unchanged. Number keys, tab
+  cycling, and the tab bar all skip it when absent; it's included in
+  `beagle export` / `beagle context` when present. The `/beagle` skill
+  tells agents to write it only when there's something concrete to run
+  (#121).
+- `s` filter facet: inside `f` filter mode, `s` toggles a filter to
+  incidents tagged `security` (shown as `[security]`), stacking with the
+  status/severity/has-PR facets (#121).
+- `beagle list --json` emits the listing as a JSON array — one object per
+  workspace (`id`, `title`, `severity`, `status`, `created`, `updated`,
+  `systems`, `tags`, `prs`, `published`, `published_at`, `archived`),
+  honouring the same `--status` / `--severity` / `--archived` filters. Keys
+  are always present (`null` / `[]` when unset) so consumers never have to
+  tell "absent" from "empty", and workspaces that fail to load stay out of
+  the array — their warnings go to stderr, leaving stdout pipeable straight
+  into `jq`. Without the flag the text table is unchanged (#119).
+
+## [0.23.0] - 2026-07-27
+
+### Added
+
+- `p` filter facet: inside `f` filter mode, `p` toggles a "has a PR
+  attached" filter, narrowing the list to incidents that are tracking a
+  PR (shown as `[has PR]` in the sidebar title). Stacks with the status
+  and severity facets like the others (#116).
+
+### Changed
+
+- The sidebar detail line no longer shows the workspace id/slug — it was
+  redundant with the title and only got truncated (`2026-07-20-s…`) in
+  the narrow pane. The status, PR indicator, and ☑ checklist progress
+  remain (#116).
+- PR merge states are now polled every **5 minutes** by default (was 30),
+  so the sidebar/header PR indicators update sooner (#116).
+
+## [0.22.0] - 2026-07-21
+
+### Added
+
+- The sidebar detail line now shows a **PR indicator** for each incident,
+  from the merge states beagle already polls: `PR ✓` (all attached PRs
+  merged, green), `PR m/t` (some merged, yellow), `PR ✗` (closed, none
+  merged, red), or `PR·n` (PR links known but no `gh` state yet, gray).
+  An incident in `review`/`agent` with no PR attached shows a dim
+  `no PR`, so it's clear at a glance whether a review is tracking a PR.
+  It sits right after the status, so it survives the narrow sidebar's
+  truncation (#113).
+
+## [0.21.2] - 2026-07-21
+
+### Changed
+
+- The `?` help row for `y` now reads "copy / yank the incident id to
+  clipboard" so filtering the sheet for "copy" or "copy id" finds it —
+  the feature shipped in 0.20.0 but was only described as "yank" (#110).
+
+## [0.21.1] - 2026-07-21
+
+### Changed
+
+- Filtering the `?` help sheet now highlights the matched characters in
+  each remaining row (same treatment as the `\` finder), so it's clear
+  why a row matched (#107).
+
+## [0.21.0] - 2026-07-21
+
+### Changed
+
+- The `?` help sheet is wider — sized to its longest row, so action
+  descriptions are no longer truncated (`skip-fi…`) on a normal-width
+  terminal — and its keys are **filterable**: press `f` in the sheet and
+  type to narrow the list (fuzzy match over keys + description, reusing
+  the existing matcher — no new dependency). The box stays the same size
+  while filtering; esc clears the filter, a second esc closes (#104).
+
+## [0.20.0] - 2026-07-21
+
+### Added
+
+- Review-companion flow. `beagle context <id>` prints a single
+  self-contained markdown bundle for a reviewer — the full RCA writeup
+  plus the toolbox and the `systems/*.md` docs for the systems that
+  incident touches — to stdout. In the TUI, `y` yanks the selected
+  incident's id to the clipboard. And a new bundled **`/beagle-review`**
+  skill (installed alongside `/beagle` by `beagle skill install` and
+  `beagle update`) takes an id, runs `beagle context`, and answers
+  clarifying questions about the incident — read-only, for understanding
+  rather than editing (#101).
+
+## [0.19.1] - 2026-07-21
+
+### Fixed
+
+- The `!` errors overlay now copies with `c` — the whole thing (every
+  broken workspace, its full reason, and any warnings) to the clipboard,
+  handy when a parse error is long. The overlay was already scrollable
+  (`j`/`k`, space, `PageDown`/`PageUp`, `g`/`G`); its title now says so
+  (#98).
+
+## [0.19.0] - 2026-07-21
+
+### Changed
+
+- Broken-workspace rows in the sidebar are now a single compact `⚠ <dir>`
+  line with a `! or click to view` hint, instead of cramming the parse
+  reason into a ~28-column pane where it truncated to noise. Press `!`
+  (or click the broken region) to open a scrollable errors overlay
+  showing every broken workspace with its **full** reason plus any load
+  warnings. The status bar's problem count points at the same key (#95).
+
+## [0.18.0] - 2026-07-20
+
+### Added
+
+- `#` opens a floating tags editor on the selected incident: current
+  tags as rows (with a callout on `skip-final-review` explaining its
+  effect), `a` adds — typed inline, trimmed, deduped, whitespace
+  rejected — `d` deletes, and every edit writes straight to the
+  manifest via the new `Store::set_tags` (atomic, stamps `updated`).
+  Esc peels typing → closed (#91).
+
+## [0.17.0] - 2026-07-20
+
+### Added
+
+- `skip-final-review` tag: a workspace carrying it in `rca.toml`'s
+  `tags` advances straight to **`finished`** when every attached fix PR
+  merges — no verification pass, no `V` sign-off. An ordinary tag, so no
+  manifest-format change and older binaries read it fine; the /beagle
+  skill tells agents to set it only when the user asks (#88).
+
+## [0.16.0] - 2026-07-20
+
+### Changed
+
+- `beagle init` now sets up the whole store, not just the templates: run
+  bare in a terminal with no governing `.beagle`, it asks where the
+  store root should live (enter accepts the current directory), writes
+  the `.beagle` pinning it — empty when the cwd itself is the root, so
+  `beagle` run anywhere under it finds the store from then on — then
+  scaffolds `toolbox.md` + `systems/` there as before. With `--root`,
+  when piped (agents, scripts), or when a `.beagle` already governs the
+  directory, behavior is exactly as before: no prompt, nothing written
+  but the templates. Never overwrites an existing `.beagle` (#85).
+
+## [0.15.0] - 2026-07-20
+
+### Added
+
+- `.beagle` project files: drop a `.beagle` (same TOML as the config
+  file) in a directory and beagle finds it git-style, walking up from
+  wherever it runs — no more `--root` for every command. Fields it sets
+  win; anything unset falls back to the global config. A relative `root`
+  resolves against the `.beagle`'s directory, and an **empty** `.beagle`
+  pins its own directory as the root, exactly like `.git` marks a repo.
+  Precedence: `--root` flag → nearest `.beagle` → global config →
+  existing `rcas/` discovery; `$BEAGLE_CONFIG` skips project discovery
+  entirely (#82).
+
+## [0.14.0] - 2026-07-20
+
+### Added
+
+- `t` opens a floating status picker on the selected incident: the five
+  lifecycle stages with their glyphs and a one-line hint each, current
+  stage marked. `j`/`k` move, enter applies (atomic manifest write —
+  other beagle instances see it live), esc cancels; re-picking the
+  current stage closes without a write (#79).
+
+## [0.13.0] - 2026-07-20
+
+### Added
+
+- `D` (shift-d) on the incident list deletes the selected RCA — behind a
+  red floating confirmation naming the incident (title + slug). Only an
+  explicit `y` deletes (enter is deliberately ignored so a queued
+  keypress can never confirm); `n`/esc cancel. Works on archived
+  incidents too, and the popup pins the workspace by id at open time so
+  a reload underneath can never redirect the delete (#76).
+
+## [0.12.0] - 2026-07-17
+
+### Added
+
+- **Per-event notifications** and a **beagle-branded icon**. A new
+  `[notify_events]` config table picks which lifecycle moments fire a
+  desktop notification when `notify` is on — `new_incident`,
+  `investigating`, `review`, `agent`, `final_review`, `finished` — so you
+  can ping only on, say, a fix merging to verify. Omit the table to get
+  every event (unchanged behavior). Notifications now carry the beagle
+  logo where the platform notifier supports it: `notify-send -i` on
+  Linux, `terminal-notifier -appIcon` on macOS when installed (plain
+  `osascript` otherwise). The logo is embedded and written to the cache
+  once; a missing notifier stays a silent no-op.
+
+## [0.11.0] - 2026-07-17
+
+### Added
+
+- `beagle handoff <slug>` — launch a configured agent on a reviewed RCA
+  (the `agent` lifecycle stage). It composes your task prompt plus the
+  RCA write-up, pipes them to the agent's stdin, and runs it in the store
+  root with `BEAGLE_RCA_SLUG` / `BEAGLE_RCA_DIR` / `BEAGLE_RCA_ROOT` in the
+  environment; the agent's output streams to the terminal and the run is
+  book-ended in the workspace log. Configure it with a `[handoff]` section
+  (`command` argv + optional `prompt` file). Explicit-trigger by design —
+  beagle never launches an agent on its own. Poll for work with
+  `beagle list --status agent`.
+
+## [0.10.0] - 2026-07-17
+
+### Added
+
+- New **`agent`** lifecycle status between `review` and `final-review`: a
+  hand-off state for automated remediation. An external agent polls
+  `beagle list --status agent`, does the work (opens PRs, applies fixes)
+  from its own prompt, and its merged PRs auto-advance the RCA to
+  `final-review` — the same auto-advance that already worked from
+  `review` now fires from `agent` too. Skip it entirely if you don't run
+  an agent. Filter to it in the TUI with `a` in filter mode; it shows a
+  ⚙ glyph. Recognized across the CLI, desktop, and web apps.
+
+### Migration
+
+- Adding a status variant is backward-compatible for reading (old
+  manifests have no `agent` status and load unchanged), but a manifest
+  with `status = "agent"` will show as a *broken workspace* in beagle
+  binaries older than 0.10 — update those installs. This is the same
+  version-skew behavior as any new status name.
+
+## [0.9.0] - 2026-07-17
+
+### Added
+
+- The `/beagle` skill (the authoring guide agents follow) now ships
+  **inside the binary**, and `beagle update` offers to install or refresh
+  it after fetching a new release — for **Claude Code**
+  (`~/.claude/skills/beagle/SKILL.md`) and **Codex**
+  (`~/.codex/prompts/beagle.md`), whichever are set up on the machine. The
+  prompt is interactive-only and best-effort: declining or a write failure
+  never fails the update.
+- `beagle skill status` reports where each agent's copy stands; `beagle
+  skill install` writes (or refreshes) it on demand. Claude keeps the
+  skill's YAML frontmatter; the Codex prompt gets the body only.
+
+## [0.8.0] - 2026-07-17
+
+### Added
+
+- `beagle unarchive <slug>` moves an archived RCA back to the active
+  list — the previously missing inverse of `archive` (also available in
+  the desktop app's header).
+- Git-style root discovery: without `--root` or a config `root`, beagle
+  now walks up from the working directory to the nearest ancestor
+  containing `rcas/` — run it from any subdirectory of an oncall
+  checkout and it finds the right workspaces instead of scaffolding an
+  empty `rcas/` where you stand.
+
+### Changed
+
+- The `\` finder opens quiet: an empty query matches nothing, and the
+  popup is a slim bar that grows a row per match (capped) as you type,
+  shrinking as the query narrows — the incident stays visible behind it.
+- The CLI self-updater explicitly skips the repo's new `desktop-v*`
+  release tags (the desktop app releases independently); `beagle
+  update` continues to track `v*` only.
+
+## [0.7.1] - 2026-07-17
+
+### Changed
+
+- Repository layout: the Rust crate moved wholesale into `cli/` (history
+  preserved), the first step toward the cli/web/desktop monorepo (#41).
+  CI and the release workflow follow it. **No behavior changes**, and
+  release assets keep the exact same names and layout, so `beagle
+  update` keeps working across the move. From a checkout:
+  `cargo install --path cli`, or
+  `cargo run --manifest-path cli/Cargo.toml`.
+
+## [0.7.0] - 2026-07-17
+
+### Added
+
+- Archive flow: `beagle archive <slug>` moves a finished RCA to
+  `rcas/archive/<slug>` — out of the sidebar, never out of the knowledge
+  base (refuses unless status is `finished`; `--force` overrides). The
+  TUI hides archived incidents by default; `a` toggles them in, rendered
+  dimmed and sorted below everything active. `beagle list --archived`
+  includes them, and reads, exports, `beagle log`, and similar-ranking
+  (`R` / `beagle similar`) work on archived workspaces transparently.
+  The `archive` slug is reserved at scaffold time (#19).
+- Mouse support: the wheel scrolls whatever is under the cursor (content
+  pane, sidebar selection, or an open overlay); left-click selects a
+  sidebar row, switches to a clicked tab label, focuses the content
+  pane, or closes the help sheet. Capture is released on every exit
+  path, panics included; keys remain the primary interface (#20).
+- `E` opens the current tab's backing file in your editor (config
+  `editor` → `$VISUAL` → `$EDITOR` → vim — the same resolution as
+  `beagle config`), suspending and restoring the TUI around it. On the
+  Diagrams tab it opens the diagram on screen. Your own edit is not
+  flagged unread for you; editor failures land in the status bar (#21).
+- Global fuzzy finder: `\` opens a telescope-style popup over every
+  line of every incident (archived included) plus incident titles. A
+  few fuzzy characters re-rank results live with matched characters
+  highlighted; enter jumps straight to the incident, tab, and line —
+  revealing filtered or archived targets as needed. Distinct from `/`,
+  which stays the precise in-incident search (#25).
+
+## [0.6.1] - 2026-07-17
+
+### Fixed
+
+- Broken-workspace rows now show a compact, path-free reason. A missing
+  manifest reads `no rca.toml — not a beagle workspace` and a corrupt one
+  leads with the TOML error itself — previously both led with the
+  manifest's absolute path, which is exactly what a narrow sidebar
+  truncates away (`i/o error at /Users/matthew…`).
+
+## [0.6.0] - 2026-07-17
+
+### Fixed
+
+- Workspaces that fail to load (invalid status name, corrupt manifest, or
+  a missing `rca.toml`) are no longer silently invisible: the sidebar now
+  shows a red `⚠ broken` row with the directory name and the reason, and
+  `beagle list` prints matching `⚠ broken` lines. The most common cause
+  is version skew — an agent writing status names (`final-review`,
+  `finished`) that an older installed binary does not know (#46).
+- `beagle status <slug> <status>` can now repair a manifest whose *only*
+  problem is an invalid status value — the bad value is exactly what the
+  command overwrites anyway. Other corruption still errors as before.
+
+### Added
+
+- Checklist rendering: `- [ ]` / `- [x]` bullets render as ☐/☑ glyphs —
+  checked items green, unchecked with a yellow box — and aggregate
+  progress surfaces as `☑ 3/7` in the sidebar detail line and the
+  workspace header, turning green when complete. Counts re-scan only
+  when a file's mtime changes; fenced code is ignored.
+- Collapsible sidebar: `s` collapses the incident list so the content
+  pane takes the full terminal width (wide diagrams get every column);
+  `s` again — or any back-to-list key (`b`, `esc`, `f`) — brings it back.
+  The sidebar is never collapsed while the list has focus.
+- Agent liveness: `investigating` headers now show how fresh the workspace
+  is — `active 2m ago` from the newest section-file write (the mtime
+  snapshot already kept for unread markers, zero extra I/O), turning
+  yellow (`quiet 12m`) once the agent has been silent past 10 minutes.
+- Settings overlay: `S` opens a floating pane showing every config field
+  (root, editor, notify) with its current value — space toggles booleans,
+  enter inline-edits strings, and every change writes the config file
+  through a comment-preserving, validated, atomic line edit. `notify`
+  applies to the running TUI immediately.
+- Desktop notifications (opt-in, config `notify = true`): new incidents
+  and status transitions fire a native notification — `osascript` on
+  macOS, `notify-send` on Linux, same shell-out philosophy as the
+  clipboard; a missing tool is a silent no-op. Every reload path notifies
+  consistently (watcher, manual reload, auto-advance, sign-off).
+
+- Filter facets: inside `f` filter mode, single keys toggle facets
+  instantly — `i`/`r`/`v`/`f` by status, `c`/`h`/`m`/`l` by severity —
+  stacking across dimensions (high AND investigating) and toggling off on
+  a second press. `/` switches to free-text typing, which ranks within the
+  facet set. Active facets show in the sidebar title
+  (`Incidents (2/7) [high · investigating]`) and the filter prompt; esc
+  peels typing → facets → clear; enter keeps the filter; opening an
+  incident still consumes everything.
+
+### Changed
+
+- **Keybindings** (muscle-memory alert): `/` now *always* searches the
+  selected incident's content, from either pane — committing a search (or
+  pressing `n`/`N`) focuses the content on the hit. `f` now opens the
+  incident-list filter (previously on `/` when the list was focused), and
+  follow mode moves to `F`.
+
+### Added
+
+- Final-review lifecycle: a new **Final Review** tab (`final-review.md`,
+  tabs are now 1–9) holds the verification checklist the agent writes
+  *during* the investigation — concrete, checkable predictions of what
+  "fixed" looks like. When **every attached fix PR has merged**, beagle
+  automatically moves the workspace from `review` to `final-review` (fed by
+  the existing `gh` poll); after working the checklist, `V` signs it off as
+  verified → `finished`. Viewing never mutates state.
+
+### Changed
+
+- **Status vocabulary (manifest format):** `identified` → `review`,
+  `monitoring` → `final-review`, `resolved` → `finished`. Old names still
+  parse (manifests and `beagle status` both accept them) but beagle now
+  writes the new names — **binaries older than this release reject the new
+  names** and skip those workspaces with a warning; `beagle update` first.
+  Sidebar order follows the lifecycle: `investigating` on top, then
+  `review`, `final-review`, and `finished` at the very bottom, with
+  severity ordering within each.
+
+## [0.5.0] - 2026-07-13
+
+### Added
+
+- Related incidents: `R` opens a popup of past RCAs ranked by shared
+  `systems` (weighted 3×) and `tags` (1×), newest first on ties — enter
+  jumps to the workspace, clearing any filter that would hide it. `beagle
+  similar <slug>` prints the same ranking for scripts, and the `/beagle`
+  skill now checks history right after scaffolding and cites prior
+  incidents in root-cause writeups. Ranking runs entirely over the
+  manifests already in memory.
+
+## [0.4.0] - 2026-07-13
+
+### Added
+
+- In-content search: `/` with the content pane focused searches **every
+  section tab of the selected incident** (the list filter keeps `/` when
+  the list is focused). Case-insensitive substring match; the matched text
+  itself highlights live as you type (current hit amber, others tinted —
+  the occurrence, not the whole line), enter commits, and `n`/`N` walk the
+  hits in tab order —
+  hopping tabs automatically when the next hit lives on another one —
+  wrapping at the ends. Esc clears. The status bar shows
+  `match 3/17 for "429" · Notes`.
+
+### Fixed
+
+- Selecting a sidebar row no longer wipes out the severity badge's colored
+  background: selection styling is applied per-span (the badge keeps its
+  own colors, the rest of the row gets the tint, padded to full width).
+
+## [0.3.0] - 2026-07-10
+
+The agent-investigation release: context files agents read before digging
+in, a live Log tab to watch them think, and PR tracking so an RCA follows
+its fix to the merge. Also includes the module-split refactor (#12) — no
+behavior change, but every file now respects the 400-line cap.
+
+### Fixed
+
+- Tab-switching keys (tab, arrows, 1-8) pressed with no incidents on
+  screen now explain themselves in the status bar instead of silently
+  doing nothing (the welcome screen has no tab bar, so the silence read
+  as a broken keybinding).
+
+### Added
+
+- Pressing `T` with no toolbox scaffolds it on the spot (same as `beagle
+  init`) and shows the fresh templates — no round-trip to the CLI.
+- Investigation context for agents: `toolbox.md` (available telemetry, CLIs,
+  runbooks) and `systems/<name>.md` (per-system dashboards, dependencies,
+  known failure modes) at the store root. `beagle init` scaffolds templates;
+  `T` in the TUI shows the toolbox plus the systems docs matching the
+  selected incident.
+
+- Live investigation experience: a new **Log** tab (`log.md`, tabs are now
+  1–8) streams the agent's narration, appended via `beagle log <slug>
+  "message"`; `f` toggles follow mode (reloads stick to the bottom, tail -f
+  style); tabs whose files changed since last viewed show a `●` marker (and
+  the sidebar entry a dot); `investigating` headers tick elapsed time; and
+  newly scaffolded workspaces are announced in the status bar.
+
+- Attached PRs: `beagle pr add <slug> <url>` records remediation PRs in a
+  new optional `prs` manifest field; the workspace header shows live merge
+  status (`fixes: ○ #123 open · ✓ #124 merged`) via a background `gh` poll
+  every 30 minutes. Without `gh`, links render plain — no polling, no
+  errors. `o` opens a popup of attached PRs plus URLs on the current tab
+  and launches the selection in the browser.
+
+### Changed
+
+- **Manifest format:** new optional `prs` field (list of PR URLs). Omitted
+  while empty, so existing manifests are untouched — but note that beagle
+  binaries older than this release reject manifests that *do* contain
+  `prs` (unknown field) and will skip those workspaces with a warning.
+  Update via `beagle update` before using `pr add` if you run multiple
+  machines.
+- The Claude Code skill is now `/beagle` (was `/rca`) and instructs agents
+  to read the toolbox/systems context before investigating, keep it updated,
+  and narrate every investigation step to `log.md`.
+
+## [0.2.0] - 2026-07-07
+
+The first published release — v0.1.0 was tagged in `Cargo.toml` only and
+never had binaries built, so this is the earliest version `beagle update`
+can install.
+
+### Added
+
+- Animated spinner for `investigating` workspaces in the sidebar and header,
+  driven by the existing 250 ms event-loop wakeup (no extra redraws).
+- BEAGLE ASCII banner at the top right of the TUI, beside the workspace
+  header so it doesn't push content down (hidden automatically on small
+  terminals), and a `beagle banner` command that prints the same art.
+- `beagle status <id> <status>` to set a workspace's status from the CLI;
+  a running TUI picks the change up live via the filesystem watcher.
+- `beagle list --status <status> --severity <sev>` filters.
+- `beagle config`: opens `~/.config/beagle/config.toml` in your editor
+  (config `editor` → `$VISUAL` → `$EDITOR` → vim) and validates it on close,
+  reporting unknown keys and type errors. Config `root` becomes the default
+  `--root`, so `beagle` can run from anywhere.
+- `beagle update`: self-update to the latest GitHub release —
+  sha256-verified download, atomic binary swap. `--version <ver>` installs
+  any released version, upgrade or downgrade.
+- `beagle version` (version + target triple) and `beagle version list`, an
+  interactive release browser where enter installs the selected version
+  (plain listing when piped).
+
+## [0.1.0] - 2026-07-07
+
+Initial release.
+
+### Added
+
+- Tabbed RCA workspace TUI: Summary · Timeline · Root Cause · Impact · Fix ·
+  Diagrams · Notes, with live filesystem reload while an investigation is
+  being written.
+- On-disk workspace format (`rcas/<slug>/`): TOML manifest
+  (title/severity/status/dates/systems/tags), one markdown file per section,
+  ASCII diagrams with ANSI color support (rendered unwrapped, pannable).
+- Markdown renderer for the authoring subset: headings, bullets, code fences
+  (gutter style, fence markers hidden), blockquotes, rules, bold, inline code.
+- Fuzzy incident filter (`/`) over title, slug, systems, and tags.
+- Clipboard: `c` copies the current tab, `C` the whole RCA
+  (pbcopy/wl-copy/xclip/xsel with OSC 52 fallback).
+- Deterministic single-file markdown export with Obsidian-compatible YAML
+  frontmatter: `e` in the TUI or `beagle export <slug> [--out <file>]`.
+- CLI: `beagle` (TUI), `beagle new`, `beagle list`, `beagle export`.
+- Safety: no `unsafe`, no panics on user data, 4 MB read cap, atomic writes,
+  corrupt manifests degrade to status-bar warnings, terminal restored on
+  every exit path.
+- `/rca` Claude Code skill documenting the authoring workflow.
+
+[Unreleased]: https://github.com/matthewmyrick/beagle/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/matthewmyrick/beagle/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/matthewmyrick/beagle/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/matthewmyrick/beagle/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/matthewmyrick/beagle/releases/tag/v0.2.0
+[0.1.0]: https://github.com/matthewmyrick/beagle/commit/fceb9d4

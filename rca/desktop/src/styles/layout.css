@@ -1,0 +1,206 @@
+/* ---------- sidebar ---------- */
+
+.sidebar {
+  border-right: 1px solid var(--border);
+  background: var(--bg-raised);
+  overflow-y: auto;
+  transition: background-color 0.25s ease;
+}
+
+.sidebar-heading {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-dim);
+  padding: 12px 14px 4px;
+  margin: 0;
+}
+
+.sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.sidebar-row:hover {
+  background: var(--bg-selected);
+  transform: translateX(2px);
+}
+
+.sidebar-row.selected {
+  background: var(--bg-selected);
+  border-left-color: var(--accent);
+}
+
+.sidebar-row.archived {
+  opacity: 0.45;
+}
+
+.severity-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #14161f;
+  border-radius: 3px;
+  padding: 1px 6px;
+}
+
+.row-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.row-detail {
+  font-size: 0.75rem;
+  color: var(--fg-dim);
+}
+
+.status-glyph.pulse {
+  display: inline-block;
+  animation: pulse 1.6s ease-in-out infinite;
+  color: var(--accent);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* ---------- content column ---------- */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.content-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px 0;
+}
+
+.incident-header h1 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.incident-meta {
+  color: var(--fg-dim);
+  font-size: 0.85rem;
+  margin: 4px 0 0;
+}
+
+/* ---------- brand corner ---------- */
+
+.brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.banner-art {
+  margin: 0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.55rem;
+  line-height: 1.15;
+  color: var(--accent);
+  text-shadow: 0 0 12px var(--accent-soft);
+  user-select: none;
+  animation: banner-in 0.6s ease both;
+}
+
+@keyframes banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.theme-toggle {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  color: var(--fg);
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.theme-toggle:hover {
+  transform: rotate(20deg) scale(1.08);
+  background: var(--bg-selected);
+}
+
+/* ---------- tabs ---------- */
+
+.tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 12px 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--fg-dim);
+  padding: 6px 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.tab:hover {
+  color: var(--fg);
+  background: var(--accent-soft);
+  border-radius: 4px 4px 0 0;
+}
+
+.tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}

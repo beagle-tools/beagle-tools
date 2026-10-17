@@ -1,0 +1,18 @@
+[package]
+name = "agentctl"
+description = "kubectl-style CLI for the agentd stack: apply manifests, inspect agents, and control runs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+beagle-utils = { workspace = true }
+agent-core = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

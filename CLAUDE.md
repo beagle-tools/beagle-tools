@@ -1,0 +1,3 @@
+# beagle-tools
+
+@AGENTS.md

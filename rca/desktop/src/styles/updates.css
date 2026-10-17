@@ -1,0 +1,138 @@
+/* ---------- updater: pill, version button, version list ---------- */
+
+.version-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.update-pill {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.update-pill:hover {
+  transform: scale(1.04);
+}
+
+.update-pill:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.update-pill.failed {
+  background: var(--error-bg);
+  color: var(--error-fg);
+}
+
+.version-button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 9px;
+  color: var(--fg-dim);
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.version-button:hover {
+  color: var(--accent);
+}
+
+.versions-sheet {
+  background: var(--bg-raised);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 18px 22px;
+  width: min(520px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.versions-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.versions-head h2 {
+  margin: 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.version-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.version-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  margin: 4px 0;
+  border-radius: 6px;
+  background: var(--bg);
+  font-size: 0.78rem;
+}
+
+.version-tag {
+  font-family: ui-monospace, monospace;
+  flex: 1;
+}
+
+.version-date,
+.version-note {
+  color: var(--fg-dim);
+  font-size: 0.75rem;
+}
+
+.version-badge {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.version-install {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 10px;
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.version-install.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+.version-install:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

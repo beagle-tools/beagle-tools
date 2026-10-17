@@ -1,0 +1,7 @@
+# esbuild ships a prebuilt binary that its install script puts in place;
+# vite does not run without it. pnpm 10 refuses install scripts by
+# default, and names the allowed ones HERE — the `pnpm.onlyBuiltDependencies`
+# field in package.json is read by older pnpm only, and is silently
+# ignored by this one.
+allowBuilds:
+  esbuild: true

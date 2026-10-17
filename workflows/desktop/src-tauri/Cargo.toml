@@ -1,0 +1,37 @@
+[package]
+name = "agentdesk"
+description = "Agentdesk — a desktop view of the agentd orchestrator"
+authors = ["Matthew Myrick"]
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+# The `_lib` suffix avoids a lib/bin name clash on Windows.
+name = "agentdesk_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+agent-core.workspace = true
+beagle-utils = { workspace = true, features = ["tracing"] }
+
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-process = "2"
+
+anyhow.workspace = true
+chrono.workspace = true
+serde.workspace = true
+reqwest.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+
+[target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
+tauri-plugin-window-state = "2"
+tauri-plugin-updater = "2"
+
+[lints]
+workspace = true

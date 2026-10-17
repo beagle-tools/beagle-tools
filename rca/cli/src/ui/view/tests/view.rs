@@ -1,0 +1,315 @@
+//! Full-frame rendering tests (`ui::view`).
+#![allow(clippy::expect_used, clippy::unwrap_used, clippy::panic)] // panicking is the correct failure mode in tests
+
+use super::sidebar::{pr_summary, rca_list_item, SELECTED_BG};
+use ratatui::style::Color;
+
+use super::*;
+use crate::model::Severity;
+
+fn sample_summary(severity: Severity) -> crate::model::RcaSummary {
+    crate::model::RcaSummary {
+        id: crate::model::RcaId::new("row-check").expect("id"),
+        meta: crate::model::RcaMeta {
+            title: "Row check".to_owned(),
+            severity,
+            status: crate::model::Status::Review,
+            created: time::OffsetDateTime::from_unix_timestamp(1_780_000_000).expect("ts"),
+            updated: None,
+            systems: Vec::new(),
+            tags: Vec::new(),
+            prs: Vec::new(),
+            tickets: Vec::new(),
+            published: false,
+            published_at: None,
+        },
+        archived: false,
+    }
+}
+
+/// The regression from #23: the List-wide `highlight_style` used to patch its
+/// background over the severity badge, so the selected row lost its
+/// HIGH/MED coloring and looked *un*selected.
+#[test]
+fn selected_row_keeps_the_badge_background_and_tints_the_rest() {
+    let rca = sample_summary(Severity::High);
+
+    let selected = rca_list_item(&rca, 0, false, true, None, None);
+    let badge = &selected[0].spans[0];
+    assert_eq!(
+        badge.style.bg,
+        Some(Color::LightRed),
+        "badge keeps its own background when selected"
+    );
+    let title = &selected[0].spans[2];
+    assert_eq!(title.style.bg, Some(SELECTED_BG), "title gets the row tint");
+    for line in &selected {
+        let width: usize = line.spans.iter().map(|s| s.content.chars().count()).sum();
+        assert_eq!(
+            width,
+            usize::from(SIDEBAR_WIDTH) - 2,
+            "row padded to full width so the tint has no gaps"
+        );
+        assert_eq!(
+            line.spans.last().expect("filler").style.bg,
+            Some(SELECTED_BG),
+            "filler carries the tint"
+        );
+    }
+
+    let unselected = rca_list_item(&rca, 0, false, false, None, None);
+    assert_eq!(
+        unselected[0].spans[0].style.bg,
+        Some(Color::LightRed),
+        "badge identical when unselected"
+    );
+    assert_eq!(
+        unselected[0].spans[2].style.bg, None,
+        "no tint off-selection"
+    );
+}
+
+/// Checklist progress renders in the detail line — green once complete,
+/// absent when the workspace has no checkboxes.
+#[test]
+fn sidebar_detail_line_shows_checklist_progress() {
+    let rca = sample_summary(Severity::High);
+
+    let partial = rca_list_item(&rca, 0, false, false, Some((2, 7)), None);
+    let detail: String = partial[1]
+        .spans
+        .iter()
+        .map(|s| s.content.as_ref())
+        .collect();
+    assert!(
+        detail.contains("☑ 2/7"),
+        "progress in detail line: {detail}"
+    );
+
+    let complete = rca_list_item(&rca, 0, false, false, Some((4, 4)), None);
+    let progress_span = complete[1]
+        .spans
+        .iter()
+        .find(|s| s.content.contains("4/4"))
+        .expect("progress span");
+    assert_eq!(progress_span.style.fg, Some(Color::LightGreen));
+
+    let none = rca_list_item(&rca, 0, false, false, None, None);
+    let detail: String = none[1].spans.iter().map(|s| s.content.as_ref()).collect();
+    assert!(!detail.contains('☑'), "no progress without checkboxes");
+}
+
+/// Renders a full frame into a test backend and checks every banner art
+/// row occupies the same columns — the regression that motivated
+/// `banner_rect`: per-line right-alignment staggered the art.
+#[test]
+fn rendered_banner_rows_are_column_aligned() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let store = crate::store::Store::open(tmp.path()).expect("store");
+    let id = crate::model::RcaId::new("banner-check").expect("id");
+    store
+        .scaffold(&id, &crate::store::new_meta("T".to_owned(), Severity::High))
+        .expect("scaffold");
+    let mut app = App::new(store).expect("app");
+
+    let (width, height) = (120u16, 30u16);
+    let backend = ratatui::backend::TestBackend::new(width, height);
+    let mut terminal = ratatui::Terminal::new(backend).expect("terminal");
+    terminal.draw(|frame| draw(frame, &mut app)).expect("draw");
+    let buffer = terminal.backend().buffer();
+
+    // Where the layout should have pinned the art: right edge of the
+    // content column, one-column margin.
+    let art_x = usize::from(width - 1 - crate::banner::WIDTH);
+    for (y, expected) in crate::banner::BANNER.lines().enumerate() {
+        let row: String = (0..width)
+            .map(|x| {
+                buffer[(x, u16::try_from(y).expect("small"))]
+                    .symbol()
+                    .chars()
+                    .next()
+                    .unwrap_or(' ')
+            })
+            .collect();
+        let segment: String = row
+            .chars()
+            .skip(art_x)
+            .take(expected.chars().count())
+            .collect();
+        assert_eq!(segment, expected, "banner row {y} misaligned:\n{row}");
+    }
+}
+
+/// The finder popup sizes to its matches: a slim bar while the query is
+/// empty, growing a row per hit once typing starts.
+#[test]
+fn finder_popup_grows_with_matches() {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    fn popup_height(terminal: &ratatui::Terminal<ratatui::backend::TestBackend>) -> u16 {
+        let buffer = terminal.backend().buffer();
+        let mut top = None;
+        for y in 0..40u16 {
+            let row: String = (0..120u16).map(|x| buffer[(x, y)].symbol()).collect();
+            if top.is_none() && row.contains("find everywhere") {
+                top = Some(y);
+            } else if let Some(t) = top {
+                // First bottom-left rounded corner after the top border
+                // closes the popup.
+                if row.contains('╰') {
+                    return y - t + 1;
+                }
+            }
+        }
+        0
+    }
+
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let store = crate::store::Store::open(tmp.path()).expect("store");
+    for i in 0..4 {
+        let id = crate::model::RcaId::new(format!("grow-{i}")).expect("id");
+        store
+            .scaffold(
+                &id,
+                &crate::store::new_meta(format!("Grow case {i}"), Severity::Low),
+            )
+            .expect("scaffold");
+    }
+    let mut app = App::new(store).expect("app");
+    app.handle_key(KeyEvent::new(KeyCode::Char('\\'), KeyModifiers::NONE));
+
+    let backend = ratatui::backend::TestBackend::new(120, 40);
+    let mut terminal = ratatui::Terminal::new(backend).expect("terminal");
+
+    terminal.draw(|frame| draw(frame, &mut app)).expect("draw");
+    let empty_height = popup_height(&terminal);
+    assert!(
+        (2..=4).contains(&empty_height),
+        "empty finder is a slim bar, got {empty_height} rows"
+    );
+
+    for c in "grow".chars() {
+        app.handle_key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::NONE));
+    }
+    terminal.draw(|frame| draw(frame, &mut app)).expect("draw");
+    let typed_height = popup_height(&terminal);
+    assert!(
+        typed_height > empty_height,
+        "matches grow the popup: {typed_height} vs {empty_height}"
+    );
+}
+
+#[test]
+fn pr_summary_reflects_review_pr_state() {
+    use crate::model::Status;
+    use crate::prs::PrState;
+    use crate::ui::testutil::app_with;
+
+    let mut app = app_with(1);
+    let id = app.selected_rca().expect("selected").id.clone();
+    app.store.set_status(&id, Status::Review).expect("review");
+    app.reload();
+
+    // A review with no PR attached: a dim "no PR" hint.
+    {
+        let rca = app.selected_rca().expect("selected");
+        assert_eq!(
+            pr_summary(&app, rca),
+            Some(("no PR".to_owned(), Color::DarkGray))
+        );
+    }
+
+    // Attach a PR but no gh state yet: shows the link count, gray.
+    app.store
+        .add_pr(&id, "https://github.com/o/r/pull/1")
+        .expect("pr");
+    app.reload();
+    {
+        let rca = app.selected_rca().expect("selected");
+        assert_eq!(
+            pr_summary(&app, rca),
+            Some(("PR·1".to_owned(), Color::Gray))
+        );
+    }
+
+    // Merged: green check.
+    app.pr_states
+        .insert("https://github.com/o/r/pull/1".to_owned(), PrState::Merged);
+    {
+        let rca = app.selected_rca().expect("selected");
+        assert_eq!(
+            pr_summary(&app, rca),
+            Some(("PR ✓".to_owned(), Color::Green))
+        );
+    }
+
+    // A finished incident with no PR stays quiet (no indicator).
+    app.store
+        .set_status(&id, Status::Investigating)
+        .expect("back");
+    let id2 = crate::model::RcaId::new("no-pr-inv").expect("id");
+    app.store
+        .scaffold(
+            &id2,
+            &crate::store::new_meta("Inv".to_owned(), Severity::Low),
+        )
+        .expect("scaffold");
+    app.reload();
+    let inv = app.rcas().iter().find(|r| r.id == id2).expect("found");
+    assert_eq!(
+        pr_summary(&app, inv),
+        None,
+        "investigating + no PR is quiet"
+    );
+}
+
+#[test]
+fn blank_line_under_cursor_stays_one_row_and_shows_the_bar() {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let store = crate::store::Store::open(tmp.path()).expect("store");
+    let id = crate::model::RcaId::new("blank-row").expect("id");
+    store
+        .scaffold(
+            &id,
+            &crate::store::new_meta("Blank".to_owned(), Severity::Low),
+        )
+        .expect("scaffold");
+    // A blank line between two content lines.
+    std::fs::write(
+        store.workspace_dir(&id).join("summary.md"),
+        "AAAA\n\nBBBB\n",
+    )
+    .expect("write");
+    let mut app = App::new(store).expect("app");
+
+    let backend = ratatui::backend::TestBackend::new(120, 30);
+    let mut terminal = ratatui::Terminal::new(backend).expect("terminal");
+    app.ensure_pane(); // load the section pane (the event loop does this)
+                       // Focus content and move the cursor onto the blank middle line.
+    app.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+    app.handle_key(KeyEvent::new(KeyCode::Char('j'), KeyModifiers::NONE));
+    app.ensure_pane();
+    terminal.draw(|frame| draw(frame, &mut app)).expect("draw");
+
+    let buffer = terminal.backend().buffer();
+    let row_of = |needle: &str| -> Option<u16> {
+        (0..30u16).find(|&y| {
+            let row: String = (0..120u16).map(|x| buffer[(x, y)].symbol()).collect();
+            row.contains(needle)
+        })
+    };
+    let a = row_of("AAAA").expect("AAAA rendered");
+    let b = row_of("BBBB").expect("BBBB rendered");
+    assert_eq!(
+        b,
+        a + 2,
+        "one blank row between them (not doubled): AAAA@{a} BBBB@{b}"
+    );
+
+    // The blank row carries the cursor bar background across the content.
+    let blank_y = a + 1;
+    let painted = (0..120u16).any(|x| buffer[(x, blank_y)].bg == Color::Rgb(48, 52, 70));
+    assert!(painted, "the blank cursor row shows the highlight bar");
+}

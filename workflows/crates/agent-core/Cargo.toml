@@ -1,0 +1,21 @@
+[package]
+name = "agent-core"
+description = "Shared domain types, manifest loading, and state store for the agentd stack"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+beagle-utils = { workspace = true }
+chrono = { workspace = true }
+cron = { workspace = true }
+rusqlite = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+
+[lints]
+workspace = true

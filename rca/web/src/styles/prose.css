@@ -1,0 +1,160 @@
+/* rendered markdown */
+.prose {
+  color: var(--fg);
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  letter-spacing: -0.01em;
+  margin: 1.4em 0 0.5em;
+}
+
+.prose h1 {
+  font-size: 1.4rem;
+}
+.prose h2 {
+  font-size: 1.2rem;
+}
+.prose h3 {
+  font-size: 1.05rem;
+}
+
+.prose p {
+  margin: 0.7em 0;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.3em;
+}
+
+.prose li {
+  margin: 0.3em 0;
+}
+
+.prose li::marker {
+  color: var(--accent);
+}
+
+.prose strong {
+  font-weight: 700;
+}
+
+.prose blockquote {
+  border-left: 3px solid var(--border);
+  margin: 1em 0;
+  padding: 2px 0 2px 16px;
+  color: var(--fg-soft);
+}
+
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5px 5px;
+}
+
+.prose pre {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  overflow-x: auto;
+}
+
+.prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.prose hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.5em 0;
+}
+
+.prose a {
+  text-decoration: underline;
+}
+
+/* diagrams */
+.diagram {
+  margin: 20px 0;
+}
+
+.diagram figcaption {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--fg-faint);
+  margin-bottom: 6px;
+}
+
+.diagram pre {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  white-space: pre;
+}
+
+/* ANSI diagram colors — red = broken, green = healthy, yellow = degraded.
+   Tuned to read on the code background in both themes. */
+.ansi-bold {
+  font-weight: 700;
+}
+.ansi-dim {
+  opacity: 0.6;
+}
+.ansi-red {
+  color: #d64545;
+}
+.ansi-green {
+  color: #2f8f47;
+}
+.ansi-yellow {
+  color: #b07d1e;
+}
+.ansi-blue {
+  color: #3b6fd4;
+}
+.ansi-cyan {
+  color: #2596a3;
+}
+.ansi-magenta {
+  color: #a54ca5;
+}
+.ansi-white {
+  color: var(--fg);
+}
+.ansi-black {
+  color: var(--fg-faint);
+}
+
+@media (prefers-color-scheme: dark) {
+  .ansi-red {
+    color: #ff6b6b;
+  }
+  .ansi-green {
+    color: #5bbf74;
+  }
+  .ansi-yellow {
+    color: #e8b44a;
+  }
+  .ansi-blue {
+    color: #6b9bff;
+  }
+  .ansi-cyan {
+    color: #4dd0d8;
+  }
+  .ansi-magenta {
+    color: #d48bd4;
+  }
+}

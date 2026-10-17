@@ -1,0 +1,184 @@
+name: ci
+
+# The one CI pipeline for the monorepo, and its merge gate: if `gate` is
+# green, the change is safe to merge. Branch protection should require
+# exactly the `gate` job — it always runs, and fails if any gate that ran
+# failed or was cancelled. Gates for apps a PR doesn't touch are skipped,
+# not left pending.
+#
+# Every app gets the same checks from the same scripts (scripts/ci/*.sh,
+# scripts/check-*.{sh,mjs}); `make check` runs them identically locally.
+#
+# Two levels of selection: `changes` skips whole apps a PR doesn't touch;
+# inside a Rust gate that runs, pull requests test only the cargo packages
+# the diff affects (scripts/ci/affected.mjs, see docs/TESTING.md). Pushes to
+# main test every package of every gated workspace.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: detect changed apps
+    runs-on: ubuntu-latest
+    outputs:
+      utils: ${{ steps.filter.outputs.utils }}
+      tandem: ${{ steps.filter.outputs.tandem }}
+      rca: ${{ steps.filter.outputs.rca }}
+      workflows: ${{ steps.filter.outputs.workflows }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # Shared tooling and the shared crate re-run every app's gates.
+          filters: |
+            shared: &shared
+              - ".github/workflows/ci.yml"
+              - ".github/workflows/_rust.yml"
+              - ".github/workflows/_frontend.yml"
+              - "scripts/**"
+              - "standards/**"
+              - "rust-toolchain.toml"
+              - "rustfmt.toml"
+              - ".nvmrc"
+              - ".prettierrc.json"
+              - "utils/**"
+            utils:
+              - *shared
+            tandem:
+              - *shared
+              - "tandem/**"
+            rca:
+              - *shared
+              - "rca/**"
+              - ".claude/skills/**"
+              - "skills/**"
+            workflows:
+              - *shared
+              - "workflows/**"
+
+  standards:
+    name: standards (400-line rule, shared config)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: ./scripts/check-file-length.sh
+      - run: node scripts/check-standards.mjs
+      - name: unit tests for the CI scripts (test selection)
+        run: node --test scripts/ci/*.test.mjs
+
+  utils:
+    needs: changes
+    if: needs.changes.outputs.utils == 'true'
+    uses: ./.github/workflows/_rust.yml
+    with:
+      affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+      dir: utils
+
+  tandem-rust:
+    needs: changes
+    if: needs.changes.outputs.tandem == 'true'
+    uses: ./.github/workflows/_rust.yml
+    with:
+      affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+      dir: tandem
+      tauri: true
+
+  tandem-frontend:
+    needs: changes
+    if: needs.changes.outputs.tandem == 'true'
+    uses: ./.github/workflows/_frontend.yml
+    with:
+      dir: tandem
+
+  rca-rust:
+    needs: changes
+    if: needs.changes.outputs.rca == 'true'
+    uses: ./.github/workflows/_rust.yml
+    with:
+      affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+      dir: rca
+
+  rca-desktop-rust:
+    needs: changes
+    if: needs.changes.outputs.rca == 'true'
+    uses: ./.github/workflows/_rust.yml
+    with:
+      affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+      dir: rca/desktop/src-tauri
+      tauri: true
+
+  rca-desktop-frontend:
+    needs: changes
+    if: needs.changes.outputs.rca == 'true'
+    uses: ./.github/workflows/_frontend.yml
+    with:
+      dir: rca/desktop
+
+  rca-web:
+    needs: changes
+    if: needs.changes.outputs.rca == 'true'
+    uses: ./.github/workflows/_frontend.yml
+    with:
+      dir: rca/web
+
+  workflows-rust:
+    needs: changes
+    if: needs.changes.outputs.workflows == 'true'
+    uses: ./.github/workflows/_rust.yml
+    with:
+      affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+      dir: workflows
+
+  workflows-desktop-rust:
+    needs: changes
+    if: needs.changes.outputs.workflows == 'true'
+    uses: ./.github/workflows/_rust.yml
+    with:
+      affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+      dir: workflows/desktop
+      tauri: true
+
+  workflows-desktop-frontend:
+    needs: changes
+    if: needs.changes.outputs.workflows == 'true'
+    uses: ./.github/workflows/_frontend.yml
+    with:
+      dir: workflows/desktop
+
+  gate:
+    name: gate
+    if: always()
+    needs:
+      - changes
+      - standards
+      - utils
+      - tandem-rust
+      - tandem-frontend
+      - rca-rust
+      - rca-desktop-rust
+      - rca-desktop-frontend
+      - rca-web
+      - workflows-rust
+      - workflows-desktop-rust
+      - workflows-desktop-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: every gate that ran is green
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "a gate failed or was cancelled — not mergeable"
+          exit 1
+      - run: echo "all gates green — safe to merge"

@@ -1,0 +1,15 @@
+{
+  "$comment": "Shared TypeScript strictness for every app. Apps extend this and must not redefine these keys (scripts/check-standards.mjs enforces it). Flags may be added here; none may be removed or weakened.",
+  "compilerOptions": {
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}

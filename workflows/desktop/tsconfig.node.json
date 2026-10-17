@@ -1,0 +1,17 @@
+{
+  "extends": "../../standards/tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    // A composite project may not disable emit, so it emits declarations
+    // only, into a dir nothing reads. tsbuildinfo is what we actually
+    // want from it; the .d.ts files are a side effect.
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "outDir": "./node_modules/.tmp/tsconfig-node"
+  },
+  "include": ["vite.config.ts", "playwright.config.ts"]
+}

@@ -1,0 +1,318 @@
+//! Per-subcommand argument parsers. Each consumes the remaining arguments
+//! after the subcommand word and returns a fully typed [`Command`].
+
+use std::path::PathBuf;
+
+use beagle::model::{RcaId, Severity, Status};
+use beagle::update;
+
+use super::{take_value, AgentAction, Command, SkillAction};
+
+pub(super) fn parse_skill(args: &mut impl Iterator<Item = String>) -> Result<Command, String> {
+    let action = match args.next().as_deref() {
+        None | Some("status") => SkillAction::Status,
+        Some("install") => SkillAction::Install,
+        Some(other) => {
+            return Err(format!(
+                "unknown `skill` subcommand `{other}` (expected status|install)"
+            ))
+        }
+    };
+    if let Some(extra) = args.next() {
+        return Err(format!(
+            "`skill {action:?}` takes no further arguments (got `{extra}`)"
+        ));
+    }
+    Ok(Command::Skill { action })
+}
+
+pub(super) fn parse_agent(args: &mut impl Iterator<Item = String>) -> Result<Command, String> {
+    let action = match args.next().as_deref() {
+        Some("install") => AgentAction::Install,
+        Some("uninstall") => AgentAction::Uninstall,
+        Some("start") => AgentAction::Start,
+        Some("stop") => AgentAction::Stop,
+        Some("status") => AgentAction::Status,
+        None => {
+            return Err(
+                "`agent` requires a subcommand: install|uninstall|start|stop|status".to_string(),
+            )
+        }
+        Some(other) => {
+            return Err(format!(
+            "unknown `agent` subcommand `{other}` (expected install|uninstall|start|stop|status)"
+        ))
+        }
+    };
+    if let Some(extra) = args.next() {
+        return Err(format!(
+            "`agent {}` takes no further arguments (got `{extra}`)",
+            action.as_str()
+        ));
+    }
+    Ok(Command::Agent { action })
+}
+
+pub(super) fn parse_update(args: &mut impl Iterator<Item = String>) -> Result<Command, String> {
+    let mut version: Option<update::Version> = None;
+    while let Some(flag) = args.next() {
+        match flag.as_str() {
+            "--version" => version = Some(take_value(args, "--version")?.parse()?),
+            other => return Err(format!("unknown flag `{other}` for `update`")),
+        }
+    }
+    Ok(Command::Update { version })
+}
+
+pub(super) fn parse_list(
+    args: &mut impl Iterator<Item = String>,
+    mut root: Option<PathBuf>,
+) -> Result<Command, String> {
+    let mut status: Option<Status> = None;
+    let mut severity: Option<Severity> = None;
+    let mut archived = false;
+    let mut json = false;
+    while let Some(flag) = args.next() {
+        match flag.as_str() {
+            "--status" => status = Some(take_value(args, "--status")?.parse()?),
+            "--severity" => severity = Some(take_value(args, "--severity")?.parse()?),
+            "--archived" => archived = true,
+            "--json" => json = true,
+            "--root" => root = Some(PathBuf::from(take_value(args, "--root")?)),
+            other => return Err(format!("unknown flag `{other}` for `list`")),
+        }
+    }
+    Ok(Command::List {
+        root,
+        status,
+        severity,
+        archived,
+        json,
+    })
+}
+
+pub(super) fn parse_archive(
+    args: &mut impl Iterator<Item = String>,
+    mut root: Option<PathBuf>,
+) -> Result<Command, String> {
+    let id_raw = args
+        .next()
+        .filter(|a| !a.starts_with('-'))
+        .ok_or("`archive` requires an <id> slug as its first argument")?;
+    let id = RcaId::new(id_raw).map_err(|e| e.to_string())?;
+    let mut force = false;
+    while let Some(flag) = args.next() {
+        match flag.as_str() {
+            "--force" => force = true,
+            "--root" => root = Some(PathBuf::from(take_value(args, "--root")?)),
+            other => return Err(format!("unknown flag `{other}` for `archive`")),
+        }
+    }
+    Ok(Command::Archive { root, id, force })
+}
+
+pub(super) fn parse_status(
+    args: &mut impl Iterator<Item = String>,
+    mut root: Option<PathBuf>,
+) -> Result<Command, String> {
+    let id_raw = args
+        .next()
+        .filter(|a| !a.starts_with('-'))
+        .ok_or("`status` requires an <id> slug as its first argument")?;
+    let id = RcaId::new(id_raw).map_err(|e| e.to_string())?;
+    let status: Status = args
+        .next()
+        .filter(|a| !a.starts_with('-'))
+        .ok_or("`status` requires a <status> as its second argument")?
+        .parse()?;
+    while let Some(flag) = args.next() {
+        match flag.as_str() {
+            "--root" => root = Some(PathBuf::from(take_value(args, "--root")?)),
+            other => return Err(format!("unknown flag `{other}` for `status`")),
+        }
+    }
+    Ok(Command::SetStatus { root, id, status })
+}
+
+pub(super) fn parse_similar(
+    args: &mut impl Iterator<Item = String>,
+    mut root: Option<PathBuf>,
+) -> Result<Command, String> {
+    let id_raw = args
+        .next()
+        .filter(|a| !a.starts_with('-'))
+        .ok_or("`similar` requires an <id> slug as its first argument")?;
+    let id = RcaId::new(id_raw).map_err(|e| e.to_string())?;
+    while let Some(flag) = args.next() {
+        match flag.as_str() {
+            "--root" => root = Some(PathBuf::from(take_value(args, "--root")?)),
+            other => return Err(format!("unknown flag `{other}` for `similar`")),
+        }
+    }
+    Ok(Command::Similar { root, id })
+}
+
+/// `context <id>`: the review bundle for one workspace.
+pub(super) fn parse_context(
+    args: &mut impl Iterator<Item = String>,
+    mut root: Option<PathBuf>,
+) -> Result<Command, String> {
+    let id_raw = args
+        .next()
+        .filter(|a| !a.starts_with('-'))
+        .ok_or("`context` requires an <id> slug as its first argument")?;
+    let id = RcaId::new(id_raw).map_err(|e| e.to_string())?;
+    while let Some(flag) = args.next() {
+        match flag.as_str() {
+            "--root" => root = Some(PathBuf::from(take_value(args, "--root")?)),
+            other => return Err(format!("unknown flag `{other}` for `context`")),
+        }
+    }
+    Ok(Command::Context { root, id })
+}
+
+/// `log <id> <message...>`: everything that isn't a flag becomes the
+/// message, so multi-word messages work without quoting.
+pub(super) fn parse_log(
+    args: &mut impl Iterator<Item = String>,
+    mut root: Option<PathBuf>,
+) -> Result<Command, String> {
+    let id_raw = args
+        .next()
+        .filter(|a| !a.starts_with('-'))
+        .ok_or("`log` requires an <id> slug as its first argument")?;
+    let id = RcaId::new(id_raw).map_err(|e| e.to_string())?;
+    let mut words: Vec<String> = Vec::new();
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--root" => root = Some(PathBuf::from(take_value(args, "--root")?)),
+            flag if flag.starts_with("--") => {
+                return Err(format!("unknown flag `{flag}` for `log`"));
+            }
+            _ => words.push(arg),
+        }
+    }
+    if words.is_empty() {
+        return Err("`log` requires a message after the <id>".to_owned());
+    }
+    Ok(Command::Log {
+        root,
+        id,
+        message: words.join(" "),
+    })
+}
+
+pub(super) fn parse_export(
+    args: &mut impl Iterator<Item = String>,
+    mut root: Option<PathBuf>,
+) -> Result<Command, String> {
+    let id_raw = args
+        .next()
+        .filter(|a| !a.starts_with('-'))
+        .ok_or("`export` requires an <id> slug as its first argument")?;
+    let id = RcaId::new(id_raw).map_err(|e| e.to_string())?;
+    let mut out: Option<PathBuf> = None;
+    while let Some(flag) = args.next() {
+        match flag.as_str() {
+            "--out" => out = Some(PathBuf::from(take_value(args, "--out")?)),
+            "--root" => root = Some(PathBuf::from(take_value(args, "--root")?)),
+            other => return Err(format!("unknown flag `{other}` for `export`")),
+        }
+    }
+    Ok(Command::Export { root, id, out })
+}
+
+pub(super) fn parse_new(
+    args: &mut impl Iterator<Item = String>,
+    mut root: Option<PathBuf>,
+) -> Result<Command, String> {
+    let id_raw = args
+        .next()
+        .filter(|a| !a.starts_with('-'))
+        .ok_or("`new` requires an <id> slug as its first argument")?;
+    let id = RcaId::new(id_raw).map_err(|e| e.to_string())?;
+
+    let mut title: Option<String> = None;
+    let mut severity = Severity::Medium;
+    let mut systems = Vec::new();
+    while let Some(flag) = args.next() {
+        match flag.as_str() {
+            "--title" => title = Some(take_value(args, "--title")?),
+            "--severity" => severity = take_value(args, "--severity")?.parse()?,
+            "--system" => systems.push(take_value(args, "--system")?),
+            "--root" => root = Some(PathBuf::from(take_value(args, "--root")?)),
+            other => return Err(format!("unknown flag `{other}` for `new`")),
+        }
+    }
+    let title = title.ok_or("`new` requires --title")?;
+    if title.trim().is_empty() {
+        return Err("--title must not be empty".to_owned());
+    }
+    Ok(Command::New {
+        root,
+        id,
+        title,
+        severity,
+        systems,
+    })
+}
+
+pub(super) fn parse_unarchive(
+    args: &mut impl Iterator<Item = String>,
+    mut root: Option<PathBuf>,
+) -> Result<Command, String> {
+    let id_raw = args
+        .next()
+        .filter(|a| !a.starts_with('-'))
+        .ok_or("`unarchive` requires an <id> slug as its first argument")?;
+    let id = RcaId::new(id_raw).map_err(|e| e.to_string())?;
+    while let Some(flag) = args.next() {
+        match flag.as_str() {
+            "--root" => root = Some(PathBuf::from(take_value(args, "--root")?)),
+            other => return Err(format!("unknown flag `{other}` for `unarchive`")),
+        }
+    }
+    Ok(Command::Unarchive { root, id })
+}
+
+pub(super) fn parse_handoff(
+    args: &mut impl Iterator<Item = String>,
+    mut root: Option<PathBuf>,
+) -> Result<Command, String> {
+    let id_raw = args
+        .next()
+        .filter(|a| !a.starts_with('-'))
+        .ok_or("`handoff` requires an <id> slug as its first argument")?;
+    let id = RcaId::new(id_raw).map_err(|e| e.to_string())?;
+    while let Some(flag) = args.next() {
+        match flag.as_str() {
+            "--root" => root = Some(PathBuf::from(take_value(args, "--root")?)),
+            other => return Err(format!("unknown flag `{other}` for `handoff`")),
+        }
+    }
+    Ok(Command::Handoff { root, id })
+}
+
+pub(super) fn parse_set_published(
+    args: &mut impl Iterator<Item = String>,
+    mut root: Option<PathBuf>,
+    verb: &str,
+    published: bool,
+) -> Result<Command, String> {
+    let id_raw = args
+        .next()
+        .filter(|a| !a.starts_with('-'))
+        .ok_or_else(|| format!("`{verb}` requires an <id> slug as its first argument"))?;
+    let id = RcaId::new(id_raw).map_err(|e| e.to_string())?;
+    while let Some(flag) = args.next() {
+        match flag.as_str() {
+            "--root" => root = Some(PathBuf::from(take_value(args, "--root")?)),
+            other => return Err(format!("unknown flag `{other}` for `{verb}`")),
+        }
+    }
+    Ok(Command::SetPublished {
+        root,
+        id,
+        published,
+    })
+}

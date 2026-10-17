@@ -1,0 +1,8 @@
+//! Desktop entry point; everything lives in `tandem_lib`.
+
+// Prevents additional console window on Windows in release, DO NOT REMOVE!!
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+fn main() {
+    tandem_lib::run();
+}

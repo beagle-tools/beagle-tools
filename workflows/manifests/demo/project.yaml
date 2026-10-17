@@ -1,0 +1,2 @@
+kind: Project
+description: Demo DAG — script fanout node feeding claude + codex children in parallel

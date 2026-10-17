@@ -1,0 +1,20 @@
+[package]
+name = "tandem-github"
+description = "GitHub REST client for Tandem with pluggable authentication"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+tandem-core.workspace = true
+beagle-utils.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+reqwest.workspace = true
+tokio.workspace = true
+chrono.workspace = true
+base64.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true

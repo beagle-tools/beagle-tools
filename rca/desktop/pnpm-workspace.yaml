@@ -1,0 +1,5 @@
+# esbuild ships a prebuilt binary that its install script puts in place;
+# vite does not run without it. pnpm refuses install scripts by default
+# and reads the allowed ones from here.
+allowBuilds:
+  esbuild: true

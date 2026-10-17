@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd unit TEMPLATE for agentd. The double-underscore placeholder tokens
+  below are rendered to real paths by `agentctl daemon install` (which
+  embeds this file at build time) into
+  ~/Library/LaunchAgents/com.agentd.daemon.plist, then loaded with
+  launchctl. Do NOT `cp` this file directly: the placeholders won't resolve.
+  `agentctl daemon install --print` shows the rendered unit.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.agentd.daemon</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__AGENTD_BIN__</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <!-- Restart only if agentd *crashed*, not on a clean exit (so `agentctl`
+       stop / a manual quit stays stopped). launchd throttles respawns to a
+       10s minimum, so a crash-loop can't hot-spin. -->
+  <key>KeepAlive</key>
+  <dict>
+    <key>Crashed</key>
+    <true/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <!-- Per-user log dir (0700), not world-writable /tmp. -->
+  <key>StandardOutPath</key>
+  <string>__LOG_DIR__/agentd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>__LOG_DIR__/agentd.err.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__CARGO_BIN_DIR__:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>

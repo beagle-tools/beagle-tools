@@ -1,0 +1,153 @@
+/* A run's transcript. Colours follow agenttop's log view tag for tag, so a
+   run looks the same in the terminal and here. */
+
+.logbar .kind {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  color: var(--fg-muted);
+}
+.logbar .kind.agent {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.transcript {
+  flex: 1;
+  overflow: auto;
+  padding: 6px 0 14px;
+  background: var(--bg-sunken);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* One entry: time, tag, then the body wrapping in its own column so a
+   long answer never runs back under the margin. */
+.le {
+  display: grid;
+  grid-template-columns: 62px 86px 1fr;
+  gap: 8px;
+  padding: 2px 14px;
+}
+.le:hover {
+  background: color-mix(in srgb, var(--fg) 5%, transparent);
+}
+.le-ts {
+  color: var(--fg-muted);
+  opacity: 0.7;
+}
+.le-tag {
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+.le-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-width: 0;
+}
+.le-src {
+  color: var(--accent);
+  font-weight: 600;
+}
+.transcript mark {
+  background: color-mix(in srgb, var(--warn) 45%, transparent);
+  color: inherit;
+  border-radius: 2px;
+}
+
+/* ---- a model run: the conversation ---- */
+.t-assistant .le-tag {
+  color: var(--fg);
+}
+.t-assistant .le-body {
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  font-size: 13px;
+}
+.t-thinking .le-tag,
+.t-thinking .le-body {
+  color: #bb9af7;
+  font-style: italic;
+  opacity: 0.8;
+}
+.t-tool_use .le-tag,
+.t-tool_use .le-body {
+  color: #7dcfff;
+}
+.t-tool_use .le-body {
+  font-weight: 600;
+}
+.t-tool_result .le-tag {
+  color: #7dcfff;
+  opacity: 0.6;
+}
+.t-tool_result .le-body {
+  color: var(--fg-muted);
+}
+.t-result .le-tag,
+.t-result .le-body {
+  color: var(--ok);
+}
+.t-result {
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+/* ---- a script run: the log levels ---- */
+.t-info .le-tag {
+  color: var(--accent);
+}
+.t-step .le-tag,
+.t-step .le-body {
+  color: var(--accent);
+  font-weight: 600;
+}
+.t-ok .le-tag,
+.t-ok .le-body {
+  color: var(--ok);
+}
+.t-warn .le-tag,
+.t-warn .le-body {
+  color: var(--warn);
+}
+.t-out .le-body,
+.t-debug .le-body {
+  color: var(--fg-muted);
+}
+
+/* ---- both ---- */
+.t-error,
+.t-denied {
+  background: color-mix(in srgb, var(--err) 10%, transparent);
+}
+.t-error .le-tag,
+.t-error .le-body,
+.t-denied .le-tag,
+.t-denied .le-body {
+  color: var(--err);
+}
+.t-state .le-tag {
+  color: #bb9af7;
+}
+.t-note .le-tag,
+.t-hook .le-tag,
+.t-init .le-tag,
+.t-system .le-tag {
+  color: var(--warn);
+  opacity: 0.8;
+}
+.t-init .le-body,
+.t-system .le-body {
+  color: var(--fg-muted);
+}
+.t-clipped .le-tag,
+.t-clipped .le-body {
+  color: var(--fg-muted);
+  font-style: italic;
+  opacity: 0.6;
+}

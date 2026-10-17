@@ -1,0 +1,10 @@
+# Build context is the rca/ directory; keep the image build lean.
+.git
+**/node_modules
+**/dist
+**/.astro
+target
+cli
+crates
+desktop
+exports

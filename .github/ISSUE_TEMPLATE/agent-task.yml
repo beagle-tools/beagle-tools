@@ -1,0 +1,119 @@
+# Same sections, same order, as the template in
+# skills/beagle-create-issue/SKILL.md — /beagle-complete-issue parses them.
+name: Agent task
+description: One PR-sized change in one app, specified precisely enough to implement without questions.
+title: "feat(<app>): <what changes>"
+labels: ["agent-ready"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One issue = one PR = one app (`utils` only for shared code). Add the
+        `app:<app>` and `release:<patch|minor|major>` labels after creating it.
+        Prefer `/beagle-create-issue`, which fills this in from the code.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One or two sentences — what changes, user-visibly.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context / why
+      description: Why this is needed, decisions and defaults taken, related issues/PRs.
+    validations:
+      required: true
+  - type: dropdown
+    id: app
+    attributes:
+      label: App
+      description: Also add the matching `app:*` label.
+      options:
+        - tandem
+        - rca
+        - workflows
+        - utils
+    validations:
+      required: true
+  - type: dropdown
+    id: release
+    attributes:
+      label: Release impact
+      description: Also add the matching `release:*` label — it sets the semver bump when the PR merges.
+      options:
+        - "release:patch — fix, refactor, perf, internal"
+        - "release:minor — new user-visible feature"
+        - "release:major — breaking CLI/format/IPC change"
+    validations:
+      required: true
+  - type: input
+    id: blocked-by
+    attributes:
+      label: Blocked by
+      description: "Issues that must merge first, e.g. #12, #13 — or None."
+      placeholder: None
+    validations:
+      required: true
+  - type: textarea
+    id: code-paths
+    attributes:
+      label: Code paths
+      description: Exact files (with line refs) and symbols to change or add; mark new files `(new)`. Name a pattern to follow.
+      placeholder: |
+        - `rca/cli/src/skill.rs:40-46` — `fn markdown` — change: ...
+        - `rca/cli/src/archive.rs` (new) — add `fn archive_rca` — ...
+        - Pattern to follow: `rca/cli/src/commands/list.rs:20`
+    validations:
+      required: true
+  - type: textarea
+    id: required-changes
+    attributes:
+      label: Required changes
+      description: Numbered, precise steps — each names a file and symbol. No "as needed" / "etc.".
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Testable checkboxes.
+      value: |
+        - [ ]
+        - [ ] `make check-<app>` and `make standards` pass.
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Tests required
+      description: Per docs/TESTING.md — specific cases per layer, "None" where truly none.
+      value: |
+        - Unit:
+        - Integration:
+        - Frontend unit/render:
+        - e2e (Playwright):
+        - Regression test for:
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: Adjacent work the implementer must not do in this PR.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification commands
+      render: sh
+      value: |
+        make check-<app>
+        make standards
+    validations:
+      required: true

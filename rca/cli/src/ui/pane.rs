@@ -1,0 +1,283 @@
+//! Content loading and caching for the right-hand pane.
+//!
+//! Section markdown is read when its tab is opened, cached for the current
+//! (workspace, tab, diagram) triple, and dropped on switch — memory scales
+//! with what's on screen, not with the corpus.
+
+use ratatui::text::Text;
+
+use crate::markdown;
+use crate::model::RcaId;
+use crate::store::DiagramEntry;
+
+use super::{App, Tab};
+
+/// What the content pane currently shows.
+#[derive(Debug)]
+pub enum Pane {
+    /// Rendered markdown for a section tab, plus the raw source lines (kept
+    /// so the line cursor can yank the exact text, not the decorated
+    /// render). Rendering is one line per source line, so indices align.
+    Section {
+        /// Styled markdown for display.
+        text: Text<'static>,
+        /// The raw source lines, 1:1 with `text.lines`.
+        raw: Vec<String>,
+    },
+    /// A diagram (raw, unwrapped text) plus its position among siblings.
+    Diagram {
+        /// Rendered (raw) diagram text.
+        text: Text<'static>,
+        /// The raw source lines, 1:1 with `text.lines`.
+        raw: Vec<String>,
+        /// Name of the current diagram file.
+        name: String,
+        /// Zero-based index among the workspace's diagrams.
+        index: usize,
+        /// Total number of diagrams in the workspace.
+        total: usize,
+    },
+    /// Nothing on disk yet for this tab; the string is a hint for the user.
+    Empty(String),
+    /// The tab's file exists but could not be loaded.
+    LoadError(String),
+}
+
+/// Identity of the cached pane content.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct PaneKey {
+    pub(crate) rca: RcaId,
+    pub(crate) tab: Tab,
+    pub(crate) diagram_index: usize,
+}
+
+impl App {
+    /// Loads (or reuses) the content for the current workspace + tab.
+    pub(crate) fn ensure_pane(&mut self) {
+        // The selected incident may not have the current (optional) tab —
+        // e.g. after moving off one that had a `commands.md`. Snap back to
+        // a visible tab before loading.
+        self.ensure_tab_visible();
+        let Some(rca) = self.selected_rca() else {
+            self.pane = None;
+            return;
+        };
+        let key = PaneKey {
+            rca: rca.id.clone(),
+            tab: self.tab,
+            diagram_index: self.diagram_index,
+        };
+        if self.pane.as_ref().is_some_and(|(k, _)| *k == key) {
+            return;
+        }
+        let pane = self.load_pane(&key);
+        // Looking at a tab reads it.
+        if let Some(kind) = key.tab.section() {
+            self.unread.remove(&(key.rca.clone(), kind));
+        }
+        self.pane = Some((key, pane));
+        // A live edit can shrink the content under the cursor; keep it in
+        // range (without yanking the scroll — reveal only re-clamps here).
+        let len = self.pane_raw_lines().map_or(0, <[String]>::len);
+        self.content_cursor = self.content_cursor.min(len.saturating_sub(1));
+        if let Some(anchor) = self.content_select_anchor.as_mut() {
+            *anchor = (*anchor).min(len.saturating_sub(1));
+        }
+        // The search query survives pane changes; its matches don't.
+        // No jump: switching tabs must not yank the scroll around.
+        self.recompute_content_matches(false);
+    }
+
+    fn load_pane(&mut self, key: &PaneKey) -> Pane {
+        match key.tab.section() {
+            Some(kind) => match self.store.read_section(&key.rca, kind) {
+                Ok(Some(content)) => Pane::Section {
+                    text: markdown::to_text(&content),
+                    raw: content.lines().map(str::to_owned).collect(),
+                },
+                Ok(None) => Pane::Empty(format!(
+                    "No {} yet.\n\nAsk Claude to write `rcas/{}/{}` and it will appear here live.",
+                    kind.title().to_lowercase(),
+                    key.rca,
+                    kind.file_name(),
+                )),
+                Err(e) => Pane::LoadError(e.to_string()),
+            },
+            None => self.load_diagram_pane(key),
+        }
+    }
+
+    fn load_diagram_pane(&mut self, key: &PaneKey) -> Pane {
+        let entries: Vec<DiagramEntry> = match self.store.list_diagrams(&key.rca) {
+            Ok(entries) => entries,
+            Err(e) => return Pane::LoadError(e.to_string()),
+        };
+        if entries.is_empty() {
+            return Pane::Empty(format!(
+                "No diagrams yet.\n\nDrop ASCII diagrams into `rcas/{}/diagrams/` \
+                 (e.g. `01-topology.txt`) and cycle them here with n / p.",
+                key.rca,
+            ));
+        }
+        // Clamp the requested index so deleting files can't strand us.
+        self.diagram_index = key.diagram_index.min(entries.len() - 1);
+        let entry = &entries[self.diagram_index];
+        match self.store.read_diagram(entry) {
+            Ok(Some(content)) => Pane::Diagram {
+                // Diagrams support ANSI SGR colors; codes are zero-width so
+                // alignment is preserved.
+                text: crate::ansi::to_text(&content),
+                raw: content.lines().map(str::to_owned).collect(),
+                name: entry.name.clone(),
+                index: self.diagram_index,
+                total: entries.len(),
+            },
+            Ok(None) => Pane::Empty("diagram vanished; press r to reload".to_owned()),
+            Err(e) => Pane::LoadError(e.to_string()),
+        }
+    }
+
+    /// Read-only view of the current pane for drawing.
+    #[must_use]
+    pub(crate) fn pane(&self) -> Option<&Pane> {
+        self.pane.as_ref().map(|(_, p)| p)
+    }
+
+    /// The raw source lines of the current pane, if it is line-addressable
+    /// (a section or a diagram). `None` for empty/error panes.
+    pub(crate) fn pane_raw_lines(&self) -> Option<&[String]> {
+        match self.pane() {
+            Some(Pane::Section { raw, .. } | Pane::Diagram { raw, .. }) => Some(raw),
+            _ => None,
+        }
+    }
+
+    /// The content line cursor (an index into the current pane's lines).
+    pub(crate) fn content_cursor(&self) -> usize {
+        self.content_cursor
+    }
+
+    /// Moves the line cursor by `delta` lines (clamped to the content) and
+    /// scrolls so it stays on screen. A no-op when the pane isn't
+    /// line-addressable.
+    pub(crate) fn move_cursor(&mut self, delta: isize) {
+        let Some(len) = self.pane_raw_lines().map(<[String]>::len) else {
+            return;
+        };
+        if len == 0 {
+            return;
+        }
+        let max = len - 1;
+        let next = self.content_cursor.saturating_add_signed(delta).min(max);
+        self.content_cursor = next;
+        self.reveal_cursor();
+    }
+
+    /// Jumps the cursor to the first (`false`) or last (`true`) line.
+    pub(crate) fn cursor_to_end(&mut self, bottom: bool) {
+        let Some(len) = self.pane_raw_lines().map(<[String]>::len) else {
+            return;
+        };
+        self.content_cursor = if bottom { len.saturating_sub(1) } else { 0 };
+        self.reveal_cursor();
+    }
+
+    /// Keeps `content_cursor` within the content and the viewport scrolled
+    /// so the cursor line is visible (wrap-aware, like search jumps).
+    pub(crate) fn reveal_cursor(&mut self) {
+        let Some(len) = self.pane_raw_lines().map(<[String]>::len) else {
+            return;
+        };
+        if len == 0 {
+            self.content_cursor = 0;
+            return;
+        }
+        self.content_cursor = self.content_cursor.min(len - 1);
+        let Some(text) = self.pane_text() else { return };
+        let width = self.viewport.width;
+        let above = super::search::wrapped_rows_before(text, self.content_cursor, width);
+        let height = self.viewport.height.max(1);
+        // Scroll up if the cursor is above the viewport, down if below its
+        // last visible row (leaving the cursor line fully on screen).
+        if above < self.scroll {
+            self.scroll = above;
+        } else if above >= self.scroll.saturating_add(height) {
+            self.scroll = above.saturating_sub(height - 1);
+        }
+    }
+
+    /// The rendered text of the current pane, if any.
+    fn pane_text(&self) -> Option<&ratatui::text::Text<'static>> {
+        match self.pane() {
+            Some(Pane::Section { text, .. } | Pane::Diagram { text, .. }) => Some(text),
+            _ => None,
+        }
+    }
+
+    /// Toggles visual-line selection (`v`): starts a selection anchored at
+    /// the cursor line, or cancels an active one. A no-op when the pane
+    /// isn't line-addressable.
+    pub(crate) fn toggle_visual_select(&mut self) {
+        if self.pane_raw_lines().is_none() {
+            return;
+        }
+        if self.content_select_anchor.is_some() {
+            self.content_select_anchor = None;
+            self.status = Some("selection cancelled".to_owned());
+        } else {
+            self.content_select_anchor = Some(self.content_cursor);
+            self.status = Some("visual: j/k extend · y yank · v/esc cancel".to_owned());
+        }
+    }
+
+    /// Cancels any active visual-line selection.
+    pub(crate) fn clear_visual_select(&mut self) {
+        self.content_select_anchor = None;
+    }
+
+    /// The inclusive line range currently selected (`v`), if any:
+    /// `(min, max)` of the anchor and the cursor.
+    pub(crate) fn selection_lines(&self) -> Option<(usize, usize)> {
+        self.content_select_anchor.map(|anchor| {
+            (
+                anchor.min(self.content_cursor),
+                anchor.max(self.content_cursor),
+            )
+        })
+    }
+
+    /// Yanks the content under the cursor (`y` in content focus): the
+    /// selected lines when a visual selection is active (ending it), else
+    /// the single cursor line. Copies the raw source text, so a command
+    /// copies exactly as written.
+    pub(crate) fn yank_content(&mut self) {
+        let Some(lines) = self.pane_raw_lines() else {
+            self.status = Some("nothing to copy here".to_owned());
+            return;
+        };
+        let (text, count) = if let Some((lo, hi)) = self.selection_lines() {
+            let hi = hi.min(lines.len().saturating_sub(1));
+            (lines[lo..=hi].join("\n"), hi - lo + 1)
+        } else if let Some(line) = lines.get(self.content_cursor) {
+            (line.clone(), 1)
+        } else {
+            self.status = Some("nothing to copy here".to_owned());
+            return;
+        };
+        self.content_select_anchor = None; // yank ends the selection
+        self.status = Some(match crate::clipboard::copy(&text) {
+            Ok(method) => {
+                if count > 1 {
+                    format!("copied {count} lines via {method}")
+                } else {
+                    format!("copied line via {method}")
+                }
+            }
+            Err(e) => format!("copy failed: {e}"),
+        });
+    }
+}
+
+#[cfg(test)]
+#[path = "tests/pane.rs"]
+mod tests;

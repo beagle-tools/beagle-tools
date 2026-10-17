@@ -1,0 +1,272 @@
+/* The jobs list and one job's page — laid out like agenttop's: a section
+   per project, each job a row with its flow beneath; inside a job, runs
+   behind ruled partitions with the clicked step's log beside them. */
+
+/* ---- jobs list ----------------------------------------------------- */
+
+section.project {
+  padding: 4px 0 10px;
+}
+section.project + section.project {
+  border-top: 1px solid var(--border);
+}
+.project-name {
+  margin: 14px var(--pad) 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--fg-muted);
+}
+
+.jobblock {
+  margin: 2px 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+}
+.jobblock:hover {
+  background: var(--bg-sunken);
+}
+.jobblock.running {
+  border-left-color: var(--accent);
+}
+.jobline {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.jobline .job-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+.jobline code {
+  font-size: 10px;
+}
+.jobline-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.jobblock .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  align-self: center;
+  background: var(--border-strong);
+}
+.jobblock .dot.running,
+.jobblock .dot.pending {
+  background: var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+.jobblock .dot.succeeded {
+  background: var(--ok);
+}
+.jobblock .dot.failed,
+.jobblock .dot.killed {
+  background: var(--err);
+}
+.jobblock .dot.timedout {
+  background: var(--warn);
+}
+@media (prefers-reduced-motion: reduce) {
+  .jobblock .dot {
+    animation: none;
+  }
+}
+
+/* The flow tree. Monospace so the box-drawing guides line up. */
+pre.flowtree {
+  margin: 4px 0 0 18px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--fg-muted);
+  white-space: pre;
+}
+pre.flowtree .guide {
+  opacity: 0.55;
+}
+pre.flowtree .live {
+  color: var(--accent);
+  font-weight: 600;
+}
+pre.flowtree .livetag {
+  color: var(--accent);
+}
+.flowhint {
+  margin: 3px 0 0 18px;
+}
+
+/* ---- one job --------------------------------------------------------- */
+
+.back {
+  border: none;
+  background: none;
+  color: var(--fg-muted);
+  font-size: 19px;
+  line-height: 1;
+  padding: 0 4px;
+}
+.back:hover {
+  color: var(--fg);
+}
+
+.shape {
+  padding: 18px 24px;
+  overflow: auto;
+}
+pre.flowtree.big {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--fg);
+}
+pre.flowtree.big .root {
+  font-weight: 700;
+}
+
+/* Runs on the left, the clicked step's log on the right. */
+.runsplit {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.runlist-col {
+  width: 48%;
+  min-width: 360px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  padding-bottom: 16px;
+}
+.steppane-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* One run, behind its own partition. */
+.chainblock + .chainblock {
+  margin-top: 6px;
+}
+.partition {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 7px var(--pad);
+  background: var(--bg-sunken);
+  border-top: 2px solid var(--border-strong);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+}
+.partition.succeeded {
+  border-top-color: var(--ok);
+}
+.partition.failed,
+.partition.killed {
+  border-top-color: var(--err);
+}
+.partition.running,
+.partition.pending {
+  border-top-color: var(--accent);
+}
+.partition.timedout {
+  border-top-color: var(--warn);
+}
+.partition .when {
+  font-family: var(--mono);
+}
+.partition .chain-total {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-weight: 500;
+  color: var(--warn);
+}
+
+ul.steprows {
+  list-style: none;
+  margin: 0;
+  padding: 2px 0;
+}
+ul.steprows li {
+  display: grid;
+  grid-template-columns: auto 1fr 96px 64px 64px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px var(--pad);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+}
+ul.steprows li:hover {
+  background: var(--bg-sunken);
+}
+ul.steprows li.selected {
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-raised));
+  border-left-color: var(--accent);
+}
+ul.steprows .guide {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  white-space: pre;
+  color: var(--fg-muted);
+  opacity: 0.6;
+}
+ul.steprows .stepname {
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- the step pane --------------------------------------------------- */
+
+.steppane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.stephead {
+  padding: 10px var(--pad);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stephead-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stephead-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+.steplinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+button.tiny.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.stepbody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}

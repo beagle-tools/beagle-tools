@@ -1,0 +1,212 @@
+#!/usr/bin/env bash
+# agentman — manage where agentd reads manifests from.
+#
+# The fourth member of the set (agentd, agentctl, agenttop, agentman), and the
+# only one that is not a Rust binary: this is dotfiles wiring, not agentd
+# state. agentctl talks to the SQLite store and nothing else; which repos the
+# manifests come from is a property of the machine.
+#
+#   agentman              registered roots, and what is linked right now
+#   agentman add <dir>    register a root, link it, apply
+#   agentman rm <dir>     unregister a root, prune its projects, apply
+#   agentman sync         relink + apply (after adding/removing projects)
+#   agentman link         relink only, no apply (what install.sh calls)
+#
+# agentd reads ONE manifests root, but the projects inside it can come from
+# several repos: this dotfiles repo for personal agents, a separate repo for
+# work agents that do not belong in dotfiles. So the root is a real directory
+# of per-project symlinks rather than one symlink to $REPO/manifests.
+#
+# A "root" is a directory whose SUBDIRECTORIES are projects:
+#
+#   my-manifests/          <- the root you register
+#     myproject/           <- a project ("namespace")
+#       some-agent.yaml    <- an agent ("workload")
+#
+# Registered roots are machine-local state — they point at checkouts that only
+# exist on some machines — so they live one absolute path per line in
+# ~/.config/dotfiles/agentd_manifests, beside aws_profile and machine, not in
+# git. No file means this repo's manifests/ only.
+#
+# install.sh sources this file to reuse link_manifest_projects (and with it the
+# installer's own link/warn, which feed its grouped problem report).
+set -u
+
+# Standalone fallbacks. install.sh defines richer versions (its warn/fail feed
+# the grouped problem report at the end of the run), so only fill the gaps.
+if ! declare -f link >/dev/null 2>&1; then
+  ok()   { printf "  \033[32m✓\033[0m %s\n" "$1"; }
+  info() { printf "  \033[36m•\033[0m %s\n" "$1"; }
+  warn() { printf "  \033[33m⚠\033[0m  %s\n" "$1"; }
+  link() {
+    mkdir -p "$(dirname "$2")"
+    if [ -L "$2" ] && [ "$(readlink "$2")" = "$1" ]; then ok "$2 (already linked)"; return; fi
+    [ -e "$2" ] || [ -L "$2" ] && rm -rf "$2"
+    ln -s "$1" "$2" && ok "$2 → $1" || warn "failed to link $2"
+  }
+fi
+# When run directly there is no $REPO; derive it from this script's location.
+# Resolve symlinks first: agentman is installed as ~/.local/bin/agentman ->
+# $REPO/scripts/agentman, and taking dirname of the LINK puts REPO at
+# ~/.local, whose manifests/ does not exist — which makes this repo's own
+# projects look unprovided and gets them pruned.
+if [ -z "${REPO:-}" ]; then
+  _am_src="${BASH_SOURCE[0]}"
+  while [ -L "$_am_src" ]; do
+    _am_dir="$(cd -P "$(dirname "$_am_src")" && pwd)"
+    _am_src="$(readlink "$_am_src")"
+    case "$_am_src" in /*) ;; *) _am_src="$_am_dir/$_am_src" ;; esac
+  done
+  REPO="$(cd -P "$(dirname "$_am_src")/.." && pwd)"
+  unset _am_src _am_dir
+fi
+# A root that does not exist would silently prune everything this repo
+# provides, so fail loudly instead.
+[ -d "$REPO/manifests" ] || { echo "agentman: no manifests/ under REPO=$REPO" >&2; exit 1; }
+
+link_manifest_projects() {
+  local root="$HOME/.config/agentd/manifests" src project target line
+  # Migrate the old single-symlink form without touching the repo it points at.
+  if [ -L "$root" ]; then
+    info "converting $root from a symlink into a project directory"
+    rm "$root"
+  fi
+  mkdir -p "$root"
+
+  local sources=("$REPO/manifests")
+  local extra="$HOME/.config/dotfiles/agentd_manifests"
+  if [ -r "$extra" ]; then
+    while IFS= read -r line; do
+      case "$line" in ''|\#*) continue ;; esac
+      line="${line/#\~/$HOME}"
+      if [ -d "$line" ]; then
+        sources+=("$line")
+      else
+        warn "agentd_manifests lists a missing directory: $line"
+      fi
+    done < "$extra"
+  fi
+
+  # Work out what SHOULD be linked first, then prune anything else. Pruning
+  # only dangling links is not enough: unregistering a root leaves its project
+  # directories on disk, so the link still resolves and would survive forever.
+  local -a want_name=() want_target=()
+  for src in "${sources[@]}"; do
+    for project in "$src"/*/; do
+      [ -d "$project" ] || continue
+      target="${project%/}"
+      want_name+=("$(basename "$target")")
+      want_target+=("$target")
+    done
+  done
+
+  local existing name i keep
+  for existing in "$root"/*; do
+    [ -L "$existing" ] || continue
+    name="$(basename "$existing")"
+    keep=""
+    for i in "${!want_name[@]}"; do
+      if [ "${want_name[$i]}" = "$name" ] && [ "${want_target[$i]}" = "$(readlink "$existing")" ]; then
+        keep=yes; break
+      fi
+    done
+    if [ -z "$keep" ]; then
+      info "pruning project link $name (no registered root provides it)"
+      rm "$existing"
+    fi
+  done
+
+  for i in "${!want_name[@]}"; do
+    link "${want_target[$i]}" "$root/${want_name[$i]}"
+  done
+}
+
+REGISTRY="$HOME/.config/dotfiles/agentd_manifests"
+
+usage() {
+  cat <<'EOF'
+agentman — manage where agentd reads manifests from.
+
+  agentman              registered roots, and what is linked right now
+  agentman add <dir>    register a root, link it, apply
+  agentman rm <dir>     unregister a root, prune its projects, apply
+  agentman sync         relink + apply (after adding/removing projects)
+  agentman link         relink only, no apply (what install.sh calls)
+
+A root is a directory whose SUBDIRECTORIES are projects:
+
+  my-manifests/          <- the root you register
+    myproject/           <- a project ("namespace")
+      some-agent.yaml    <- an agent ("workload")
+
+Roots are recorded in ~/.config/dotfiles/agentd_manifests, one absolute path
+per line — machine-local state, not dotfiles state, so it is not in git.
+EOF
+}
+
+# Absolute, symlinks resolved — so `agentman rm .` matches what `add` stored.
+abspath() { cd "$1" 2>/dev/null && pwd -P; }
+
+cmd_list() {
+  printf '\033[90m# registered roots (%s)\033[0m\n' "$REGISTRY"
+  if [ -r "$REGISTRY" ] && grep -qvE '^[[:space:]]*(#|$)' "$REGISTRY" 2>/dev/null; then
+    while IFS= read -r line; do
+      case "$line" in ''|\#*) continue ;; esac
+      line="${line/#\~/$HOME}"
+      if [ -d "$line" ]; then printf '  \033[32m✓\033[0m %s\n' "$line"
+      else printf '  \033[31m✗\033[0m %s (missing)\n' "$line"; fi
+    done < "$REGISTRY"
+  else
+    printf '  (none — this repo'"'"'s manifests/ only)\n'
+  fi
+  printf '\n\033[90m# linked projects (%s)\033[0m\n' "$HOME/.config/agentd/manifests"
+  local p
+  for p in "$HOME/.config/agentd/manifests"/*; do
+    [ -L "$p" ] || continue
+    printf '  %s -> %s\n' "$(basename "$p")" "$(readlink "$p")"
+  done
+}
+
+cmd_add() {
+  local dir; dir="$(abspath "${1:-}")" || { echo "agentman: not a directory: ${1:-}" >&2; return 1; }
+  # A root holds PROJECT directories. Catching this here beats a silent no-op
+  # at link time, where an empty root looks exactly like a working one.
+  local has=""
+  local p; for p in "$dir"/*/; do [ -d "$p" ] && { has=yes; break; }; done
+  [ -n "$has" ] || { echo "agentman: $dir has no subdirectories; a root holds project dirs, each with *.yaml" >&2; return 1; }
+  mkdir -p "$(dirname "$REGISTRY")"
+  if [ -r "$REGISTRY" ] && grep -qxF -- "$dir" "$REGISTRY"; then
+    echo "agentman: already registered: $dir"
+  else
+    printf '%s\n' "$dir" >> "$REGISTRY"
+    echo "agentman: registered $dir"
+  fi
+  cmd_sync
+}
+
+cmd_rm() {
+  local dir; dir="$(abspath "${1:-}")" || dir="${1:-}"
+  [ -r "$REGISTRY" ] || { echo "agentman: nothing registered" >&2; return 1; }
+  grep -vxF -- "$dir" "$REGISTRY" > "$REGISTRY.tmp" && mv "$REGISTRY.tmp" "$REGISTRY"
+  echo "agentman: unregistered $dir"
+  cmd_sync
+}
+
+cmd_sync() {
+  link_manifest_projects
+  if command -v agentctl >/dev/null 2>&1; then agentctl apply
+  else echo "agentman: agentctl not on PATH — run 'agentctl apply' yourself" >&2; fi
+}
+
+# Only dispatch when run directly; sourcing just defines the functions.
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+  case "${1:-list}" in
+    list|ls)  cmd_list ;;
+    add)      shift; cmd_add "${1:-}" ;;
+    rm|remove) shift; cmd_rm "${1:-}" ;;
+    sync)     cmd_sync ;;
+    link)     link_manifest_projects ;;
+    -h|--help|help) usage ;;
+    *) usage >&2; exit 1 ;;
+  esac
+fi

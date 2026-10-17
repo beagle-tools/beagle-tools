@@ -1,0 +1,20 @@
+[package]
+name = "beagle-agentd"
+version = "0.29.0"
+edition = "2021"
+rust-version = "1.79"
+description = "The always-on daemon that hosts beagle's agent engine."
+license = "MIT"
+repository = "https://github.com/beagle-tools/beagle-tools"
+
+[[bin]]
+name = "beagle-agentd"
+path = "src/main.rs"
+
+[dependencies]
+beagle-utils = { path = "../../../utils" }
+beagle = { path = "../../cli" }
+beagle-agent = { path = "../beagle-agent" }
+
+[lints]
+workspace = true

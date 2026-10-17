@@ -1,0 +1,195 @@
+/* ---------- section content & markdown ---------- */
+
+.section-content {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 24px 24px;
+  max-width: 78ch;
+}
+
+.fade-in {
+  animation: fade-up 0.25s ease both;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.markdown {
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.md-h1 {
+  font-size: 1.25rem;
+  margin: 18px 0 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.md-h2 {
+  font-size: 1.05rem;
+  margin: 16px 0 4px;
+  color: var(--accent);
+}
+
+.md-h3 {
+  font-size: 0.95rem;
+  margin: 12px 0 2px;
+}
+
+.md-p {
+  margin: 8px 0;
+}
+
+.md-rule {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 14px 0;
+}
+
+.md-quote {
+  margin: 8px 0;
+  padding: 2px 14px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 6px 6px 0;
+  color: var(--fg-dim);
+  font-style: italic;
+}
+
+.md-code {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  overflow-x: auto;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.markdown code {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 5px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.85em;
+}
+
+.md-bullet {
+  display: flex;
+  gap: 8px;
+  margin: 3px 0;
+}
+
+.md-bullet .md-marker {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.md-bullet.done .md-marker {
+  color: var(--done);
+}
+
+.md-bullet.done > span:last-child {
+  color: var(--done);
+}
+
+.section-hint {
+  padding: 24px 20px;
+  color: var(--fg-dim);
+}
+
+.error-banner {
+  background: var(--error-bg);
+  color: var(--error-fg);
+  padding: 8px 20px;
+  font-size: 0.85rem;
+}
+
+/* ---------- diagrams ---------- */
+
+.diagram-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.diagram-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px 0;
+}
+
+.diagram-nav button {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg);
+  padding: 3px 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  transition: background-color 0.15s ease;
+}
+
+.diagram-nav button:hover:not(:disabled) {
+  background: var(--bg-selected);
+}
+
+.diagram-nav button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.diagram-name {
+  color: var(--fg-dim);
+  font-size: 0.8rem;
+}
+
+.diagram-content {
+  flex: 1;
+  overflow: auto;
+  margin: 0;
+  padding: 16px 20px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  white-space: pre;
+}
+
+/* ---------- scrollbars & motion preferences ---------- */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
