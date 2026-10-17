@@ -134,6 +134,23 @@ jobs:
     with:
       dir: rca/web
 
+  # The release workflow pushes this image; building it here keeps a broken
+  # Dockerfile from ever reaching main.
+  rca-web-image:
+    name: rca web image (build only)
+    needs: changes
+    if: needs.changes.outputs.rca == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: rca
+          build-contexts: standards=standards
+          file: rca/web/Dockerfile
+          push: false
+
   workflows-rust:
     needs: changes
     if: needs.changes.outputs.workflows == 'true'
@@ -171,6 +188,7 @@ jobs:
       - rca-desktop-rust
       - rca-desktop-frontend
       - rca-web
+      - rca-web-image
       - workflows-rust
       - workflows-desktop-rust
       - workflows-desktop-frontend
