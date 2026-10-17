@@ -1,0 +1,10 @@
+kind: Agent
+name: morning-digest
+runner: claude
+schedule: "0 7 * * 1-5"
+workdir: ~
+prompt: prompts/morning-digest.md
+timeout_minutes: 15
+concurrency: forbid
+# Flip to true once you've customized the prompt for your accounts/tools.
+enabled: false

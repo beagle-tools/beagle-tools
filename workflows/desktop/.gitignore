@@ -1,0 +1,9 @@
+node_modules
+dist
+target
+.DS_Store
+*.tsbuildinfo
+# `cargo tauri dev` log from `make dev-bg`.
+.agentdesk-dev.log
+# Tauri regenerates these from tauri.conf.json on every build.
+src-tauri/gen

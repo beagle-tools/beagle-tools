@@ -1,0 +1,94 @@
+/* ---------- index ---------- */
+
+.index-hero {
+  padding: 56px 0 8px;
+}
+
+.index-hero h1 {
+  font-size: 2rem;
+  margin: 0 0 6px;
+  letter-spacing: -0.02em;
+}
+
+.index-hero p {
+  color: var(--fg-soft);
+  margin: 0;
+  max-width: 34rem;
+}
+
+.incident-list {
+  list-style: none;
+  padding: 0;
+  margin: 40px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.incident-card {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  color: inherit;
+  background: var(--bg);
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.incident-card:hover {
+  text-decoration: none;
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.severity-chip {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  padding: 2px 9px;
+  border-radius: 6px;
+}
+
+.card-date {
+  margin-left: auto;
+  color: var(--fg-faint);
+  font-size: 0.82rem;
+}
+
+.incident-card h2 {
+  font-size: 1.16rem;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.card-lead {
+  color: var(--fg-soft);
+  margin: 0;
+  font-size: 0.95rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.empty-state {
+  margin: 48px 0;
+  padding: 40px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  color: var(--fg-faint);
+}

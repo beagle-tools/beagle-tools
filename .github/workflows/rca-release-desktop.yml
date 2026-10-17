@@ -1,0 +1,125 @@
+name: rca-release-desktop
+
+# Pushing a tag like desktop-v0.1.0 gates the desktop app's checks,
+# cross-builds the Tauri bundles (macOS arm64 + x86_64 dmg/app, Linux
+# AppImage + deb), and publishes them to a GitHub Release under that tag.
+# CLI releases keep their own v* tags and workflow (rca-release.yml); the CLI
+# self-updater skips desktop-v* tags when listing releases.
+on:
+  push:
+    tags: ["desktop-v*"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # The same gates CI runs on every push (scripts/ci/*.sh via the reusable
+  # workflows), so a release can never ship code main's CI would reject.
+  frontend:
+    uses: ./.github/workflows/_frontend.yml
+    with:
+      dir: rca/desktop
+
+  rust:
+    uses: ./.github/workflows/_rust.yml
+    with:
+      dir: rca/desktop/src-tauri
+      tauri: true
+
+  versions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install pinned toolchain (rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: Tag must match the desktop version everywhere
+        run: |
+          tag="${GITHUB_REF_NAME#desktop-v}"
+          conf="$(jq -r .version rca/desktop/src-tauri/tauri.conf.json)"
+          pkg="$(jq -r .version rca/desktop/package.json)"
+          crate="$(cargo metadata --no-deps --format-version 1 \
+            --manifest-path rca/desktop/src-tauri/Cargo.toml \
+            | jq -r '.packages[] | select(.name == "beagle-desktop") | .version')"
+          for v in "$conf" "$pkg" "$crate"; do
+            if [ "$tag" != "$v" ]; then
+              echo "::error::tag desktop-v$tag does not match version $v (conf=$conf pkg=$pkg crate=$crate)"
+              exit 1
+            fi
+          done
+
+  build:
+    needs: [frontend, rust, versions]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Tauri system dependencies
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev \
+            librsvg2-dev patchelf
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: enable corepack (pnpm pinned by packageManager)
+        run: corepack enable
+      - name: install pinned toolchain (rust-toolchain.toml) + target
+        run: |
+          rustup toolchain install
+          rustup target add ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rca/desktop/src-tauri
+          key: ${{ matrix.target }}
+      - run: pnpm install --frozen-lockfile
+        working-directory: rca/desktop
+      - name: Build and publish bundles
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: rca/desktop
+          tauriScript: pnpm tauri
+          tagName: ${{ github.ref_name }}
+          releaseName: "Beagle Desktop ${{ github.ref_name }}"
+          releaseBody: |
+            The Beagle desktop app. macOS bundles are unsigned for now —
+            right-click → Open on first launch (or
+            `xattr -dr com.apple.quarantine "/Applications/Beagle.app"`).
+          releaseDraft: false
+          prerelease: false
+          args: --target ${{ matrix.target }}
+
+  # GitHub's releases/latest tracks the most recently created release,
+  # which a desktop release would otherwise claim — breaking the README's
+  # `releases/latest/download/beagle-*.tar.gz` install one-liner. Keep
+  # `latest` pinned to the newest CLI (v*) release. Tag convention: `v*`
+  # is grandfathered as the CLI's track (every installed self-updater
+  # only parses vX.Y.Z); new components get prefixed tags (desktop-v*).
+  latest-pointer:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Re-point releases/latest at the newest CLI release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cli_tag="$(gh release list --limit 100 --json tagName \
+            --jq '[.[].tagName | select(startswith("v"))][0]')"
+          if [ -n "$cli_tag" ]; then
+            gh release edit "$cli_tag" --latest
+          fi

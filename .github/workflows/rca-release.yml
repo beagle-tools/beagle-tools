@@ -1,0 +1,93 @@
+name: rca-release
+
+# Pushing a tag like v0.1.0 runs the rca Rust gate (scripts/ci/rust.sh, the
+# same script CI runs), cross-builds release binaries, and publishes them
+# (with sha256 checksums) to a GitHub Release.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install pinned toolchain (rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rca
+      # The same gate as CI and `make check-rca`: fmt, clippy -D warnings,
+      # tests and docs across the whole rca workspace, all --locked.
+      - name: Rust gate
+        run: ./scripts/ci/rust.sh rca
+      - name: Tag must match Cargo.toml version
+        working-directory: rca/cli
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::tag v$tag does not match cli/Cargo.toml version $version"
+            exit 1
+          fi
+
+  build:
+    needs: gate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      # The repo pins its toolchain in rust-toolchain.toml, which overrides any
+      # `stable` install — so the cross target must be added to that toolchain.
+      - name: install pinned toolchain + target
+        run: |
+          rustup toolchain install
+          rustup target add ${{ matrix.target }}
+      - name: Install musl tools
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+          workspaces: rca
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+        working-directory: rca/cli
+      - name: Package
+        working-directory: rca
+        # Asset names are version-less so
+        # `releases/latest/download/beagle-<target>.tar.gz` always works.
+        # Runs at the rca/ root. Since the crate joined the Cargo
+        # workspace, `cargo build` (even from cli/) outputs to the
+        # workspace-root `target/`, not `cli/target/`. Docs come from the
+        # root — the asset layout is unchanged, which the self-updater
+        # (`beagle update`) depends on.
+        run: |
+          name="beagle-${{ matrix.target }}"
+          mkdir "$name"
+          cp "target/${{ matrix.target }}/release/beagle" "$name/"
+          cp README.md LICENSE CHANGELOG.md "$name/"
+          tar czf "$name.tar.gz" "$name"
+          shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256"
+      - name: Publish to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            rca/beagle-*.tar.gz
+            rca/beagle-*.tar.gz.sha256
+          generate_release_notes: true

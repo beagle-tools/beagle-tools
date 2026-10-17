@@ -1,0 +1,19 @@
+[package]
+name = "agenttop"
+description = "btop-style live dashboard for agentd runs: watch, attach, kill"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+beagle-utils = { workspace = true }
+agent-core = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+crossterm = { workspace = true }
+ratatui = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

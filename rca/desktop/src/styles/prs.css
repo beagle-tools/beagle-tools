@@ -1,0 +1,122 @@
+/* ---------- PR chips ---------- */
+
+.pr-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.pr-label {
+  color: var(--fg-dim);
+  font-size: 0.78rem;
+}
+
+.pr-chip {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--fg);
+  padding: 2px 12px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.pr-chip:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.pr-chip.merged {
+  color: var(--done);
+  border-color: var(--done);
+}
+
+.pr-chip.closed {
+  color: var(--error-fg);
+}
+
+.pr-attach {
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  color: var(--fg-dim);
+  padding: 2px 12px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  transition: color 0.15s ease;
+}
+
+.pr-attach:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.pr-input {
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--fg);
+  padding: 2px 12px;
+  font: inherit;
+  font-size: 0.78rem;
+  width: 300px;
+}
+
+.pr-input:focus {
+  outline: none;
+}
+
+/* ANSI diagram colors — red = broken, green = healthy, yellow = degraded. */
+.ansi-bold {
+  font-weight: 700;
+}
+.ansi-dim {
+  opacity: 0.6;
+}
+.ansi-red {
+  color: #ff6b6b;
+}
+.ansi-green {
+  color: #5bbf74;
+}
+.ansi-yellow {
+  color: var(--accent);
+}
+.ansi-blue {
+  color: #6b9bff;
+}
+.ansi-cyan {
+  color: #4dd0d8;
+}
+.ansi-magenta {
+  color: #d48bd4;
+}
+.ansi-white {
+  color: var(--fg);
+}
+.ansi-black {
+  color: var(--fg-dim);
+}
+
+:root[data-theme="light"] .ansi-red {
+  color: #d64545;
+}
+:root[data-theme="light"] .ansi-green {
+  color: #2f8f47;
+}
+:root[data-theme="light"] .ansi-blue {
+  color: #3b6fd4;
+}
+:root[data-theme="light"] .ansi-cyan {
+  color: #2596a3;
+}
+:root[data-theme="light"] .ansi-magenta {
+  color: #a54ca5;
+}

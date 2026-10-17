@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd unit TEMPLATE for agentd. The __PLACEHOLDER__ tokens below are
+  rendered to real paths by install.sh (install_agentd) into
+  ~/Library/LaunchAgents/com.agentd.daemon.plist — do NOT `cp` this file
+  directly (the placeholders won't resolve).
+
+  To (re)generate + load manually:
+    AGENTD_BIN="$(command -v agentd)"
+    sed -e "s|__AGENTD_BIN__|$AGENTD_BIN|g" \
+        -e "s|__CARGO_BIN_DIR__|$(dirname "$AGENTD_BIN")|g" \
+        -e "s|__LOG_DIR__|$HOME/Library/Logs/agentd|g" \
+        deploy/com.agentd.daemon.plist > ~/Library/LaunchAgents/com.agentd.daemon.plist
+    mkdir -p ~/Library/Logs/agentd
+    launchctl load -w ~/Library/LaunchAgents/com.agentd.daemon.plist
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.agentd.daemon</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__AGENTD_BIN__</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <!-- Restart only if agentd *crashed*, not on a clean exit (so `agentctl`
+       stop / a manual quit stays stopped). launchd throttles respawns to a
+       10s minimum, so a crash-loop can't hot-spin. -->
+  <key>KeepAlive</key>
+  <dict>
+    <key>Crashed</key>
+    <true/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <!-- Per-user log dir (0700), not world-writable /tmp. -->
+  <key>StandardOutPath</key>
+  <string>__LOG_DIR__/agentd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>__LOG_DIR__/agentd.err.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__CARGO_BIN_DIR__:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>

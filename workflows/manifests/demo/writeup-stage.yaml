@@ -1,0 +1,8 @@
+kind: Agent
+name: writeup-stage
+runner: script
+# Child of demo/writeup. Writes a PER-STAGE write-up, so the overlay shows
+# both links at once: the chain handover (keyed to the root) and this one.
+workdir: ~
+command: sh ~/.config/agentd/manifests/demo/scripts/writeup-stage.sh
+timeout_minutes: 2

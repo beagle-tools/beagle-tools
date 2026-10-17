@@ -1,0 +1,90 @@
+/* Beagle public postmortems — a clean, readable status-page aesthetic.
+   Light by default, dark via prefers-color-scheme. Amber is beagle's
+   signature accent. */
+
+:root {
+  --bg: #ffffff;
+  --bg-soft: #f7f6f3;
+  --bg-code: #f3f1ec;
+  --fg: #1c1e24;
+  --fg-soft: #565b66;
+  --fg-faint: #8b909b;
+  --border: #e6e3dc;
+  --accent: #b07d1e;
+  --accent-soft: rgba(176, 125, 30, 0.1);
+  --resolved: #2f8f47;
+  --resolved-soft: rgba(47, 143, 71, 0.12);
+  --ongoing: #c67a1e;
+  --radius: 12px;
+  --measure: 42rem;
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+/* Dark theme: applied on an explicit choice, and as the default when
+   the visitor's OS prefers dark and they haven't chosen otherwise. */
+:root[data-theme="dark"] {
+  --bg: #12141a;
+  --bg-soft: #191c24;
+  --bg-code: #0f1117;
+  --fg: #e6e8ee;
+  --fg-soft: #a0a6b4;
+  --fg-faint: #6f7684;
+  --border: #262a35;
+  --accent: #e8b44a;
+  --accent-soft: rgba(232, 180, 74, 0.12);
+  --resolved: #5bbf74;
+  --resolved-soft: rgba(91, 191, 116, 0.14);
+  --ongoing: #e8b44a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12141a;
+    --bg-soft: #191c24;
+    --bg-code: #0f1117;
+    --fg: #e6e8ee;
+    --fg-soft: #a0a6b4;
+    --fg-faint: #6f7684;
+    --border: #262a35;
+    --accent: #e8b44a;
+    --accent-soft: rgba(232, 180, 74, 0.12);
+    --resolved: #5bbf74;
+    --resolved-soft: rgba(91, 191, 116, 0.14);
+    --ongoing: #e8b44a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.wrap {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 0 24px;
+}

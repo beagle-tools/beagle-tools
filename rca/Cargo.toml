@@ -1,0 +1,43 @@
+# Root Cargo workspace for the beagle monorepo's Rust crates.
+#
+# Members: the existing `cli` crate (the `beagle` domain layer + TUI) and the
+# native agent runtime introduced by epic #137 — `beagle-agent` (the engine
+# library) and `beagle-agentd` (the always-on daemon binary).
+#
+# `desktop/src-tauri` is deliberately EXCLUDED: it path-depends on `cli` but is
+# built by the Tauri/Vite toolchain with its own lockfile and is its own
+# workspace root (the root CI gate runs `scripts/ci/rust.sh` on it separately),
+# so `tauri build` is unaffected.
+[workspace]
+resolver = "2"
+members = ["cli", "crates/beagle-agent", "crates/beagle-agentd"]
+exclude = ["desktop"]
+
+# Shared lint profile for every workspace member — copied verbatim from
+# ../standards/cargo-lints.toml (the drift check enforces that). Members opt in
+# with `[lints] workspace = true`.
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+dbg_macro = "deny"
+large_enum_variant = "warn"
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+
+# Release profile for the whole workspace (must live at the root — Cargo ignores
+# `[profile.*]` in non-root members).
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

@@ -1,0 +1,9 @@
+kind: Agent
+name: writeup
+runner: script
+# Root of a two-node chain that exercises the write-up viewer end to end
+# WITHOUT spending anything: both nodes are scripts, so there is no model
+# behind them. Press `m` on either run in agenttop to open what they wrote.
+workdir: ~
+command: sh ~/.config/agentd/manifests/demo/scripts/writeup.sh
+timeout_minutes: 2

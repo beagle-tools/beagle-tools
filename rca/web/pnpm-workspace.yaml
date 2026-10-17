@@ -1,0 +1,10 @@
+# pnpm refuses dependency install scripts by default and reads the
+# decisions from here.
+allowBuilds:
+  # esbuild's install script puts its prebuilt binary in place; vite
+  # (inside astro) does not run without it.
+  esbuild: true
+  # sharp loads prebuilt binaries from its @img/sharp-* optional deps; its
+  # install script only builds from source as a fallback, and the site
+  # does no image processing.
+  sharp: false

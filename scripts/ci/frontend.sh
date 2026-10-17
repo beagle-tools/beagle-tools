@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# The frontend gate for one pnpm package. CI and `make check` both run this
+# script, so a green local run is a green CI run.
+#
+#   scripts/ci/frontend.sh <package-dir>    e.g. tandem, rca/web
+set -euo pipefail
+
+dir=${1:?usage: scripts/ci/frontend.sh <package-dir>}
+root="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$root/$dir"
+
+# pnpm comes from corepack (pinned by package.json's packageManager) when it
+# isn't already on PATH.
+if command -v pnpm >/dev/null 2>&1; then pnpm=(pnpm); else pnpm=(corepack pnpm); fi
+
+echo "==> [$dir] install (frozen lockfile)"
+"${pnpm[@]}" install --frozen-lockfile
+echo "==> [$dir] prettier"
+"${pnpm[@]}" format:check
+echo "==> [$dir] eslint (zero warnings)"
+"${pnpm[@]}" lint
+echo "==> [$dir] typecheck"
+"${pnpm[@]}" typecheck
+echo "==> [$dir] tests"
+"${pnpm[@]}" test
+echo "==> [$dir] production build"
+"${pnpm[@]}" build
+echo "OK: [$dir] frontend gate green"
