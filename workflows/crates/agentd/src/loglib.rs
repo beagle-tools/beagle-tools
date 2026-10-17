@@ -44,7 +44,11 @@ mod tests {
     /// the real parser. The two halves are in different languages; this
     /// is the only thing that keeps them agreeing about the format.
     fn logged(call: &str) -> String {
-        let dir = std::env::temp_dir().join(format!("agentd-logsh-{}", std::process::id()));
+        // One directory per call: tests run on parallel threads, and a shared
+        // path lets one test truncate log.sh while another's shell sources it.
+        static CALLS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        let n = CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let dir = std::env::temp_dir().join(format!("agentd-logsh-{}-{n}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let script = dir.join("log.sh");
         std::fs::write(&script, LOG_SH).unwrap();
