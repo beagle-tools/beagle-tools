@@ -9,7 +9,9 @@ import { useState } from "react";
 
 import type { GithubComment, GithubReview, LocalComment } from "../lib/types";
 import { useAppStore } from "../state/store";
+import { githubDiscussionMarkdown } from "../lib/threadMarkdown";
 import { CodeExcerpt } from "./CodeExcerpt";
+import { CopyMarkdown } from "./CopyMarkdown";
 import { CommentThread, GithubCommentCard } from "./comments";
 import { MarkdownBody } from "./Markdown";
 import { verdictTone } from "./PanelCards";
@@ -74,6 +76,9 @@ export function LocalThreadModal({
 function GithubShell(props: {
   title: ReactNode;
   original: ReactNode;
+  /** Plain-text versions of the original, for the markdown copy. */
+  authorLabel: string;
+  originalBody: string;
   threads: Thread[];
   githubReplies: GithubComment[];
   path: string;
@@ -92,6 +97,20 @@ function GithubShell(props: {
       <div className="mt-3">{props.original}</div>
 
       <div className="mt-4 flex items-center gap-1.5 border-b border-edge pb-2">
+        <span className="order-last ml-auto">
+          <CopyMarkdown
+            label="copy conversation"
+            title="copy the comment and everything said about it, as markdown"
+            text={() =>
+              githubDiscussionMarkdown(
+                { author: props.authorLabel, body: props.originalBody },
+                props.githubReplies,
+                props.threads,
+                props.path ? `${props.path}:${String(props.line)}` : null,
+              )
+            }
+          />
+        </span>
         <Tab
           active={tab === "local"}
           onClick={() => {
@@ -171,6 +190,8 @@ export function GithubCommentModal(props: {
         </span>
       }
       original={<GithubCommentCard comment={comment} />}
+      authorLabel={`${comment.author.login} (github)`}
+      originalBody={comment.body}
       threads={props.threads}
       githubReplies={props.githubReplies}
       path={comment.path ?? ""}
@@ -203,6 +224,8 @@ export function ReviewModal(props: {
           <MarkdownBody text={review.body} />
         </>
       }
+      authorLabel={`${review.author.login} (github review)`}
+      originalBody={review.body}
       threads={props.threads}
       githubReplies={[]}
       path=""
