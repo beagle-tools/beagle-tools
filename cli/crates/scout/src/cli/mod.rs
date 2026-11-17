@@ -91,6 +91,10 @@ pub(crate) enum Command {
     SkillStatus,
     Version,
     Help,
+    /// `beagle scout init [<dir>]`: mark a directory as a store.
+    Init(Option<PathBuf>),
+    /// `beagle scout root`: print the store in use and why.
+    Root,
 }
 
 /// `beagle scout watch` flags.
@@ -204,6 +208,15 @@ fn parse_command(args: &[String]) -> Result<Command, String> {
             [a] if a == "install" => Ok(Command::SkillInstall),
             [a] if a == "status" => Ok(Command::SkillStatus),
             _ => Err("usage: beagle scout skill install | status".to_owned()),
+        },
+        "init" => match rest {
+            [] => Ok(Command::Init(None)),
+            [dir] if !dir.starts_with('-') => Ok(Command::Init(Some(PathBuf::from(dir)))),
+            _ => Err("usage: beagle scout init [<dir>]".to_owned()),
+        },
+        "root" => match rest {
+            [] => Ok(Command::Root),
+            _ => Err("usage: beagle scout root".to_owned()),
         },
         "version" | "--version" | "-V" => Ok(Command::Version),
         "help" | "--help" | "-h" => Ok(Command::Help),

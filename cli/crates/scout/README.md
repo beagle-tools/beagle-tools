@@ -55,7 +55,7 @@ it in `beagle scout` (and its commands in `beagle scout watch`).
 ## Use
 
 ```sh
-beagle scout                  # the TUI (store: --root, else $SCOUT_ROOT, else ~/.scout)
+beagle scout                  # the TUI (which store: see "Where projects live")
 beagle scout list             # every project, one per line (--json for scripts)
 beagle scout show <project>   # the goal and the ordered tasks — "where were we?"
 ```
@@ -208,7 +208,7 @@ the TUI only displays its result:
   the agent first started or attached it, to its last mention of the task
   (a status change, a `beagle scout log --task`). A task still being worked runs to
   the end.
-- **Stays local:** the copies live in `~/.scout`, not in any repo. They
+- **Stays local:** the copies live in the store's `<project>/sessions/`, which `beagle scout init` keeps out of git. They
   survive Claude Code's own transcript cleanup and don't depend on Claude's
   internal format staying the same.
 - `beagle scout session show <project> <task> [--follow]` prints the same view in
@@ -292,11 +292,33 @@ touches it.
 
 ## On disk
 
+### Where projects live
+
+A store is a folder of projects. `beagle scout root` prints the one in use and why. First match wins:
+
+1. `--root <dir>`
+2. `$SCOUT_ROOT`
+3. the nearest folder at or above where you are that holds a `.scout-store` file
+4. `root` in `~/.config/scout/config.toml`
+5. `~/.scout`
+
+To keep projects in their own git repo:
+
+```sh
+cd ~/src/my-scout-projects && beagle scout init   # writes .scout-store and a .gitignore
+```
+
+Inside that folder, `beagle scout` uses it. Agents work from other repos, so to make it your default everywhere, also set `root = "~/src/my-scout-projects"` in `~/.config/scout/config.toml`.
+
+`init` adds `/.sessions/` and `/*/sessions/` to the store's `.gitignore`. Session recordings hold raw command output, which can include secrets, so they never belong in a repo.
+
+### File format
+
 Plain Markdown with TOML frontmatter (between `+++` fences) — no database,
 `git`-friendly, readable without scout:
 
 ```text
-~/.scout/
+<store>/                            # see "Where projects live"
   rate-limit-the-api/               # project id: lowercase [a-z0-9-], ≤ 64 chars
     project.md                      # Goal · The problem · How this part of the stack works · The plan · Done when
     log.md                          # timestamped activity; every CLI change is logged too

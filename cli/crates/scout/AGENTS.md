@@ -39,7 +39,8 @@ assets/               scout-dog.png (Noto Emoji, Apache-2.0; see assets/NOTICE)
 
 ## Rules
 
-- The on-disk format (README "On disk"), `$SCOUT_ROOT`, `~/.scout`,
+- The on-disk format (README "On disk"), store resolution (`src/app/root.rs`:
+  `--root`, `$SCOUT_ROOT`, `.scout-store`, config `root`, `~/.scout`),
   `~/.config/scout/config.toml` and the CLI are the agents' API. Changing
   any of them means updating the skills, the README and this file together.
 - The skills are compiled into the binary; editing a `SKILL.md` changes the

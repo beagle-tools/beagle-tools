@@ -2,7 +2,7 @@
 //! agents (and scripts) a typed way to create and update projects and tasks.
 //!
 //! Parsing lives in [`crate::cli`] and is pure; this module does the I/O.
-//! The store root is `--root`, else `$SCOUT_ROOT`, else `~/.scout`.
+//! The store root is chosen by [`root::resolve`].
 
 // Command output goes through these instead of std's `println!`/`print!`,
 // which panic when stdout is a closed pipe (`beagle scout list | head -1`).
@@ -23,6 +23,7 @@ macro_rules! print {
 
 mod hook_cmd;
 mod listing;
+mod root;
 mod session_cmd;
 mod skill_cmd;
 mod status;
@@ -71,6 +72,8 @@ fn dispatch(invocation: cli::Invocation) -> Result<()> {
     match invocation.command {
         Command::Help => print!("{USAGE}"),
         Command::Version => println!("beagle scout {}", env!("CARGO_PKG_VERSION")),
+        Command::Init(dir) => root::init_command(dir)?,
+        Command::Root => root::print_current(root)?,
         Command::SkillInstall => skill_cmd::install()?,
         Command::SkillStatus => skill_cmd::status()?,
         Command::Hook => hook_cmd::record(root),
@@ -153,15 +156,9 @@ fn dispatch(invocation: cli::Invocation) -> Result<()> {
     Ok(())
 }
 
-/// `--root`, else `$SCOUT_ROOT`, else `~/.scout`.
+/// The store this command uses; see [`root::resolve`] for the order.
 fn resolve_root(explicit: Option<PathBuf>) -> Result<PathBuf> {
-    if let Some(root) = explicit {
-        return Ok(root);
-    }
-    if let Some(root) = beagle_utils::paths::env_path("SCOUT_ROOT") {
-        return Ok(root);
-    }
-    home().map(|h| h.join(".scout"))
+    root::current(explicit).map(|(path, _)| path)
 }
 
 fn home() -> Result<PathBuf> {

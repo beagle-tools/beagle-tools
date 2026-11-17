@@ -11,12 +11,14 @@ because agent and user lose track of what is being done and why. Your job:
 keep that picture true, at all times, and write it so someone who does not
 know the stack can follow it.
 
-Everything lives in plain files under the store (`--root`, else
-`$SCOUT_ROOT`, else `~/.scout`). Drive it through the `beagle scout` CLI — it
+Everything lives in plain files under the store (`beagle scout root` prints
+which one: `--root`, else `$SCOUT_ROOT`, else the nearest folder with a
+`.scout-store` file, else `root` in `~/.config/scout/config.toml`, else
+`~/.scout`). Drive it through the `beagle scout` CLI — it
 validates input, numbers tasks, stamps times, and logs every change.
 
 ```text
-~/.scout/<project>/
+<store>/<project>/
   project.md        goal · problem · how the stack works · plan · done-when
   log.md            timestamped activity (Log tab)
   tasks/NN-slug.md  one file per task, NN = order
