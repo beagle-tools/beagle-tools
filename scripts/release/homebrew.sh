@@ -6,7 +6,8 @@
 #
 #   scripts/release/homebrew.sh <app> <version> <tap-dir> [<sha-dir>]
 #
-# <sha-dir> holds `<formula>-<target>.tar.gz.sha256` files. When omitted the
+# <sha-dir> holds `<asset>-<target>.tar.gz.sha256` files (APP_ASSET, usually
+# the formula name; `beagle-cli` for the cli app). When omitted the
 # script downloads them from the `beagle-<app>-v<version>` release (needs
 # GH_TOKEN). Local check with fake values:
 #   mkdir -p /tmp/shas && for t in aarch64-apple-darwin x86_64-apple-darwin \
@@ -32,11 +33,11 @@ if [ -n "$APP_FORMULA" ]; then
   if [ -z "$sha_dir" ]; then
     sha_dir=$(mktemp -d)
     gh release download "beagle-$app-v$version" --repo beagle-tools/beagle-tools \
-      --dir "$sha_dir" --pattern "$APP_FORMULA-*.tar.gz.sha256"
+      --dir "$sha_dir" --pattern "$APP_ASSET-*.tar.gz.sha256"
   fi
   args=(-e "s|@VERSION@|$version|g")
   for target in $APP_CLI_TARGETS; do
-    file="$sha_dir/$APP_FORMULA-$target.tar.gz.sha256"
+    file="$sha_dir/$APP_ASSET-$target.tar.gz.sha256"
     [ -f "$file" ] || { echo "missing $file" >&2; exit 1; }
     sha=$(awk '{print $1; exit}' "$file")
     [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || { echo "bad sha256 in $file: $sha" >&2; exit 1; }

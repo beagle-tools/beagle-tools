@@ -16,15 +16,34 @@ import {
 
 test("app paths release only their app", () => {
   assert.deepEqual(changedApps(["tandem/src/App.tsx"]), ["tandem"]);
-  assert.deepEqual(changedApps(["rca/cli/src/main.rs", "workflows/Cargo.lock"]), [
+  assert.deepEqual(changedApps(["rca/desktop/src/App.tsx", "workflows/Cargo.lock"]), [
     "rca",
     "workflows",
   ]);
+  assert.deepEqual(changedApps(["cli/crates/scout/src/lib.rs"]), ["cli"]);
+  assert.deepEqual(changedApps(["cli/Cargo.lock"]), ["cli"]);
 });
 
 test("shared inputs release every app", () => {
-  assert.deepEqual(changedApps(["utils/src/fs.rs"]), ["tandem", "rca", "workflows"]);
-  assert.deepEqual(changedApps(["rust-toolchain.toml"]), ["tandem", "rca", "workflows"]);
+  const all = ["tandem", "rca", "workflows", "cli"];
+  assert.deepEqual(changedApps(["utils/src/fs.rs"]), all);
+  assert.deepEqual(changedApps(["utils/tui/src/widgets.rs"]), all);
+  assert.deepEqual(changedApps(["rust-toolchain.toml"]), all);
+});
+
+test("crates the unified cli links in release it too", () => {
+  assert.deepEqual(changedApps(["rca/cli/src/main.rs"]), ["rca", "cli"]);
+  assert.deepEqual(changedApps(["rca/cli/Cargo.toml"]), ["rca", "cli"]);
+  assert.deepEqual(changedApps(["tandem/crates/tandem-cli/src/lib.rs"]), ["tandem", "cli"]);
+  assert.deepEqual(changedApps(["tandem/crates/tandem-core/src/diff.rs"]), ["tandem", "cli"]);
+  assert.deepEqual(changedApps(["tandem/Cargo.toml"]), ["tandem", "cli"]);
+  // The parts of those apps the cli does not link stay theirs alone.
+  assert.deepEqual(changedApps(["rca/crates/beagle-agentd/src/main.rs"]), ["rca"]);
+  assert.deepEqual(changedApps(["rca/desktop/src-tauri/src/lib.rs"]), ["rca"]);
+  assert.deepEqual(changedApps(["tandem/crates/tandem-github/src/client.rs"]), ["tandem"]);
+  assert.deepEqual(changedApps(["tandem/Cargo.lock"]), ["tandem"]);
+  // Their docs don't release anything.
+  assert.deepEqual(changedApps(["rca/cli/README.md", "tandem/crates/tandem-cli/NOTES.md"]), []);
 });
 
 test("docs-only changes never release", () => {
@@ -35,10 +54,14 @@ test("docs-only changes never release", () => {
   assert.deepEqual(changedApps(["docs/RELEASING.md", "README.md", "AGENTS.md"]), []);
 });
 
-test("skills rca embeds release rca, even as markdown", () => {
-  assert.deepEqual(changedApps(["skills/beagle/SKILL.md"]), ["rca"]);
-  assert.deepEqual(changedApps(["skills/beagle-review/SKILL.md"]), ["rca"]);
+test("embedded markdown releases the apps that embed it", () => {
+  assert.deepEqual(changedApps(["skills/beagle/SKILL.md"]), ["rca", "cli"]);
+  assert.deepEqual(changedApps(["skills/beagle-review/SKILL.md"]), ["rca", "cli"]);
   assert.deepEqual(changedApps(["skills/beagle-create-issue/SKILL.md"]), []);
+  assert.deepEqual(changedApps(["cli/crates/recap/docs/AGENT_GUIDE.md"]), ["cli"]);
+  assert.deepEqual(changedApps(["cli/crates/standup/docs/AGENT_GUIDE.md"]), ["cli"]);
+  assert.deepEqual(changedApps(["cli/crates/scout/skills/scout/SKILL.md"]), ["cli"]);
+  assert.deepEqual(changedApps(["cli/README.md", "cli/AGENTS.md", "cli/docs/x.txt"]), []);
 });
 
 test("repo tooling outside the apps does not release", () => {
@@ -104,6 +127,15 @@ const base = {
   stale: false,
   fileVersion: "0.29.0",
 };
+
+test("cli versions come from its workspace manifest and tag as beagle-cli", () => {
+  const ws = '[workspace]\nmembers = ["crates/*"]\n\n[workspace.package]\nversion = "0.1.0"\n';
+  assert.equal(readVersion("cargo-workspace", ws), "0.1.0");
+  const p = planApp({ ...base, app: "cli", fileVersion: "0.1.0" });
+  assert.deepEqual([p.action, p.tag], ["first", "beagle-cli-v0.1.0"]);
+  const allTags = ["beagle-cli-v0.1.0", "beagle-rca-v0.29.9"];
+  assert.equal(planApp({ ...base, app: "cli", allTags }).tag, "beagle-cli-v0.1.1");
+});
 
 test("first release uses the version file", () => {
   const p = planApp(base);

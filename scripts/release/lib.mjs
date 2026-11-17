@@ -7,16 +7,36 @@ export const APPS = {
   tandem: { versionFile: "tandem/src-tauri/tauri.conf.json", kind: "json" },
   rca: { versionFile: "rca/cli/Cargo.toml", kind: "cargo-package" },
   workflows: { versionFile: "workflows/Cargo.toml", kind: "cargo-workspace" },
+  // The unified `beagle` command (cli/), which links rca and tandem-cli in.
+  cli: { versionFile: "cli/Cargo.toml", kind: "cargo-workspace" },
 };
 
 /** Paths compiled into every app: a change here releases all of them. */
 const SHARED_PREFIXES = ["utils/"];
 const SHARED_FILES = new Set(["rust-toolchain.toml"]);
 /**
- * Paths outside `<app>/` compiled into one app. Checked before the `.md`
- * exclusion: rca embeds these SKILL.md files with include_str!.
+ * Files an app embeds with include_str!, so they release it even though
+ * they are markdown. Checked before the `.md` exclusion.
  */
-const EXTRA_PREFIXES = { rca: ["skills/beagle/", "skills/beagle-review/"] };
+const RCA_SKILLS = ["skills/beagle/", "skills/beagle-review/"];
+const EMBEDDED_PREFIXES = {
+  rca: RCA_SKILLS,
+  cli: [
+    ...RCA_SKILLS,
+    "cli/crates/recap/docs/",
+    "cli/crates/standup/docs/",
+    "cli/crates/scout/skills/",
+  ],
+};
+/**
+ * Code outside `<app>/` that an app compiles in (path dependencies on
+ * another app's crates). The `.md` exclusion still applies.
+ */
+const LINKED_PREFIXES = {
+  cli: ["rca/cli/", "tandem/crates/tandem-cli/", "tandem/crates/tandem-core/"],
+};
+/** Manifests outside `<app>/` whose workspace settings a linked crate inherits. */
+const LINKED_FILES = { cli: new Set(["tandem/Cargo.toml"]) };
 
 const ZERO_SHA = /^0+$/;
 const SEMVER = /^(\d+)\.(\d+)\.(\d+)$/;
@@ -29,13 +49,15 @@ export function isUnknownBefore(before) {
 /**
  * Whether a changed path should release `app`. Docs-only changes never do:
  * `**\/*.md` and `<app>/docs/**` are excluded everywhere, except for files
- * an app embeds (EXTRA_PREFIXES).
+ * an app embeds (EMBEDDED_PREFIXES).
  */
 export function isReleaseRelevant(app, path) {
-  if ((EXTRA_PREFIXES[app] ?? []).some((p) => path.startsWith(p))) return true;
+  if ((EMBEDDED_PREFIXES[app] ?? []).some((p) => path.startsWith(p))) return true;
   if (path.endsWith(".md")) return false;
   if (SHARED_FILES.has(path)) return true;
   if (SHARED_PREFIXES.some((p) => path.startsWith(p))) return true;
+  if (LINKED_FILES[app]?.has(path)) return true;
+  if ((LINKED_PREFIXES[app] ?? []).some((p) => path.startsWith(p))) return true;
   if (!path.startsWith(`${app}/`)) return false;
   return !path.startsWith(`${app}/docs/`);
 }
