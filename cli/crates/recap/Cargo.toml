@@ -1,0 +1,29 @@
+[package]
+name = "beagle-recap"
+description = "beagle recap: a TUI for PR recaps — the diff plus a plain-language write-up of what it fixes and why"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+name = "recap"
+path = "src/lib.rs"
+
+[dependencies]
+beagle-tui.workspace = true
+beagle-utils.workspace = true
+crossterm.workspace = true
+notify.workspace = true
+ratatui.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+toml.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

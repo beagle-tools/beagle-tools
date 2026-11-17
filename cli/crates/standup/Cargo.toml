@@ -1,0 +1,30 @@
+[package]
+name = "beagle-standup"
+description = "beagle standup: a TUI for standup reports — one big-picture overview, then a short write-up per ticket"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+name = "standup"
+path = "src/lib.rs"
+
+[dependencies]
+beagle-tui.workspace = true
+beagle-utils.workspace = true
+crossterm.workspace = true
+notify.workspace = true
+ratatui.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+time = { version = "0.3", features = ["formatting", "local-offset", "macros", "parsing"] }
+toml.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

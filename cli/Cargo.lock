@@ -12,7 +12,25 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 name = "beagle-cli"
 version = "0.1.0"
 dependencies = [
+ "beagle-recap",
  "beagle-scout",
+ "beagle-standup",
+]
+
+[[package]]
+name = "beagle-recap"
+version = "0.1.0"
+dependencies = [
+ "beagle-tui",
+ "beagle-utils",
+ "crossterm",
+ "notify",
+ "ratatui",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "toml",
 ]
 
 [[package]]
@@ -29,6 +47,37 @@ dependencies = [
  "thiserror",
  "time",
  "toml",
+]
+
+[[package]]
+name = "beagle-standup"
+version = "0.1.0"
+dependencies = [
+ "beagle-tui",
+ "beagle-utils",
+ "crossterm",
+ "notify",
+ "ratatui",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "time",
+ "toml",
+]
+
+[[package]]
+name = "beagle-tui"
+version = "0.1.0"
+dependencies = [
+ "beagle-utils",
+ "crossterm",
+ "notify",
+ "ratatui",
+ "serde",
+ "thiserror",
+ "toml",
+ "unicode-width 0.2.0",
 ]
 
 [[package]]
@@ -440,6 +489,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "521739c6d2bac4aa25192232afe6841231376b2b26d4d9fae5ecf8ca5772e441"
 
 [[package]]
+name = "num_threads"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cabcc654086861f9e1bc5115258de62ef92c79b20f4615a1b0cc57c4e82027d4"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -774,7 +832,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cdb87b95ec50ddfa440816d227a17b2ccbdda963a316a727fda0fc4334f7d134"
 dependencies = [
  "deranged",
+ "libc",
  "num-conv",
+ "num_threads",
  "powerfmt",
  "serde_core",
  "time-core",

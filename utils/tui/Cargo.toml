@@ -1,0 +1,29 @@
+[package]
+name = "beagle-tui"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.79"
+license = "MIT"
+description = "Terminal-UI pieces shared by the beagle-tools TUIs: markdown/ANSI rendering, a scrolling document pane, widgets and store-root discovery."
+publish = false
+
+[lib]
+name = "beagle_tui"
+path = "src/lib.rs"
+
+[dependencies]
+beagle-utils = { path = ".." }
+crossterm = "0.28"
+notify = "7"
+ratatui = "0.29"
+serde = "1"
+thiserror = "2"
+toml = "0.8"
+unicode-width = "0.2"
+
+[dev-dependencies]
+serde = { version = "1", features = ["derive"] }
+tempfile = "3"
+
+[lints]
+workspace = true

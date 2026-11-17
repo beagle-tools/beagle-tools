@@ -13,7 +13,10 @@ repository = "https://github.com/beagle-tools/beagle-tools"
 
 [workspace.dependencies]
 beagle-utils = { path = "../utils" }
+beagle-recap = { path = "crates/recap" }
 beagle-scout = { path = "crates/scout" }
+beagle-standup = { path = "crates/standup" }
+beagle-tui = { path = "../utils/tui" }
 crossterm = "0.28"
 notify = "7"
 ratatui = { version = "0.29", features = ["unstable-rendered-line-info"] }
@@ -25,6 +28,7 @@ tempfile = "3"
 thiserror = "2"
 time = { version = "0.3", features = ["formatting", "macros", "parsing", "serde-well-known"] }
 toml = "0.8"
+unicode-width = "0.2"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
