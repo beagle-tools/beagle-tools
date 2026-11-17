@@ -8,25 +8,33 @@
 //! exception is `review`, which appends a request to the review queue
 //! (see `docs/CLI.md`).
 //!
-//! The entry point is [`run`], which takes the arguments after the
-//! program (or tool) name and never reads `std::env::args` itself, so it
-//! behaves the same standalone and linked into the `beagle` command.
+//! The entry points take the arguments after the program (or tool) name
+//! and never read `std::env::args` themselves: [`run`] is the standalone
+//! `tandem-cli` binary, [`run_as`] the same commands under another name —
+//! the unified `beagle` command links it as `beagle tandem`, where help and
+//! errors say `beagle tandem` and `update` defers to `beagle update`.
 
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
 use rusqlite::{Connection, OpenFlags};
 
 mod query;
 #[cfg(test)]
 mod query_tests;
 mod queue;
+#[cfg(test)]
+mod run_tests;
 mod update;
 
 /// One line for `beagle help`.
 pub const ABOUT: &str = "Read Tandem's local review data as JSON, and queue reviews";
+
+/// The standalone binary's name; any other program name is a host (the
+/// unified `beagle` command) that owns updating itself.
+const STANDALONE: &str = "tandem-cli";
 
 #[derive(Parser)]
 #[command(name = "tandem-cli", about = ABOUT, version)]
@@ -122,27 +130,50 @@ enum Command {
     },
 }
 
-/// Run with the arguments AFTER the program name. Prints JSON on stdout;
-/// errors go to stderr with exit code 1, usage errors with clap's code.
+/// Run the standalone `tandem-cli` with the arguments AFTER the program
+/// name. Prints JSON on stdout; errors go to stderr with exit code 1, usage
+/// errors with clap's code.
 pub fn run(args: Vec<OsString>) -> ExitCode {
-    let program = std::iter::once(OsString::from("tandem-cli"));
-    let cli = match Cli::try_parse_from(program.chain(args)) {
+    run_as(STANDALONE, args)
+}
+
+/// [`run`] under another program name (e.g. `beagle tandem`): help, usage
+/// and error messages use `program`, and `update` points at the host's own
+/// updater (`beagle update`) instead of updating Tandem.
+pub fn run_as(program: &'static str, args: Vec<OsString>) -> ExitCode {
+    let with_program = std::iter::once(OsString::from(program)).chain(args);
+    let parsed = Cli::command()
+        .name(program)
+        .bin_name(program)
+        .try_get_matches_from(with_program)
+        .and_then(|matches| Cli::from_arg_matches(&matches));
+    let cli = match parsed {
         Ok(cli) => cli,
         Err(e) => {
             // --help and --version arrive here too, as "errors" that
-            // print to stdout and exit 0.
+            // print to stdout and exit 0. A failed print (closed stdout)
+            // leaves nothing better to report.
             let code = e.exit_code();
             let _ = e.print();
             return ExitCode::from(u8::try_from(code).unwrap_or(2));
         }
     };
-    match dispatch(&cli) {
+    match dispatch(&cli, program) {
         Ok(()) => ExitCode::SUCCESS,
         Err(message) => {
-            eprintln!("tandem-cli: {message}");
+            eprintln!("{program}: {message}");
             ExitCode::FAILURE
         }
     }
+}
+
+/// What `update` says when a host binary owns updating.
+fn hosted_update_error(program: &str) -> String {
+    let host = program.split_whitespace().next().unwrap_or(program);
+    format!(
+        "`{program} update` is handled by {host} itself: run `{host} update` \
+         (the Tandem app keeps updating itself from its own update button)"
+    )
 }
 
 /// Mirrors the app's own directory choice, including the separate
@@ -162,9 +193,12 @@ fn resolve_db(cli: &Cli) -> Result<PathBuf, String> {
     default_db(cli.dev).ok_or_else(|| "no data directory on this platform".to_owned())
 }
 
-fn dispatch(cli: &Cli) -> Result<(), String> {
+fn dispatch(cli: &Cli, program: &str) -> Result<(), String> {
     // Updating touches the network and this binary, never the store.
     if let Command::Update { check } = cli.command {
+        if program != STANDALONE {
+            return Err(hosted_update_error(program));
+        }
         let value = if check {
             update::check()?
         } else {

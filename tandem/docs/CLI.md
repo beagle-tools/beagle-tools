@@ -11,8 +11,10 @@ you don't have to close the app first. The one exception is `review`,
 which appends a request to the review queue (below).
 
 The code is a library crate (`crates/tandem-cli`, `tandem_cli::run`)
-with a thin `main.rs`, so the same commands can also be linked into
-the unified `beagle` command.
+with a thin `main.rs`, so the same commands are also linked into the
+unified `beagle` command as **`beagle tandem`** (`tandem_cli::run_as`):
+`beagle tandem prs`, `beagle tandem queue`, … behave exactly like
+`tandem-cli prs`, `tandem-cli queue`, ….
 
 ## Getting it
 
@@ -31,6 +33,9 @@ app, build it from source:
 ```bash
 cd tandem && cargo build --release -p tandem-cli   # target/release/tandem-cli
 ```
+
+Or install the `beagle` command (`brew install beagle-tools/tap/beagle`,
+see `cli/README.md` at the repo root) and use `beagle tandem …`.
 
 ## Commands
 
@@ -132,6 +137,7 @@ reads). What `update` does depends on how this copy got here:
 | inside the app, via Homebrew   | `brew upgrade --cask beagle-tandem`                                            |
 | inside the app, some other way | tells you to use the app's own updater; a CLI shouldn't swap out a running app |
 | standalone build (from source) | tells you to rebuild, or to install the app                                    |
+| `beagle tandem`                | refuses and points at `beagle update`, which updates the whole `beagle` binary |
 
 The version it reports is the release it shipped in (release CI stamps
 it with `scripts/set-version.mjs`). A build made outside the release
