@@ -37,7 +37,7 @@ share the window with a run list it has no use for.
 - **Runs list** — active first, then finished newest-first, with state,
   duration and cost.
 - **Detail** — parameters, model, tool calls, tmux session, and the run's
-  links: chain write-up, stage write-up, Linear ticket, `result.md`.
+  links: chain write-up, stage write-up, tracker ticket, `result.md`.
 - **Write-ups rendered**, not shown as source — the same call `ag -i`
   makes when it pipes through glow instead of bat.
 - **Logs** with a line filter, tailing live.

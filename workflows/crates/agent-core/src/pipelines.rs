@@ -1,9 +1,9 @@
 //! Pipelines: the jobs you actually start, and the steps they run.
 //!
 //! The store knows about *agents*, and every stage of a chain is one —
-//! `linear` and `linear-implement` sit side by side in the same list.
+//! `ticket` and `ticket-implement` sit side by side in the same list.
 //! That is right for the daemon and wrong for a person: nobody starts
-//! `linear-implement`, and a list of eleven agents hides the three jobs
+//! `ticket-implement`, and a list of eleven agents hides the three jobs
 //! there really are.
 //!
 //! So a **pipeline** is an entry point plus the steps observed
@@ -28,7 +28,7 @@ pub struct Pipeline<'a> {
     /// in the chain they run. Empty until the pipeline has run once.
     ///
     /// Depth, not first-observed: the list is read as a sequence, and
-    /// first-observed order is arbitrary — it rendered the linear
+    /// first-observed order is arbitrary — it rendered the ticket
     /// pipeline as `report → investigate → implement → context`, which
     /// is close to backwards.
     pub steps: Vec<String>,

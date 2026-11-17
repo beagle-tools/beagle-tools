@@ -174,9 +174,9 @@ mod tests {
     fn a_missing_required_param_creates_no_run() {
         let mut store = temp_store("missing-param");
         store
-            .reconcile_agents(&[spec("personal", "linear", vec![url_param()])])
+            .reconcile_agents(&[spec("personal", "ticket", vec![url_param()])])
             .unwrap();
-        let err = run(&store, "linear", &[], None).unwrap_err().to_string();
+        let err = run(&store, "ticket", &[], None).unwrap_err().to_string();
         assert!(err.contains("missing required parameter"), "{err}");
         assert!(err.contains("the ticket url"), "{err}");
         // Nothing was queued — the failure is at submit time.
@@ -190,11 +190,11 @@ mod tests {
     fn supplying_the_param_queues_the_run() {
         let mut store = temp_store("good-param");
         store
-            .reconcile_agents(&[spec("personal", "linear", vec![url_param()])])
+            .reconcile_agents(&[spec("personal", "ticket", vec![url_param()])])
             .unwrap();
         run(
             &store,
-            "linear",
+            "ticket",
             &["url=https://x/y".to_owned()],
             Some("opus"),
         )

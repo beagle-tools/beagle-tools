@@ -15,7 +15,7 @@ export PATH := $(HOME)/.cargo/bin:$(NODE_BIN_DIR):$(PATH)
 
 help:
 	@echo "make check            - every gate CI runs (standards + all apps)"
-	@echo "make standards        - 400-line rule + shared-config drift check"
+	@echo "make standards        - 400-line rule, affiliation guard, shared-config drift"
 	@echo "make check-utils      - shared Rust crate"
 	@echo "make check-tandem     - tandem (rust + frontend)"
 	@echo "make check-rca        - rca (cli/crates, desktop rust + frontend, web)"
@@ -34,6 +34,7 @@ check: standards check-utils check-tandem check-rca check-workflows
 
 standards:
 	./scripts/check-file-length.sh;
+	./scripts/check-affiliation.sh;
 	node scripts/check-standards.mjs;
 	node --test scripts/ci/*.test.mjs;
 

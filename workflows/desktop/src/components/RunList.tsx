@@ -5,7 +5,7 @@ import { useStore } from "../state/store";
 
 // Rows, not a table. Four columns in a 330px sidebar left nothing for
 // the agent name, which is the one thing you actually scan for —
-// `linear-implement` was truncating to make room for a cost column that
+// `ticket-implement` was truncating to make room for a cost column that
 // is blank on half the rows.
 export function RunList(): ReactElement {
   const runs = useStore((s) => s.runs);

@@ -79,7 +79,7 @@ pub fn run_detail(run: &Run) -> Vec<Line<'static>> {
     out
 }
 
-/// Something you might want to open from a run: a Linear ticket, a PR, a
+/// Something you might want to open from a run: a tracker ticket, a PR, a
 /// write-up on disk.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Link {
@@ -88,20 +88,11 @@ pub struct Link {
     pub target: String,
 }
 
-/// The issue key a run was started with, if any (`-p ticket=ABC-123`).
-pub fn ticket_key(run: &Run) -> Option<String> {
+/// The raw `ticket` param a run was started with (`-p ticket=ABC-123`):
+/// a key or a pasted tracker URL.
+fn ticket_param(run: &Run) -> Option<String> {
     let json: serde_json::Value = serde_json::from_str(run.params.as_deref()?).ok()?;
-    let raw = json.as_object()?.get("ticket")?.as_str()?;
-    // Accept a full URL as readily as a key, same as the pipeline does.
-    if let Some(from_url) = raw
-        .rsplit("/issue/")
-        .next()
-        .filter(|_| raw.contains("/issue/"))
-        .and_then(|rest| rest.split('/').next())
-    {
-        return Some(from_url.to_owned());
-    }
-    Some(raw.to_owned())
+    Some(json.as_object()?.get("ticket")?.as_str()?.to_owned())
 }
 
 /// Everything openable for this run, best first.
@@ -150,6 +141,11 @@ fn chain_root(app: &crate::app::App, run: &Run) -> String {
 }
 
 pub fn run_links(run: &Run) -> Vec<Link> {
+    run_links_with(run, &agent_core::ui::UiConfig::load())
+}
+
+/// [`run_links`] against explicit settings (`ui.yaml`).
+pub fn run_links_with(run: &Run, ui: &agent_core::ui::UiConfig) -> Vec<Link> {
     let mut out = Vec::new();
     // First, because it is the thing you actually want to read.
     if let Some(p) = summary_path(&run.id).filter(|p| p.is_file()) {
@@ -158,11 +154,13 @@ pub fn run_links(run: &Run) -> Vec<Link> {
             target: p.display().to_string(),
         });
     }
-    if let Some(key) = ticket_key(run) {
-        out.push(Link {
-            label: format!("Linear {key}"),
-            target: format!("https://tracker.example.com/issue/{key}"),
-        });
+    if let Some(raw) = ticket_param(run) {
+        if let Some(target) = ui.ticket_url(&raw) {
+            out.push(Link {
+                label: format!("ticket {}", agent_core::ui::ticket_key(&raw)),
+                target,
+            });
+        }
     }
     let data = agent_core::paths::data_dir().ok().map(|d| d.join(&run.id));
     if let Some(dir) = &data {
@@ -190,11 +188,8 @@ pub fn run_links(run: &Run) -> Vec<Link> {
     }
     // The investigate stage writes outside the data dir precisely so this
     // one outlives retention.
-    if let Some(home) = std::env::var_os("HOME") {
-        let w = std::path::PathBuf::from(home)
-            .join("notes/investigations")
-            .join(&run.id)
-            .join("OUTPUT.md");
+    if let Some(dir) = ui.investigations_dir() {
+        let w = dir.join(&run.id).join("OUTPUT.md");
         if w.is_file() {
             out.push(Link {
                 label: "investigation OUTPUT.md".to_owned(),
@@ -322,7 +317,7 @@ mod tests {
         Run {
             id: "r1".to_owned(),
             project: "work".to_owned(),
-            agent: "linear".to_owned(),
+            agent: "ticket".to_owned(),
             state: RunState::Succeeded,
             trigger: Trigger::Manual,
             parent_run_id: None,
@@ -342,35 +337,34 @@ mod tests {
     }
 
     #[test]
-    fn ticket_key_accepts_a_key_or_a_url() {
+    fn the_ticket_param_is_read_from_the_run() {
         assert_eq!(
-            ticket_key(&run(Some(r#"{"ticket":"ABC-123"}"#))).as_deref(),
+            ticket_param(&run(Some(r#"{"ticket":"ABC-123"}"#))).as_deref(),
             Some("ABC-123")
         );
-        // The pipeline accepts a pasted URL, so this has to as well.
-        assert_eq!(
-            ticket_key(&run(Some(
-                r#"{"ticket":"https://tracker.example.com/issue/ABC-123/some-slug"}"#
-            )))
-            .as_deref(),
-            Some("ABC-123")
-        );
-        assert_eq!(ticket_key(&run(None)), None);
-        assert_eq!(ticket_key(&run(Some("not json"))), None);
+        assert_eq!(ticket_param(&run(None)), None);
+        assert_eq!(ticket_param(&run(Some("not json"))), None);
     }
 
     #[test]
-    fn a_ticket_always_yields_a_linear_link() {
+    fn a_ticket_links_through_the_configured_template() {
         // The ticket lives on the run row, so this one survives retention
         // even after the data dir holding the PR link is pruned.
-        let links = run_links(&run(Some(r#"{"ticket":"ABC-123"}"#)));
-        assert_eq!(links[0].label, "Linear ABC-123");
+        let ui = agent_core::ui::UiConfig {
+            ticket_url: Some("https://tracker.example.com/issue/{key}".to_owned()),
+            investigations_dir: None,
+        };
+        let links = run_links_with(&run(Some(r#"{"ticket":"ABC-123"}"#)), &ui);
+        assert_eq!(links[0].label, "ticket ABC-123");
+        assert_eq!(links[0].target, "https://tracker.example.com/issue/ABC-123");
+        // No template: a bare key is not guessed into a broken link.
+        let none = agent_core::ui::UiConfig::default();
         assert_eq!(
-            links[0].target,
-            "https://tracker.example.com/issue/ABC-123"
+            run_links_with(&run(Some(r#"{"ticket":"ABC-123"}"#)), &none),
+            [] as [Link; 0]
         );
         // No params, no data dir: nothing to offer rather than a broken link.
-        assert_eq!(run_links(&run(None)), [] as [Link; 0]);
+        assert_eq!(run_links_with(&run(None), &ui), [] as [Link; 0]);
     }
 
     #[test]

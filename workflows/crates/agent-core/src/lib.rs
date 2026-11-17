@@ -38,5 +38,6 @@ pub mod tmux;
 pub mod transcript;
 /// Domain types shared by every binary: agents, runs, events, and their enums.
 pub mod types;
+pub mod ui;
 
 pub use error::CoreError;

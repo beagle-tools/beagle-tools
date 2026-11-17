@@ -87,7 +87,7 @@ pub fn run_links(state: State<'_, AppState>, id: String) -> Result<Vec<Link>, Ap
     }
     if let Some(ticket) = ticket_url(&run) {
         links.push(Link {
-            label: "Linear ticket".to_owned(),
+            label: "ticket".to_owned(),
             kind: "url".to_owned(),
             target: ticket,
         });
@@ -96,8 +96,8 @@ pub fn run_links(state: State<'_, AppState>, id: String) -> Result<Vec<Link>, Ap
     // through agent_core, so all three agree about what a run's PR is.
     //
     // Searched across the WHOLE chain, not just this run. Only
-    // linear-implement opens a PR, but the link is worth having from any
-    // stage of the ticket: standing on linear-report, "where is the PR"
+    // ticket-implement opens a PR, but the link is worth having from any
+    // stage of the ticket: standing on ticket-report, "where is the PR"
     // is still the question.
     if let Some(url) = chain_pr(&chain_ids) {
         links.push(Link {
@@ -182,16 +182,11 @@ fn data_dir(run_id: &str) -> Option<PathBuf> {
 }
 
 /// Built from the run's params, which live on the row — so unlike the
-/// write-ups and the data dir, this link outlives retention.
+/// write-ups and the data dir, this link outlives retention. A bare key
+/// links only when `ui.yaml` sets a `ticket_url` template.
 fn ticket_url(run: &Run) -> Option<String> {
     let params = run.params.as_deref()?;
     let value = serde_json::from_str::<serde_json::Value>(params).ok()?;
-    let ticket = value.get("ticket")?.as_str()?.trim();
-    if ticket.is_empty() {
-        return None;
-    }
-    if ticket.starts_with("http") {
-        return Some(ticket.to_owned());
-    }
-    Some(format!("https://tracker.example.com/issue/{ticket}"))
+    let ticket = value.get("ticket")?.as_str()?;
+    agent_core::ui::UiConfig::load().ticket_url(ticket)
 }
