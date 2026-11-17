@@ -1,6 +1,8 @@
 //! User settings: `~/.config/scout/config.toml` (or `$XDG_CONFIG_HOME`).
 //!
 //! ```toml
+//! root = "~/notes/scout"        # your default store, used from anywhere
+//!                               # (a folder with a .scout-store file wins)
 //! notify = true                 # macOS notifications from the scout CLI
 //!
 //! [notify_events]               # which events notify (these are the defaults)
@@ -31,6 +33,9 @@ use serde::Deserialize;
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
+    /// The default store, used from any directory that is not inside a
+    /// marked store; `~` expands. Unset means `~/.scout`.
+    pub root: Option<PathBuf>,
     /// Send notifications at all.
     pub notify: bool,
     /// Which events notify.
@@ -107,6 +112,7 @@ pub struct NotifyEvents {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            root: None,
             notify: true,
             notify_events: NotifyEvents::default(),
             sound: "Glass".to_owned(),

@@ -9,6 +9,8 @@ USAGE
   beagle scout list [--json]                      every project, one per line
   beagle scout show <project>                     the goal and the ordered tasks
   beagle scout path <project> [<task>]            where a project or task file lives
+  beagle scout root                               which store is in use, and why
+  beagle scout init [<dir>]                       make <dir> (default: here) a store
 
   beagle scout new <project> --title <t> [--link <ref>]...
                                                   start a project (status: planning)
@@ -51,5 +53,7 @@ USAGE
   beagle scout version | help
 
 A <task> is its number (3), id (03-add-allowlist), or slug (add-allowlist).
-The store is --root, else $SCOUT_ROOT, else ~/.scout.
+The store is --root, else $SCOUT_ROOT, else the nearest folder above you with
+a .scout-store file (see `init`), else `root` in ~/.config/scout/config.toml,
+else ~/.scout.
 ";
