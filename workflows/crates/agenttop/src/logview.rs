@@ -12,15 +12,6 @@
 use crate::app::{App, LogView, LOG_EVENT_LIMIT};
 
 impl App {
-    /// Open the event log of the run under the cursor.
-    pub fn open_logs(&mut self) {
-        let Some(run) = self.selected_run().cloned() else {
-            self.set_status("nothing selected");
-            return;
-        };
-        self.open_logs_for(run);
-    }
-
     /// Logs for a specific run. The DAG page needs this: the step the
     /// cursor is on there is not the run the main list has selected.
     pub fn open_logs_for(&mut self, run: agent_core::types::Run) {

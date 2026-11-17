@@ -1,29 +1,19 @@
-//! Application state: a point-in-time snapshot of the store plus UI state.
-//!
-//! Selection is one logical list spanning the ACTIVE pane (running + pending
-//! runs) followed by the RECENT pane (terminal runs) — j/k walk through both.
+//! Application state: a point-in-time snapshot of the store (agents and
+//! run history) plus the jobs screens' UI state.
 
-use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use agent_core::state::{RunFilter, Store};
 use agent_core::types::{AgentSpec, Event, Run, RunState};
 use agent_core::CoreError;
 
-use crate::format::{clamp_selection, payload_snippet};
+use crate::format::clamp_selection;
 use crate::tmux;
 
-/// Shown when the store has no runs (or does not exist yet).
-pub const EMPTY_HINT: &str = "no runs yet — is agentd running? \
-     try: agentctl apply && agentctl run <project>/<agent>";
-
-const RECENT_LIMIT: u32 = 30;
-const EVENT_LIMIT: u32 = 100;
 /// Runs read for the jobs screens. Every state, every agent — the run
 /// history of a job is its chains, and a chain is many runs.
 const HISTORY_LIMIT: u32 = 600;
 pub(crate) const LOG_EVENT_LIMIT: u32 = 1000;
-const ACTIVITY_SNIPPET_CHARS: usize = 80;
 const STATUS_TTL: Duration = Duration::from_secs(4);
 
 /// Full-screen event log for one run (opened with `l`, or enter on a
@@ -61,6 +51,9 @@ pub struct App {
     store: Option<Store>,
     /// Last store open/query failure, shown instead of crashing.
     pub store_error: Option<String>,
+    /// agentd's own status, from its heartbeat; `None` before the first
+    /// refresh. Anything but running puts a red bar on every screen.
+    pub daemon: Option<agent_core::daemon::DaemonStatus>,
     /// What the daemon last complained about during retention — typically
     /// `gh` being unreachable, which means write-ups are piling up rather
     /// than being pruned. Worth saying out loud, not just logging.
@@ -68,8 +61,6 @@ pub struct App {
     pub agent_count: usize,
     /// Declared agents, ordered by project then name — the DAG view's nodes.
     pub agents: Vec<AgentSpec>,
-    /// When true, the dashboard is replaced by the DAG page (`d`).
-    pub show_dag: bool,
     /// The expanded run-detail overlay (`m`), ~85% of the screen.
     pub show_run_detail: bool,
     /// Which link is selected inside that overlay.
@@ -82,34 +73,44 @@ pub struct App {
     pub job_search: String,
     /// True while that filter is being typed; keys are text, not moves.
     pub job_search_input: bool,
+    /// `r` on the jobs page: only jobs with a run live. `a` clears it.
+    pub job_running_only: bool,
+    /// `~/.config/agentd/ui.yaml`, re-read every refresh: the projects
+    /// (demo, usually) the jobs page leaves out, ticket links, and where
+    /// investigation write-ups land.
+    pub view: agent_core::ui::UiConfig,
+    /// That file failing to parse — shown in the header, hiding nothing.
+    pub view_error: Option<String>,
+    /// `H`: show the hidden projects anyway, until pressed again.
+    pub show_hidden: bool,
     /// The job drilled into with enter: `(project, name)`. `None` is the
     /// jobs list; `Some` is that job's runs screen.
     pub job_open: Option<(String, String)>,
+    /// `A` on the jobs list: the runs screen for EVERY job at once — each
+    /// chain under its partition, newest first, refreshing live.
+    pub all_runs: bool,
+    /// `r` on that page: only chains with a step still pending or running.
+    pub all_running_only: bool,
+    /// `W` on a runs screen: the cursor rides the newest step at the top
+    /// as runs arrive. j/k turns it off.
+    pub follow_top: bool,
     /// Selected step on the runs screen, as an index into
     /// [`App::job_steps`] — steps only, so the cursor never stops on a
     /// run's partition header.
     pub job_step_selected: usize,
     /// The last few hundred runs of every agent, for the jobs screens.
-    /// `recent` is capped at 30 for the dashboard, which with pr-watch
-    /// ticking every 15 minutes is only the last handful of chains — not
-    /// "every previous run of this job".
     pub history: Vec<Run>,
-    /// RECENT pane state filter, cycled with `f`: 0 all, 1 succeeded, 2 failed.
-    pub recent_filter: u8,
-    /// Running runs first, then pending — the ACTIVE pane.
-    pub active: Vec<Run>,
-    /// Terminal runs, newest first — the RECENT pane.
-    pub recent: Vec<Run>,
-    /// Recent events across all runs, oldest first.
-    pub events: Vec<Event>,
-    /// run id -> latest "kind snippet" line for the ACTIVE pane.
-    pub last_activity: HashMap<String, String>,
-    /// Index into the logical active+recent list.
-    pub selected: usize,
+    /// The draft PR of the step selected on the runs screen, cached as
+    /// `(run id, PR)` and recomputed only when the selection or the store
+    /// moves — it is a store read plus a scan of the run's events, too
+    /// much to repeat on every frame.
+    pub step_pr: Option<(String, Option<String>)>,
     pub show_help: bool,
-    /// When set, the dashboard is replaced by this run's event log.
+    /// When set, the jobs screens are replaced by this run's event log.
     pub log_view: Option<LogView>,
     status: Option<(String, Instant)>,
+    /// The `R` confirmation pane, while it is open (`confirm.rs`).
+    pub confirm: Option<crate::confirm::Confirm>,
 }
 
 impl App {
@@ -119,14 +120,24 @@ impl App {
             // run, and is any of it going?" is the question you start
             // with; a flat list of every run of every step is the one
             // you drill down to. `d` still toggles back to it.
-            show_dag: true,
             ..Self::default()
         }
     }
 
-    /// Re-query the store. Any failure lands in `store_error` (rendered in
-    /// the ACTIVE pane) rather than tearing the dashboard down.
+    /// Re-query the store. Any failure lands in `store_error` (shown in the
+    /// jobs header) rather than tearing the TUI down.
     pub fn refresh(&mut self) {
+        self.daemon = Some(agent_core::daemon::status());
+        match agent_core::ui::UiConfig::try_load() {
+            Ok(view) => {
+                self.view = view;
+                self.view_error = None;
+            }
+            Err(e) => {
+                self.view = agent_core::ui::UiConfig::default();
+                self.view_error = Some(format!("ui.yaml: {e}"));
+            }
+        }
         if self.store.is_none() {
             match Store::open_default() {
                 Ok(store) => self.store = Some(store),
@@ -137,7 +148,7 @@ impl App {
             }
         }
         let snapshot = match &self.store {
-            Some(store) => Snapshot::load(store, self.recent_filter_states()),
+            Some(store) => Snapshot::load(store),
             None => return,
         };
         match snapshot {
@@ -154,42 +165,26 @@ impl App {
                 // order — sorting here is what keeps the row you are on
                 // and the agent you get the same thing.
                 self.agents = agent_core::pipelines::display_order(&snap.agents, &snap.history);
+                // The cursor follows its run, not its row: on a live page
+                // new chains arrive at the top and would otherwise slide
+                // a different step under the cursor every second.
+                let keep = self.dag_selected_run().map(|r| r.id.clone());
                 self.history = snap.history;
-                self.last_activity = build_activity(&snap.events);
-                self.active = snap.active;
-                self.recent = snap.recent;
-                self.events = snap.events;
-                self.selected = clamp_selection(self.selected, self.row_count());
                 self.dag_selected = clamp_selection(self.dag_selected, self.jobs().len());
+                if self.follow_top {
+                    self.job_step_selected = 0;
+                } else if let Some(at) =
+                    keep.and_then(|id| self.job_steps().iter().position(|r| r.id == id))
+                {
+                    self.job_step_selected = at;
+                }
                 self.job_step_selected =
                     clamp_selection(self.job_step_selected, self.job_steps().len());
+                self.update_step_pr();
             }
             Err(e) => self.store_error = Some(format!("store query failed: {e}")),
         }
         self.refresh_log_view();
-    }
-
-    /// Cycle the RECENT filter (all → succeeded → failed) and re-query.
-    pub fn cycle_recent_filter(&mut self) {
-        self.recent_filter = (self.recent_filter + 1) % 3;
-        self.refresh();
-    }
-
-    fn recent_filter_states(&self) -> Option<Vec<RunState>> {
-        match self.recent_filter {
-            1 => Some(vec![RunState::Succeeded]),
-            2 => Some(vec![RunState::Failed, RunState::TimedOut, RunState::Killed]),
-            _ => None,
-        }
-    }
-
-    /// Suffix for the RECENT pane title showing the active filter.
-    pub fn recent_filter_label(&self) -> &'static str {
-        match self.recent_filter {
-            1 => " · succeeded",
-            2 => " · failed",
-            _ => "",
-        }
     }
 
     /// Pull events written since the last refresh into the open log view and
@@ -227,14 +222,9 @@ impl App {
         }
     }
 
-    /// True when the store holds nothing to show at all.
-    pub fn is_empty(&self) -> bool {
-        self.active.is_empty() && self.recent.is_empty() && self.events.is_empty()
-    }
-
     /// tmux session to attach to, when the selected run is running and has one.
     pub fn attach_target(&self) -> Option<String> {
-        let run = self.selected_run()?;
+        let run = self.dag_selected_run()?;
         if run.state == RunState::Running {
             run.tmux_session.clone()
         } else {
@@ -245,7 +235,7 @@ impl App {
     /// Kill the selected running run: tmux session (best effort), then store
     /// state + event, then refresh so the row moves to RECENT.
     pub fn kill_selected(&mut self) {
-        let Some(run) = self.selected_run().cloned() else {
+        let Some(run) = self.dag_selected_run().cloned() else {
             self.set_status("nothing selected");
             return;
         };
@@ -290,64 +280,21 @@ impl App {
     }
 }
 
-/// One consistent read of everything the dashboard shows.
+/// One consistent read of everything the jobs screens show.
 struct Snapshot {
     agents: Vec<AgentSpec>,
-    active: Vec<Run>,
-    recent: Vec<Run>,
-    events: Vec<Event>,
     history: Vec<Run>,
 }
 
 impl Snapshot {
-    fn load(store: &Store, recent_states: Option<Vec<RunState>>) -> Result<Self, CoreError> {
+    fn load(store: &Store) -> Result<Self, CoreError> {
         let agents = store.list_agents()?;
-        let mut active = store.running_runs()?;
-        active.extend(store.pending_runs()?);
-        let recent = store.list_runs(&RunFilter {
-            states: Some(recent_states.unwrap_or_else(|| {
-                vec![
-                    RunState::Succeeded,
-                    RunState::Failed,
-                    RunState::TimedOut,
-                    RunState::Killed,
-                ]
-            })),
-            limit: Some(RECENT_LIMIT),
-            ..RunFilter::default()
-        })?;
-        // recent_events returns newest first; the feed renders oldest first
-        // with the newest at the bottom.
-        let mut events = store.recent_events(EVENT_LIMIT)?;
-        events.reverse();
         let history = store.list_runs(&RunFilter {
             limit: Some(HISTORY_LIMIT),
             ..RunFilter::default()
         })?;
-        Ok(Self {
-            agents,
-            active,
-            recent,
-            events,
-            history,
-        })
+        Ok(Self { agents, history })
     }
-}
-
-/// Latest activity line per run. Events arrive oldest first, so later
-/// inserts overwrite earlier ones and the newest wins.
-fn build_activity(events: &[Event]) -> HashMap<String, String> {
-    let mut map = HashMap::new();
-    for event in events {
-        let snippet = payload_snippet(event.payload.as_deref(), ACTIVITY_SNIPPET_CHARS);
-        let line = if snippet.is_empty() {
-            event.kind.clone()
-        } else {
-            format!("{} {snippet}", event.kind)
-        };
-        map.insert(event.run_id.clone(), line);
-    }
-    map
 }
 
 #[cfg(test)]

@@ -12,21 +12,23 @@
 //!
 //! The model behind both is in [`crate::jobs`].
 
-use agent_core::types::{AgentSpec, RunState};
+use agent_core::types::AgentSpec;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Paragraph};
+use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
 use crate::app::App;
-use crate::format::elapsed_between;
+use crate::format::ago_coarse;
 use crate::jobs::JobEntry;
+pub(crate) use crate::widgets::{badge, hints, pane_block, state_style, tree_prefixes, window};
 
-const JOBS_HINTS: &str = "j/k:job  enter:runs  /:search  e:edit  d:activity  q:quit  ?:help";
+const JOBS_HINTS: &str =
+    "j/k:job  enter:runs  A:all runs  R:run  y:copy name  r:running  a:all  /:search  e:edit  q:quit  ?:help";
 
 pub fn draw(frame: &mut Frame<'_>, app: &App) {
-    if app.job_open.is_some() {
+    if app.runs_open() {
         crate::jobruns::draw(frame, app);
     } else {
         draw_jobs_screen(frame, app);
@@ -50,6 +52,34 @@ fn draw_jobs_screen(frame: &mut Frame<'_>, app: &App) {
             if jobs.len() == 1 { "" } else { "s" }
         )),
     ];
+    if app.job_running_only {
+        spans.push(Span::styled(
+            " running only ",
+            Style::new()
+                .fg(Color::Black)
+                .bg(Color::Green)
+                .add_modifier(Modifier::BOLD),
+        ));
+        spans.push(Span::raw("  "));
+    }
+    if app.show_hidden && !app.view.hidden_projects.is_empty() {
+        spans.push(Span::styled(
+            " + hidden ",
+            Style::new()
+                .fg(Color::Black)
+                .bg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ));
+        spans.push(Span::raw("  "));
+    } else {
+        let hidden = app.hidden_job_count();
+        if hidden > 0 {
+            spans.push(Span::styled(
+                format!("{hidden} hidden (H)  "),
+                Style::new().add_modifier(Modifier::DIM),
+            ));
+        }
+    }
     if app.job_search_input || !app.job_search.is_empty() {
         let cursor = if app.job_search_input { "▏" } else { "" };
         spans.push(Span::styled(
@@ -67,6 +97,20 @@ fn draw_jobs_screen(frame: &mut Frame<'_>, app: &App) {
     } else {
         spans.push(hints(app, JOBS_HINTS));
     }
+    // The store failing to open or query used to show in the old dashboard's
+    // ACTIVE pane; here it leads the header, or it would be invisible.
+    if let Some(err) = app.store_error.as_ref().or(app.view_error.as_ref()) {
+        spans.insert(
+            1,
+            Span::styled(
+                format!(" {err} "),
+                Style::new()
+                    .fg(Color::White)
+                    .bg(Color::Red)
+                    .add_modifier(Modifier::BOLD),
+            ),
+        );
+    }
     frame.render_widget(Paragraph::new(Line::from(spans)), header);
 
     draw_job_list(frame, app, &jobs, list);
@@ -75,6 +119,9 @@ fn draw_jobs_screen(frame: &mut Frame<'_>, app: &App) {
 
 fn draw_job_list(frame: &mut Frame<'_>, app: &App, jobs: &[JobEntry<'_>], area: Rect) {
     let now = chrono::Utc::now();
+    // With agentd down nothing on this list will fire: the names go red,
+    // like the bar at the bottom.
+    let stopped = app.daemon.is_some_and(|d| !d.is_running());
     let mut lines: Vec<Line<'_>> = Vec::new();
     let mut selected_line = 0usize;
     let mut project = "";
@@ -94,7 +141,27 @@ fn draw_job_list(frame: &mut Frame<'_>, app: &App, jobs: &[JobEntry<'_>], area: 
         if selected {
             selected_line = lines.len();
         }
-        lines.push(job_line(job, selected, now));
+        let mut row = job_line(job, selected, stopped, now);
+        // Collapsed unless the cursor is on it: a long chain's tree for
+        // every job buried the list. The others say how many steps they
+        // hold; moving onto one opens its flow.
+        if !selected {
+            let steps: std::collections::BTreeSet<&str> =
+                job.tree.iter().skip(1).map(|(a, _)| a.as_str()).collect();
+            if !steps.is_empty() && job.spec.enabled {
+                row.spans.push(Span::styled(
+                    format!(
+                        "  · {} step{}",
+                        steps.len(),
+                        if steps.len() == 1 { "" } else { "s" }
+                    ),
+                    Style::new().add_modifier(Modifier::DIM),
+                ));
+            }
+            lines.push(row);
+            continue;
+        }
+        lines.push(row);
 
         // The flow, beneath the job it belongs to. Not selectable: the
         // cursor goes job to job, and this is the picture of each.
@@ -129,7 +196,9 @@ fn draw_job_list(frame: &mut Frame<'_>, app: &App, jobs: &[JobEntry<'_>], area: 
 
     if lines.is_empty() {
         lines.push(Line::from(Span::styled(
-            if app.job_search.is_empty() {
+            if app.job_running_only {
+                "nothing running right now — a shows every job"
+            } else if app.job_search.is_empty() {
                 "no jobs — drop a manifest in manifests/<project>/ and it registers in seconds"
             } else {
                 "no job matches that search — esc clears it"
@@ -147,6 +216,7 @@ fn draw_job_list(frame: &mut Frame<'_>, app: &App, jobs: &[JobEntry<'_>], area: 
 fn job_line<'a>(
     job: &JobEntry<'a>,
     selected: bool,
+    stopped: bool,
     now: chrono::DateTime<chrono::Utc>,
 ) -> Line<'a> {
     let trigger = job
@@ -156,10 +226,15 @@ fn job_line<'a>(
         .map_or_else(|| "manual".to_owned(), |s| format!("cron {s}"));
     let mut spans = vec![
         Span::styled(
-            if job.running.is_empty() {
-                "▸ "
-            } else {
+            // ▾ open (the cursor is on it), ▸ collapsed, ● running.
+            if !job.running.is_empty() {
                 "● "
+            } else if !job.spec.enabled {
+                "⏸ "
+            } else if selected {
+                "▾ "
+            } else {
+                "▸ "
             },
             Style::new().fg(if job.running.is_empty() {
                 Color::Reset
@@ -169,25 +244,34 @@ fn job_line<'a>(
         ),
         Span::styled(
             job.spec.name.clone(),
-            Style::new().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            Style::new()
+                // Paused reads as off at a glance: grey, not the live cyan.
+                .fg(if !job.spec.enabled {
+                    Color::DarkGray
+                } else if stopped {
+                    Color::Red
+                } else {
+                    Color::Cyan
+                })
+                .add_modifier(Modifier::BOLD),
         ),
         Span::styled(
-            format!("  {}  {trigger}", job.spec.runner),
+            // The runner is in the config pane; the row keeps to what fits.
+            format!("  {trigger}"),
             Style::new().add_modifier(Modifier::DIM),
         ),
     ];
     if !job.spec.enabled {
-        spans.push(Span::styled("  disabled", Style::new().fg(Color::DarkGray)));
+        spans.push(Span::styled(
+            "  OFF",
+            Style::new().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+        ));
     }
     // While it runs, WHERE it is matters more than how it last ended.
     if job.running.is_empty() {
         match job.last {
             Some(run) => spans.push(Span::styled(
-                format!(
-                    "  last: {} · {} ago",
-                    run.state,
-                    elapsed_between(run.created_at, now)
-                ),
+                format!("  {} {} ago", run.state, ago_coarse(run.created_at, now)),
                 state_style(run.state),
             )),
             None => spans.push(Span::styled(
@@ -211,45 +295,6 @@ fn job_line<'a>(
 
 // ---- shared ------------------------------------------------------------
 
-/// Box-drawing guides for rows given in depth-first order, row 0 being
-/// the root (which gets none). `├─` for a node with a later sibling,
-/// `└─` for the last, and `│` carried down for every ancestor that still
-/// has siblings to come.
-pub(crate) fn tree_prefixes(depths: &[usize]) -> Vec<String> {
-    let mut out = Vec::with_capacity(depths.len());
-    // more[k]: the ancestor at depth k+1 has later siblings, so its
-    // column needs a `│` running down past this row.
-    let mut more: Vec<bool> = Vec::new();
-    for (i, &depth) in depths.iter().enumerate() {
-        if depth == 0 {
-            more.clear();
-            out.push(String::new());
-            continue;
-        }
-        more.truncate(depth - 1);
-        let last = depths[i + 1..]
-            .iter()
-            .find(|&&d| d <= depth)
-            .is_none_or(|&d| d < depth);
-        let mut prefix = String::new();
-        for &open in &more {
-            prefix.push_str(if open { "│  " } else { "   " });
-        }
-        prefix.push_str(if last { "└─ " } else { "├─ " });
-        more.push(!last);
-        out.push(prefix);
-    }
-    out
-}
-
-/// The slice of `lines` that fits `area`, scrolled just enough to keep
-/// `selected` on screen.
-pub(crate) fn window(lines: Vec<Line<'_>>, selected: usize, area: Rect) -> Vec<Line<'_>> {
-    let visible = usize::from(area.height.saturating_sub(2)).max(1);
-    let start = selected.saturating_sub(visible.saturating_sub(2));
-    lines.into_iter().skip(start).take(visible).collect()
-}
-
 /// The manifest that declared the job, verbatim.
 fn draw_config(frame: &mut Frame<'_>, agent: Option<&AgentSpec>, area: Rect) {
     let (title, lines) = match agent {
@@ -266,12 +311,14 @@ fn draw_config(frame: &mut Frame<'_>, agent: Option<&AgentSpec>, area: Rect) {
                 .file_name()
                 .and_then(|n| n.to_str())
                 .unwrap_or("manifest");
-            let body = std::fs::read_to_string(&agent.source)
-                .unwrap_or_else(|e| format!("cannot read {}: {e}", agent.source.display()));
-            (
-                format!("CONFIG · {name} · e to edit"),
-                body.lines().map(|l| Line::from(l.to_owned())).collect(),
-            )
+            let lines = match std::fs::read_to_string(&agent.source) {
+                Ok(body) => crate::highlight::yaml(&body),
+                Err(e) => vec![Line::from(format!(
+                    "cannot read {}: {e}",
+                    agent.source.display()
+                ))],
+            };
+            (format!("CONFIG · {name} · e to edit"), lines)
         }
     };
     let mut lines = lines;
@@ -279,76 +326,6 @@ fn draw_config(frame: &mut Frame<'_>, agent: Option<&AgentSpec>, area: Rect) {
     frame.render_widget(Paragraph::new(lines).block(pane_block(&title)), area);
 }
 
-pub(crate) fn badge(text: &str) -> Span<'static> {
-    Span::styled(
-        text.to_owned(),
-        Style::new()
-            .fg(Color::Black)
-            .bg(Color::Magenta)
-            .add_modifier(Modifier::BOLD),
-    )
-}
-
-pub(crate) fn hints(app: &App, default: &'static str) -> Span<'static> {
-    match app.status_message() {
-        Some(status) => Span::styled(
-            format!(" {status} "),
-            Style::new().fg(Color::Magenta).add_modifier(Modifier::BOLD),
-        ),
-        None => Span::styled(default, Style::new().add_modifier(Modifier::DIM)),
-    }
-}
-
-pub(crate) fn pane_block(title: &str) -> Block<'static> {
-    Block::bordered().title(Span::styled(
-        format!(" {title} "),
-        Style::new().add_modifier(Modifier::BOLD),
-    ))
-}
-
-pub(crate) fn state_style(state: RunState) -> Style {
-    match state {
-        RunState::Running => Style::new().fg(Color::Green),
-        RunState::Pending => Style::new().fg(Color::Yellow),
-        RunState::Succeeded => Style::new().fg(Color::Blue),
-        RunState::Failed => Style::new().fg(Color::Red),
-        RunState::TimedOut => Style::new().fg(Color::Magenta),
-        RunState::Killed => Style::new().fg(Color::DarkGray),
-    }
-}
-
 #[cfg(test)]
-mod tests {
-    use super::tree_prefixes;
-
-    #[test]
-    fn guides_follow_the_shape_of_the_tree() {
-        // root
-        // ├─ a
-        // │  └─ b
-        // └─ c
-        //    └─ d
-        assert_eq!(
-            tree_prefixes(&[0, 1, 2, 1, 2]),
-            vec!["", "├─ ", "│  └─ ", "└─ ", "   └─ "]
-        );
-    }
-
-    #[test]
-    fn a_straight_chain_is_all_last_children() {
-        assert_eq!(tree_prefixes(&[0, 1, 2]), vec!["", "└─ ", "   └─ "]);
-    }
-
-    #[test]
-    fn siblings_under_a_deep_node_keep_the_ancestor_bar() {
-        // root
-        // ├─ ctx
-        // │  ├─ impl
-        // │  └─ inv
-        // └─ docs
-        assert_eq!(
-            tree_prefixes(&[0, 1, 2, 2, 1]),
-            vec!["", "├─ ", "│  ├─ ", "│  └─ ", "└─ "]
-        );
-    }
-}
+#[path = "tests/dag.rs"]
+mod tests;
