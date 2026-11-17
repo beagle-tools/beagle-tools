@@ -22,8 +22,10 @@ Four tools share one state store:
   the store, schedule due cron runs, spawn pending runs in tmux, monitor
   running ones, prune expired logs.
 - **`agentctl`** — kubectl-style CLI: `apply`, `get`, `run`, `kill`, `status`,
-  `attach`, `logs`, and `-j <job> -p k=v` to start a job with checked params.
-- **`agenttop`** — btop-style live TUI: watch, attach, kill, read logs.
+  `attach`, `logs`, `resume`, `errors`, and `-j <job> -p k=v` to start a job
+  with checked params.
+- **`agenttop`** — live TUI, jobs → runs → logs: watch, run, resume, attach,
+  kill, read logs.
 - **Agentdesk** (`desktop/`) — the Tauri desktop view of the same store; see
   [`desktop/AGENTS.md`](desktop/AGENTS.md).
 
@@ -34,14 +36,17 @@ Four tools share one state store:
 
 ```
 crates/agent-core   shared lib: types, manifest loading, Store (SQLite),
-                    lineage/pipelines, transcript prettifying, paths, tmux
+                    lineage/pipelines, transcript prettifying, paths, tmux,
+                    purpose (job-purpose.md), resume, errscan, repotrace,
+                    daemon (heartbeat), ui (ui.yaml), guard (agentd.yaml)
 crates/agentd       the daemon (reconciler, scheduler, spawner, monitor,
-                    retention, notify, runscript/runenv = the shell a run gets)
+                    retention, notify, caps, gitguard, runscript/runenv =
+                    the shell a run gets)
 crates/agentctl     the CLI
 crates/agenttop     the TUI (ratatui)
 desktop/            Agentdesk — its own cargo workspace + pnpm package
-manifests/          example projects (demo/, personal/) — real manifests
-                    usually live elsewhere and are linked in by agentman
+manifests/          example projects (demo/) — real manifests usually live
+                    elsewhere and are linked in by agentman
 deploy/             launchd plist template for the daemon
 assets/notify/      notification icons; one notifier app is built per png
 ```
@@ -59,7 +64,21 @@ assets/notify/      notification icons; one notifier app is built per png
 - **Manifests are the desired state.** Default root
   `~/.config/agentd/manifests` (override `$AGENTD_MANIFESTS_DIR`); each
   subdirectory is a project with an optional `project.yaml` and one YAML per
-  agent. Paths in a manifest resolve relative to it; `~` expands.
+  agent. Paths in a manifest resolve relative to it; `~` expands. Every job
+  (an agent no sibling triggers, or `entrypoint: true`) needs
+  `<project>/jobs/<job>/job-purpose.md` or it does not load
+  (`agent_core::purpose`).
+- **Config is not manifests.** `~/.config/agentd/` (`$AGENTD_CONFIG_DIR`)
+  holds `ui.yaml` (`ticket_url`, `investigations_dir`, `hidden_projects` —
+  one reader, `agent_core::ui::UiConfig`) and `agentd.yaml`
+  (`protected_orgs` for the git guard, `agent_core::guard`). Both ignore
+  unknown keys and default to empty: no org is protected and no
+  investigations dir exists unless configured. Never hard-code an org,
+  tracker or path a user would configure.
+- **Data dirs live a week; logs 4h.** A step's data dir is its handover, so
+  `agent_core::resume` (agentctl `resume`, agenttop `R`, Agentdesk
+  Restart…) only works while its parent's dir exists. Evidence events
+  (`state`, `result`, `ERROR`) also stay a week for `agentctl errors`.
 - **Manifests use `serde(deny_unknown_fields)`.** A manifest using a field
   the running daemon predates is rejected and its agent silently dropped from
   the store on the next tick. So `make install` always restarts the daemon
@@ -69,15 +88,17 @@ assets/notify/      notification icons; one notifier app is built per png
 - **tmux sessions are targeted by exact name** (`=name`) through
   `agent_core::tmux` — tmux's default prefix match can hit the wrong run.
 - **Killing the daemon is safe.** Runs live on in tmux; the startup recovery
-  pass finalises anything that ended while it was down. Log events written
-  during the gap are not replayed into the event feed.
+  pass finalises anything that ended while it was down, and the monitor
+  resumes each log just past the lines already ingested, so events written
+  during the gap still reach the feed.
 
 ## Concurrency model
 
 Synchronous throughout: no async runtime. agentd is a single-threaded loop
 (`run_tick` every `--tick-seconds`, default 5). Concurrency between runs comes
 from tmux processes, not threads; per-agent `max_concurrent` and
-`concurrency: forbid|allow` gate how many run at once. Agentdesk adds one
+`concurrency: forbid|allow` gate how many run at once, and `caps.rs` caps the
+machine (5 model runs, 20 script runs). Agentdesk adds one
 poller thread with its own `Store`.
 
 ## Commands (from `workflows/`)
