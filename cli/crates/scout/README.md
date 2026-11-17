@@ -11,12 +11,12 @@ get there. The agent keeps that picture current through the `beagle scout` CLI (
 live, which task it is on, what it just did, and how far along the goal is.
 
 ```text
-╭ ‹ Only our CDN can reach the API ───────╮  1 Task  ·  2 Project  ·  3 Log
-│✔ 01 Map the request path from the int…  │╭ 02-add-allowlist · Add CDN IP ranges to the Global Accelera…╮
+╭ ‹ One noisy client can't take the API… ╮  1 Task  ·  2 Project  ·  3 Log
+│✔ 01 Map the request path from the int…  │╭ 02-add-rate-limit · Add a per-key rate limit to the gateway…╮
 │     done · 3/3 ☑                        ││⠧ working · task 2 of 3 · checklist 1/4 · active 2m ago        │
-│⠧ 02 Add CDN IP ranges to the Global A…  ││                                                               │
+│⠧ 02 Add a per-key rate limit to the …   ││                                                               │
 │     working · 1/4 ☑ · active 2m ago     ││Context                                                        │
-│○ 03 Apply the Terraform change to pro…  ││All traffic enters through AWS Global Accelerator, which …     │
+│○ 03 Roll the gateway config out to pr…  ││All traffic enters through the API gateway, which forwards…    │
 │     todo · 0/3 ☑                        ││                                                               │
 ╰─────────────────────────────────────────╯╰───────────────────────────────────────────────────────────────╯
 j/k select · enter read · tab/1-4 tabs · b back · F follow · E edit · ? help · Q quit
@@ -48,8 +48,8 @@ Both skills are compiled into the binary, so the instructions always match
 the CLI they drive; `beagle scout skill status` says whether the installed
 copies are current.
 
-A typical loop: `/scout lock down ingress to the CDN` → review the plan in
-`beagle scout` → `/scout-build restrict-ingress-to-cdn` in a fresh session → watch
+A typical loop: `/scout rate-limit the public API` → review the plan in
+`beagle scout` → `/scout-build rate-limit-the-api` in a fresh session → watch
 it in `beagle scout` (and its commands in `beagle scout watch`).
 
 ## Use
@@ -64,11 +64,11 @@ Agents drive the rest through the skills above; `beagle scout help` lists every
 command:
 
 ```sh
-beagle scout new restrict-ingress-to-cdn --title "Only our CDN can reach the API" --link ABC-344
-beagle scout task add restrict-ingress-to-cdn add-allowlist --title "Add CDN ranges to the GA allowlist in infra/ga.tf"
-beagle scout task start restrict-ingress-to-cdn 2
-beagle scout log restrict-ingress-to-cdn --task 2 "found 3 existing rules in infra/ga.tf"
-beagle scout task done restrict-ingress-to-cdn 2
+beagle scout new rate-limit-the-api --title "One noisy client can't take the API down" --link ABC-344
+beagle scout task add rate-limit-the-api add-rate-limit --title "Add a per-key rate limit in gateway/limits.yaml"
+beagle scout task start rate-limit-the-api 2
+beagle scout log rate-limit-the-api --task 2 "found 3 existing routes in gateway/limits.yaml"
+beagle scout task done rate-limit-the-api 2
 ```
 
 ### Keys
@@ -167,21 +167,21 @@ much it did), followed by a readable timeline:
 ```text
 ━━ session 1163b504 · 16:48 UTC → 17:06 UTC ━━
 2 prompt(s) · 32 command(s) (1 failed) · 5 file(s) changed
-  ✎ widgets-runner/Dockerfile                                   +5 −1     what it made
-  ✚ widgets-runner/scripts/bootstrap.sh                         +151 −5
+  ✎ gateway/limits.yaml                                         +5 −1     what it made
+  ✚ gateway/tests/limits_test.go                                +151 −5
 ── timeline ──
 › You · 16:48 UTC                                 cyan     your prompts
   okay lets do task 4 please and start it
 ∴ thought for 6.7s                                magenta  thinking (the text, when Claude kept it)
 ● Task 3 found nothing that needs changing…       white    Claude's replies (Markdown)
-▸ Check AWS CLI in image and script conventions   green    what a command is for…
-  $ cd ~/GitHub/… && grep -nE 'awscli|aws/insta…  dim      …and the command, on one line
-  │ 166:RUN curl "https://awscli.amazonaws.com/…  gray     output, at most 6 lines
+▸ Check how routes declare their limits          green    what a command is for…
+  $ cd ~/src/… && grep -n 'rate_limit' gateway/…  dim      …and the command, on one line
+  │ 12:  rate_limit: { per_key: 600 }            gray     output, at most 6 lines
   ✖ exit 2                                        red      failures
-✎ edited  Dockerfile  +5 −1                       yellow   file changes, with line counts
-▸ looked at Dockerfile, bootstrap.sh              blue     reads and searches, grouped
-▶ task 04-runner-image · PR: ship …               orange   scout task changes
-✎ image built: terraform validate OK              cyan     scout log narration
+✎ edited  limits.yaml  +5 −1                      yellow   file changes, with line counts
+▸ looked at limits.yaml, routes.yaml              blue     reads and searches, grouped
+▶ task 03-roll-out · PR: ship …                   orange   scout task changes
+✎ limits load: config check OK                    cyan     scout log narration
 ```
 
 The agent does one thing: attach its session. `beagle scout task start` does it
@@ -225,7 +225,7 @@ TUI isn't open:
 
 ```text
 ┌────────────────────────────────────────────────────┐
-│ ╭────╮  Scout · restrict-ingress-to-cdn       🔔   │
+│ ╭────╮  Scout · rate-limit-the-api           🔔   │
 │ │ 🐶 │  ■ Needs you: 03-open-pr · Open the PR      │
 │ ╰────╯  Push branch fix-retry and open a PR?       │
 └────────────────────────────────────────────────────┘
@@ -297,19 +297,19 @@ Plain Markdown with TOML frontmatter (between `+++` fences) — no database,
 
 ```text
 ~/.scout/
-  restrict-ingress-to-cdn/          # project id: lowercase [a-z0-9-], ≤ 64 chars
+  rate-limit-the-api/               # project id: lowercase [a-z0-9-], ≤ 64 chars
     project.md                      # Goal · The problem · How this part of the stack works · The plan · Done when
     log.md                          # timestamped activity; every CLI change is logged too
     tasks/
       01-map-request-path.md        # NN orders the tasks
-      02-add-allowlist.md           # Context · Objective · Why this moves the goal · Steps · Done when · Outcome
+      02-add-rate-limit.md          # Context · Objective · Why this moves the goal · Steps · Done when · Outcome
   .sessions/                        # recorded agent sessions for `beagle scout watch` (hidden from the project list)
     <session-id>.jsonl
 ```
 
 ```toml
 +++
-title = "Add CDN IP ranges to the Global Accelerator allowlist in infra/ga.tf"
+title = "Add a per-key rate limit to the gateway config in gateway/limits.yaml"
 status = "working"                  # todo | working | paused | blocked | done | skipped
 created = "2026-11-12T15:30:05Z"    # RFC 3339, quoted
 updated = "2026-11-12T15:41:10Z"

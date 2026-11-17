@@ -298,8 +298,11 @@ fn goal_skips_placeholder() {
     assert_eq!(p.goal(), None);
     let source = read_capped(&p.file()).unwrap().replace(
         "<One or two sentences: what will be true when this project is finished.>",
-        "Only our CDN can reach\nthe API.",
+        "One noisy client can't take\nthe API down.",
     );
     fs::write(p.file(), source).unwrap();
-    assert_eq!(p.goal().as_deref(), Some("Only our CDN can reach the API."));
+    assert_eq!(
+        p.goal().as_deref(),
+        Some("One noisy client can't take the API down.")
+    );
 }

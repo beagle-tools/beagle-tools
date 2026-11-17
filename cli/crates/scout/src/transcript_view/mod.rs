@@ -6,21 +6,21 @@
 //! ```text
 //! ━━ session 1163b504 · 15:02 → 16:40 UTC ━━
 //! 24 prompts · 140 commands (3 failed) · 5 files changed
-//!   ✚ aws-bootstrap/scripts/bootstrap.sh     +270          what it made, first
-//!   ✎ aws-bootstrap/terraform/main.tf        +12 −3
+//!   ✚ uploader/tests/retry_test.rs           +270          what it made, first
+//!   ✎ uploader/src/retry.rs                  +12 −3
 //! ── timeline ──
 //! › You · 15:04 UTC                                         cyan     your prompt
 //!   fix the flaky uploader test
 //! ∴ thought for 4.0s                                        magenta  thinking
-//! ● The image built. Now checking inside it.                white    Claude's reply
-//! ▸ Verify bootstrap contents and terraform validate        green    what a command is for…
-//!   $ docker run --rm --platform linux/amd64 --entrypo…     dim      …and the command, one line
-//!   │ files: 19 .tf, tfvars: 0                              gray     output, ≤ 6 lines
+//! ● The test passes alone. Now running it in a loop.        white    Claude's reply
+//! ▸ Run the uploader test 50 times to catch the flake       green    what a command is for…
+//!   $ for i in $(seq 50); do cargo test -q retry || br…     dim      …and the command, one line
+//!   │ test result: FAILED. 0 passed; 1 failed               gray     output, ≤ 6 lines
 //!   ✖ exit 2                                                red      failures
-//! ✎ edited aws-bootstrap/terraform/main.tf  +12 −3          yellow   file changes
-//! ▸ looked at main.tf, variables.tf, outputs.tf             blue     reads, grouped
-//! ▶ task 04-runner-image · PR: ship the runner image        orange   scout task changes
-//! ✎ image built: 19 .tf, terraform validate OK              cyan     scout log narration
+//! ✎ edited uploader/src/retry.rs            +12 −3          yellow   file changes
+//! ▸ looked at retry.rs, client.rs, backoff.rs               blue     reads, grouped
+//! ▶ task 02-fix-retry · PR: fix the retry race              orange   scout task changes
+//! ✎ 50/50 runs green after the fix                          cyan     scout log narration
 //! ```
 
 use std::collections::{HashMap, HashSet};

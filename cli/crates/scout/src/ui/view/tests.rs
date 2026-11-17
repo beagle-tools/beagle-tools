@@ -35,7 +35,7 @@ fn both_screens_render_the_working_task() {
     let dir = tempfile::tempdir().unwrap();
     let store = Store::new(dir.path());
     store
-        .create_project(&Slug::parse("p").unwrap(), "Lock down ingress", vec![])
+        .create_project(&Slug::parse("p").unwrap(), "Rate-limit the API", vec![])
         .unwrap();
     store
         .add_task(
@@ -50,7 +50,7 @@ fn both_screens_render_the_working_task() {
         .unwrap();
     let mut app = App::new(store).unwrap();
     let projects = render(&mut app);
-    assert!(projects.contains("Lock down ingress"));
+    assert!(projects.contains("Rate-limit the API"));
     assert!(projects.contains("now"));
     app.open_project();
     let tasks = render(&mut app);

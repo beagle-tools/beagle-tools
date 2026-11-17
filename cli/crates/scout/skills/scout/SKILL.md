@@ -24,9 +24,9 @@ validates input, numbers tasks, stamps times, and logs every change.
 
 ## Words
 
-- **Project** — one overarching goal ("Only our CDN can reach the API").
-- **Task** — one small, precise step toward it ("Add the CDN IP ranges to the
-  Global Accelerator allowlist in `infra/ga.tf`"). Tasks run in order.
+- **Project** — one overarching goal ("One noisy client can't take the API down").
+- **Task** — one small, precise step toward it ("Add a per-key rate limit
+  to the gateway config in `gateway/limits.yaml`"). Tasks run in order.
   Separate deliverables are separate tasks: *change the code* and *release
   the code* are two tasks, not one.
 
@@ -38,21 +38,21 @@ where it sits, and why it matters, then narrow down.
 
 Bad (assumes context):
 
-> Update the least-connections algorithm because a pod is running slow queries.
+> Add a token bucket because one key is hammering us.
 
 Good (gives the missing picture first):
 
-> The Kong ingress controller is the front door of the cluster: every API
-> request from the internet passes through it, and it decides which pod
-> handles each one. It currently spreads requests round-robin, so a pod stuck
-> on a slow query keeps receiving new requests and starts returning 500s.
-> Switching Kong to least-connections sends new requests to the least-busy
-> pod instead.
+> The API gateway is the front door of the service: every request from the
+> internet passes through it before reaching an app server. Today it has no
+> per-client limit, so one client sending thousands of requests a second
+> fills every server's queue and everyone else starts getting timeouts. A
+> per-key rate limit at the gateway turns that client's excess into fast
+> 429s, before it reaches anything else.
 
-Bad project framing: "Restrict IPs at L4." Good: "All traffic enters through
-AWS Global Accelerator, which forwards it to the load balancer in front of the
-API. Today anyone can reach it directly; we want only our CDN's IP ranges let
-in, and the right place to enforce that is the accelerator, before traffic
+Bad project framing: "Add rate limiting." Good: "All traffic enters through
+the API gateway, which forwards it to the app servers. Today nothing stops one
+client from using all of their capacity; we want each API key held to a fair
+share, and the right place to enforce that is the gateway, before traffic
 reaches anything else."
 
 Define each component in two or three sentences the first time it appears.
@@ -70,7 +70,7 @@ Prefer a small ASCII diagram for any flow with more than two hops.
    ```sh
    beagle scout new <project-slug> --title "One-line goal" [--link ABC-123]...
    ```
-   Slug: lowercase `a-z0-9-`, ≤ 64 chars (e.g. `restrict-ingress-to-cdn`).
+   Slug: lowercase `a-z0-9-`, ≤ 64 chars (e.g. `rate-limit-the-api`).
 4. **Write `project.md`** (path printed by `beagle scout new`; also
    `beagle scout path <project>`). Replace every `<placeholder>`; keep the headings:
    - `## Goal` — one or two sentences: what is true when this is finished.
@@ -97,9 +97,9 @@ The command prints the task file's path. Fill in every section:
 - `## Context` — what the piece of the system this task touches is, in two or
   three sentences, and where it sits in the stack (rule zero).
 - `## Objective` — exactly what changes and **where**: repo, file, resource,
-  command. "Update the ingress controller" is too vague; "Set
-  `load_balancing = least-connections` on the `api` upstream in
-  `k8s/kong/upstreams.yaml`" is a task.
+  command. "Update the gateway" is too vague; "Set
+  `requests_per_minute = 600` per API key on the `public` route in
+  `gateway/limits.yaml`" is a task.
 - `## Why this moves the goal` — the justification: how finishing this gets
   the project closer to its goal. If you cannot write this, the task does not
   belong in the project.
@@ -139,7 +139,7 @@ Then, as you go:
 - **Narrate** every meaningful step, one line each — the user reads this in
   the Log tab as it happens:
   ```sh
-  beagle scout log <project> --task <task> "found the allowlist in infra/ga.tf; 3 rules today"
+  beagle scout log <project> --task <task> "found the route table in gateway/limits.yaml; 3 routes today"
   ```
   Log decisions and surprises especially. Say what you found, not just what
   you ran.

@@ -217,7 +217,7 @@ mod tests {
 
     #[test]
     fn slug_rules() {
-        assert!(Slug::parse("restrict-ingress-ips").is_ok());
+        assert!(Slug::parse("rate-limit-the-api").is_ok());
         assert!(Slug::parse("a").is_ok());
         assert!(Slug::parse("2026-11-12-x").is_ok());
         for bad in ["", "-a", "a-", "Upper", "under_score", "sp ace", "dot.s"] {

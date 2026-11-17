@@ -2,7 +2,7 @@
 //!
 //! ```text
 //! <root>/                      # --root, else $SCOUT_ROOT, else ~/.scout
-//!   restrict-ingress-ips/      # project id: a slug
+//!   rate-limit-the-api/        # project id: a slug
 //!     project.md               # goal, problem, how the stack works, done-when
 //!     log.md                   # timestamped activity, appended by `beagle scout log`
 //!     tasks/

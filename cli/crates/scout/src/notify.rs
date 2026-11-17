@@ -271,7 +271,7 @@ mod tests {
     #[test]
     fn defaults_notify_blocked_and_project_events_only() {
         let config = Config::default();
-        let n = build(&config, "p", "Lock down ingress", &blocked()).unwrap();
+        let n = build(&config, "p", "Rate-limit the API", &blocked()).unwrap();
         assert_eq!(n.subtitle, "■ Needs you: 03-open-pr · Open the PR");
         assert_eq!(n.message, "Push branch fix-retry and open a PR?");
         assert_eq!(n.sound.as_deref(), Some("Glass"));
