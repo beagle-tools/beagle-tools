@@ -94,6 +94,9 @@ jobs:
       project: tandem
       cargo-dir: tandem
       product: Tandem
+      # tandem-cli rides inside the app; the beagle-tandem cask links it.
+      sidecar-package: tandem-cli
+      sidecar-bin: tandem-cli
       tag: ${{ needs.plan.outputs.tandem_tag }}
       version: ${{ needs.plan.outputs.tandem_version }}
       release-id: ${{ needs.plan.outputs.tandem_release_id }}

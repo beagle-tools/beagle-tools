@@ -21,6 +21,10 @@ cask "beagle-tandem" do
 
   app "Tandem.app"
 
+  # The CLI ships inside the bundle (release CI stages it as a Tauri
+  # sidecar); this puts it on PATH, so `tandem-cli` always matches the app.
+  binary "#{appdir}/Tandem.app/Contents/MacOS/tandem-cli"
+
   # Not notarized yet — clear quarantine so first launch works.
   postflight do
     system_command "/usr/bin/xattr",

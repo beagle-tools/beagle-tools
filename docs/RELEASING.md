@@ -109,6 +109,12 @@ The rolling mirror release `beagle-<app>-latest` (title
 | rca       | `Beagle-macos-arm64.dmg`, `Beagle-macos-x64.dmg`, `Beagle-linux-x86_64.AppImage`, `Beagle-linux-amd64.deb`, `latest.json`, `beagle-rca-<target>.tar.gz` (+ `.sha256`) |
 | workflows | `Agentdesk-macos-arm64.dmg`, `Agentdesk-macos-x64.dmg`, `latest.json`, `beagle-workflows-<target>.tar.gz` (+ `.sha256`)                                               |
 
+Tandem has no CLI tarball: `tandem-cli` ships inside the app bundle. The
+tandem build passes `sidecar-package: tandem-cli` to `_release-tauri.yml`,
+whose `scripts/release/stage-sidecar.sh` step builds it for each job's
+target and declares it as a Tauri sidecar (`bundle.externalBin`, added in
+CI only and never committed). The `beagle-tandem` cask links it onto PATH.
+
 CLI tarballs hold the binaries at the tarball root:
 
 - `beagle-rca-<target>.tar.gz` holds `beagle` and `beagle-agentd`. Targets:

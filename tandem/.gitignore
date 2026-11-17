@@ -9,6 +9,8 @@ pnpm-debug.log*
 
 # Rust
 /target
+# Sidecar binaries staged by scripts/release/stage-sidecar.sh (release CI)
+/src-tauri/binaries
 
 # Editor directories and files
 .vscode/*

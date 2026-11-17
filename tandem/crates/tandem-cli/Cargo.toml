@@ -1,0 +1,33 @@
+[package]
+name = "tandem-cli"
+description = "Read Tandem's local review data from a script or an agent, and queue reviews"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# The logic is a library (`tandem_cli::run`) so the unified `beagle` command
+# can link it as `beagle tandem`; the binary below is a thin wrapper.
+[lib]
+name = "tandem_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tandem-cli"
+path = "src/main.rs"
+
+[dependencies]
+tandem-core.workspace = true
+chrono.workspace = true
+clap = { version = "4", features = ["derive"] }
+dirs.workspace = true
+reqwest = { workspace = true, features = ["blocking"] }
+rusqlite.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+tandem-cache.workspace = true
+
+[lints]
+workspace = true

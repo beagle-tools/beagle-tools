@@ -6,6 +6,7 @@ members = [
   "crates/tandem-github",
   "crates/tandem-cache",
   "crates/tandem-agents",
+  "crates/tandem-cli",
 ]
 
 [workspace.package]
