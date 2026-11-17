@@ -12,6 +12,7 @@ name = "beagle"
 path = "src/main.rs"
 
 [dependencies]
+beagle-scout.workspace = true
 
 [lints]
 workspace = true

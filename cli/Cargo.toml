@@ -13,6 +13,18 @@ repository = "https://github.com/beagle-tools/beagle-tools"
 
 [workspace.dependencies]
 beagle-utils = { path = "../utils" }
+beagle-scout = { path = "crates/scout" }
+crossterm = "0.28"
+notify = "7"
+ratatui = { version = "0.29", features = ["unstable-rendered-line-info"] }
+serde = { version = "1", features = ["derive"] }
+# preserve_order: `beagle scout hook install` rewrites ~/.claude/settings.json
+# and must keep the user's key order.
+serde_json = { version = "1", features = ["preserve_order"] }
+tempfile = "3"
+thiserror = "2"
+time = { version = "0.3", features = ["formatting", "macros", "parsing", "serde-well-known"] }
+toml = "0.8"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
