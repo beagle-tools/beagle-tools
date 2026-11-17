@@ -1,0 +1,25 @@
+[package]
+name = "beagle-scout"
+description = "beagle scout: a TUI for watching agent work as projects of small, ordered, well-explained tasks"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+beagle-utils.workspace = true
+crossterm.workspace = true
+notify.workspace = true
+ratatui.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+time.workspace = true
+toml.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true
