@@ -15,6 +15,13 @@
   --ok: #9ece6a;
   --warn: #e0af68;
   --err: #f7768e;
+  /* Syntax colours (manifest YAML). */
+  --syn-key: #7dcfff;
+  --syn-string: #9ece6a;
+  --syn-number: #ff9e64;
+  --syn-literal: #bb9af7;
+  --syn-comment: #565f89;
+  --syn-punct: #89ddff;
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
 
   /* One spacing scale, so panels line up without per-component guesses. */
@@ -37,6 +44,12 @@
     --ok: #38793c;
     --warn: #8a5a00;
     --err: #b4263c;
+    --syn-key: #006b8f;
+    --syn-string: #38793c;
+    --syn-number: #a34d00;
+    --syn-literal: #7a3fbf;
+    --syn-comment: #7a819c;
+    --syn-punct: #2e5fd4;
     color-scheme: light;
   }
 }
@@ -110,6 +123,26 @@ body {
   padding: 8px 16px;
   background: color-mix(in srgb, var(--err) 18%, var(--bg));
   border-bottom: 1px solid var(--err);
+}
+
+/* agentd is not running: nothing is scheduled and nothing starts. Louder
+   than .errorbar and never dismissed — it clears itself when agentd is back. */
+.daemonbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  color: #fff;
+  background: var(--err);
+}
+.daemonbar code {
+  font-size: 12px;
+  opacity: 0.9;
+}
+.daemon-down {
+  color: var(--err);
+  font-weight: 600;
 }
 
 /* A page is the area under the top bar. Panels float on it with a gap,

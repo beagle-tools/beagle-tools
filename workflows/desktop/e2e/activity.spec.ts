@@ -13,8 +13,8 @@ test("the runs list shows every chain, roots first", async ({ page }) => {
   await expect(rows.nth(1)).toContainText("demo/fix");
   await expect(rows.nth(2)).toContainText("demo/report");
   await expect(rows.nth(2)).toContainText("failed");
-  // A failed step can be retried right from the list.
-  await expect(rows.nth(2).getByRole("button", { name: "Retry" })).toBeVisible();
+  // A failed step can be restarted right from the list.
+  await expect(rows.nth(2).getByRole("button", { name: "Restart…" })).toBeVisible();
   await expect(page.getByText("2 chains")).toBeVisible();
 });
 

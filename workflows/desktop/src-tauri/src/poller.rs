@@ -24,6 +24,9 @@ const INTERVAL: Duration = Duration::from_secs(2);
 
 pub const RUNS_UPDATED: &str = "agentdesk://runs-updated";
 pub const STORE_PROBLEM: &str = "agentdesk://store-problem";
+/// agentd's status line: empty when it is running, else why not (stopped,
+/// stalled). Sent on change, and on the first tick.
+pub const DAEMON: &str = "agentdesk://daemon";
 
 pub fn spawn(app: AppHandle) {
     std::thread::spawn(move || {
@@ -41,7 +44,17 @@ pub fn spawn(app: AppHandle) {
         };
         let mut last: Option<u64> = None;
         let mut reported_problem = false;
+        let mut last_daemon: Option<String> = None;
         loop {
+            // A stopped daemon leaves the store looking merely idle, so
+            // its heartbeat is checked separately (agent_core::daemon).
+            let daemon = agent_core::daemon::status()
+                .banner(chrono::Utc::now())
+                .unwrap_or_default();
+            if last_daemon.as_deref() != Some(daemon.as_str()) {
+                let _ = app.emit(DAEMON, daemon.clone());
+                last_daemon = Some(daemon);
+            }
             match fingerprint(&store) {
                 Ok(current) => {
                     if reported_problem {

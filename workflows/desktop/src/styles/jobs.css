@@ -270,3 +270,94 @@ button.tiny.on {
   flex-direction: column;
   overflow: auto;
 }
+
+/* The draft PR a run opened, on its partition and at the top of its step. */
+button.prchip {
+  padding: 0 9px;
+  font-size: 11px;
+  font-family: var(--mono);
+  border-radius: 999px;
+  border-color: var(--ok);
+  color: var(--ok);
+  background: none;
+}
+button.prline {
+  align-self: flex-start;
+  padding: 2px 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  border-color: var(--ok);
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 10%, transparent);
+}
+
+/* ---- fuzzy search ---------------------------------------------------- */
+
+.jobsearch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px var(--pad);
+  border-bottom: 1px solid var(--border);
+}
+.jobsearch input {
+  flex: 1;
+  max-width: 520px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-sunken);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+.jobsearch input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.job-name mark {
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+pre.flowtree .hit {
+  color: var(--accent);
+}
+
+/* All | Running */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.segmented button {
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+.segmented button + button {
+  border-left: 1px solid var(--border-strong);
+}
+.segmented button.on {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.showhidden {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+/* The all-runs page names each run's job in its partition. */
+.partition .jobname {
+  color: var(--accent);
+  font-family: var(--mono);
+}

@@ -121,15 +121,22 @@
 }
 
 /* ---- both ---- */
-.t-error,
-.t-denied {
+.t-error {
   background: color-mix(in srgb, var(--err) 10%, transparent);
 }
 .t-error .le-tag,
-.t-error .le-body,
+.t-error .le-body {
+  color: var(--err);
+}
+/* Refused by the run's allowlist: the guardrail working, not the run
+   failing. Amber, untinted — an error-red row for every refused `ls`
+   made a successful run look broken. */
 .t-denied .le-tag,
 .t-denied .le-body {
-  color: var(--err);
+  color: var(--warn);
+}
+.t-denied .le-body {
+  opacity: 0.8;
 }
 .t-state .le-tag {
   color: #bb9af7;

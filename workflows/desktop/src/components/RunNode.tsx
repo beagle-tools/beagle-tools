@@ -3,6 +3,9 @@ import { cost, duration } from "../lib/format";
 import { NODE_H, NODE_W, type GraphNode } from "../lib/graph";
 import { isActive } from "../lib/types";
 import { useStore } from "../state/store";
+import { useState } from "react";
+
+import { ConfirmRun } from "./ConfirmRun";
 
 // One run in the graph. Carries its own actions: a failed stage can be
 // retried from here and a live one stopped, because the graph is where
@@ -12,7 +15,7 @@ export function RunNode({ node }: { node: GraphNode }): ReactElement {
   const selectedId = useStore((s) => s.selectedId);
   const select = useStore((s) => s.select);
   const kill = useStore((s) => s.kill);
-  const retry = useStore((s) => s.retry);
+  const [restarting, setRestarting] = useState(false);
 
   const run = node.row.run;
   const active = isActive(run.state);
@@ -48,18 +51,32 @@ export function RunNode({ node }: { node: GraphNode }): ReactElement {
         <g
           className="chip"
           transform={`translate(${String(NODE_W - 62)}, ${String(NODE_H - 22)})`}
-          onClick={() => (active ? void kill(run.id) : void retry(run.id))}
+          onClick={() => {
+            if (active) void kill(run.id);
+            else setRestarting(true);
+          }}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter") void (active ? kill(run.id) : retry(run.id));
+            if (e.key === "Enter") {
+              if (active) void kill(run.id);
+              else setRestarting(true);
+            }
           }}
         >
           <rect width={52} height={16} rx={8} />
           <text x={26} y={12} textAnchor="middle">
-            {active ? "stop" : "retry"}
+            {active ? "stop" : "restart"}
           </text>
         </g>
+      )}
+      {restarting && (
+        <ConfirmRun
+          request={{ kind: "resume", run }}
+          onClose={() => {
+            setRestarting(false);
+          }}
+        />
       )}
     </g>
   );

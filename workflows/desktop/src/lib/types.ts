@@ -119,6 +119,8 @@ export interface PipelineSummary {
   steps: string[];
   active_steps: string[];
   active_runs: number;
+  /** Its project is in ui.yaml's `hidden_projects` (demo, usually). */
+  hidden: boolean;
   last: Run | null;
 }
 
@@ -132,6 +134,8 @@ export interface ChainView {
   root: Run;
   cost: SubtreeCost;
   steps: StepRow[];
+  /** The draft PR this run opened, if any. */
+  pr: string | null;
 }
 
 export interface PipelineDetail {

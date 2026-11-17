@@ -327,3 +327,55 @@ button.job.selected {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* ConfirmRun: the dialog in front of Run / Restart. */
+.modal.confirm {
+  width: min(460px, 100%);
+}
+.modal.confirm p {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+.modal .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+/* JobMenu: the ⋯ on a job. */
+.jobmenu {
+  position: relative;
+  display: inline-flex;
+}
+button.ghost {
+  background: none;
+  border-color: transparent;
+}
+button.ghost:hover {
+  border-color: var(--border-strong);
+}
+.jobmenu .menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+  min-width: 140px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+}
+.jobmenu .menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  padding: 6px 10px;
+  border-radius: 5px;
+}
+.jobmenu .menu button:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}

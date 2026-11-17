@@ -57,12 +57,16 @@ share the window with a run list it has no use for.
 
 ### Keys
 
-|       |                                            |
-| ----- | ------------------------------------------ |
-| `d`   | toggle the DAG page                        |
-| `D`   | pin the selected run's chain, and go there |
-| `esc` | unpin; if nothing is pinned, back to Runs  |
-| `x`   | kill the selected run                      |
+|           |                                                                                              |
+| --------- | -------------------------------------------------------------------------------------------- |
+| `d`       | toggle the DAG page                                                                          |
+| `D`       | pin the selected run's chain, and go there                                                   |
+| `esc`     | unpin; if nothing is pinned, back to Runs                                                    |
+| `x`       | kill the selected run                                                                        |
+| `/`       | Jobs page: fuzzy-search jobs, steps and projects (`enter` opens the top match, `esc` clears) |
+| `r` / `a` | Jobs page: only jobs with something running / all jobs (also the All · Running toggle)       |
+| `H`       | Jobs page: show / hide the projects ui.yaml hides (also the "Show hidden" box)               |
+| `⋯`       | Jobs: Run now… (confirms; asks for required params). Failed steps: Restart… resumes in place |
 
 The keys agenttop uses, because that is muscle memory. `esc` is layered
 on purpose — one press never skips a level and loses where you were.

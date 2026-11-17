@@ -5,6 +5,7 @@ import { cost, duration } from "../lib/format";
 import { isActive, type Run } from "../lib/types";
 import { useStore } from "../state/store";
 import { LogView } from "./LogView";
+import { ConfirmRun } from "./ConfirmRun";
 import { MarkdownView } from "./MarkdownView";
 
 // One step, beside the runs list: what it is in a line, the things it
@@ -16,8 +17,8 @@ import { MarkdownView } from "./MarkdownView";
 export function StepPane({ run }: { run: Run }): ReactElement {
   const links = useStore((s) => s.links);
   const kill = useStore((s) => s.kill);
-  const retry = useStore((s) => s.retry);
   const [writeup, setWriteup] = useState<string | null>(null);
+  const [restarting, setRestarting] = useState(false);
 
   // A new step means its own log, not the last step's write-up.
   useEffect(() => {
@@ -25,6 +26,9 @@ export function StepPane({ run }: { run: Run }): ReactElement {
   }, [run.id]);
 
   const broken = run.state === "failed" || run.state === "timedout" || run.state === "killed";
+  // The PR first: it is what a step on a code ticket produced. Found from
+  // result.md, or for a step still working, from its own `gh pr create`.
+  const pr = links.find((l) => l.label === "Draft PR")?.target ?? null;
 
   return (
     <div className="steppane">
@@ -50,13 +54,28 @@ export function StepPane({ run }: { run: Run }): ReactElement {
               <button
                 className="tiny"
                 title="Re-run this step against its parent's output"
-                onClick={() => void retry(run.id)}
+                onClick={() => {
+                  setRestarting(true);
+                }}
               >
-                Retry
+                Restart…
               </button>
+            )}
+            {restarting && (
+              <ConfirmRun
+                request={{ kind: "resume", run }}
+                onClose={() => {
+                  setRestarting(false);
+                }}
+              />
             )}
           </span>
         </div>
+        {pr && (
+          <button className="prline" title="Open the draft PR" onClick={() => void openUrl(pr)}>
+            <span className="muted small">draft PR</span> {pr.replace("https://github.com/", "")} ↗
+          </button>
+        )}
         <code className="muted small">{run.id}</code>
 
         {links.length > 0 && (

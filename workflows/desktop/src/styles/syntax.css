@@ -1,0 +1,20 @@
+/* Manifest YAML (YamlView). */
+pre.yaml .syn-key {
+  color: var(--syn-key);
+}
+pre.yaml .syn-string {
+  color: var(--syn-string);
+}
+pre.yaml .syn-number {
+  color: var(--syn-number);
+}
+pre.yaml .syn-literal {
+  color: var(--syn-literal);
+}
+pre.yaml .syn-comment {
+  color: var(--syn-comment);
+  font-style: italic;
+}
+pre.yaml .syn-punct {
+  color: var(--syn-punct);
+}

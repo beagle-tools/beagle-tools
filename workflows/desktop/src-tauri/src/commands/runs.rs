@@ -118,46 +118,16 @@ fn finish_killed(store: &Store, id: &str) -> Result<(), AppError> {
 /// It is a NEW run, not a mutated one. Run rows are the record of what
 /// actually happened, and rewriting a failure into a success would lose
 /// that the first attempt failed at all.
+///
+/// The rules — what can be resumed, and refusing once the handover is
+/// pruned (data dirs are kept a week) — are `agent_core::resume`'s, shared
+/// with `agentctl resume` and agenttop's `f`.
 #[tauri::command]
 pub fn retry_run(state: State<'_, AppState>, id: String) -> Result<String, AppError> {
     let store = state.store.lock().map_err(|_| lock_failed("store"))?;
-    let run = store
-        .get_run(&id)
-        .map_err(|e| AppError::new(format!("could not read run {id}: {e}")))?
-        .ok_or_else(|| AppError::new(format!("run {id} not found")))?;
-
-    if is_active(run.state) {
-        return Err(AppError::new(format!(
-            "{}/{} is still {} — kill it before retrying",
-            run.project, run.agent, run.state
-        )));
-    }
-
-    // The parent's data dir is the state being resumed from. Retention
-    // deletes it along with the logs, so past that window a retry would
-    // start a stage whose inputs are gone — it would run, and improvise.
-    // Refuse instead, and say which run to restart from.
-    if let Some(parent) = &run.parent_run_id {
-        let dir = agent_core::paths::data_dir()
-            .map_err(|e| AppError::new(format!("could not resolve the data dir: {e}")))?
-            .join(parent);
-        if !dir.is_dir() {
-            return Err(AppError::new(format!(
-                "the state this stage reads is gone — agentd pruned {parent}'s data dir with \
-                 its logs. Re-run the chain from an earlier stage instead."
-            )));
-        }
-    }
-
-    let created = store
-        .create_pending_run(
-            &run.project,
-            &run.agent,
-            agent_core::types::Trigger::Manual,
-            run.parent_run_id.as_deref(),
-            run.params.as_deref(),
-            run.model.as_deref(),
-        )
-        .map_err(|e| AppError::new(format!("could not queue the retry: {e}")))?;
-    Ok(created.id)
+    let data = agent_core::paths::data_dir()
+        .map_err(|e| AppError::new(format!("could not resolve the data dir: {e}")))?;
+    agent_core::resume::resume_run(&store, &id, &data)
+        .map(|created| created.id)
+        .map_err(|e| AppError::new(e.to_string()))
 }

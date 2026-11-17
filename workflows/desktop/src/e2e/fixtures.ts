@@ -141,6 +141,7 @@ export const PIPELINES: PipelineSummary[] = [
     steps: ["hello"],
     active_steps: [],
     active_runs: 0,
+    hidden: false,
     last: null,
   },
   {
@@ -153,6 +154,7 @@ export const PIPELINES: PipelineSummary[] = [
     steps: ["triage", "fix", "report"],
     active_steps: [],
     active_runs: 0,
+    hidden: false,
     last: byId("run-triage-2"),
   },
 ];
@@ -166,6 +168,7 @@ export const TRIAGE_DETAIL: PipelineDetail = {
     {
       root: byId("run-triage-2"),
       cost: { total: 1.52, partial: false },
+      pr: "https://github.com/acme/widgets/pull/412",
       steps: [
         { run: byId("run-triage-2"), depth: 0 },
         { run: byId("run-fix-2"), depth: 1 },
@@ -175,6 +178,7 @@ export const TRIAGE_DETAIL: PipelineDetail = {
     {
       root: byId("run-triage-1"),
       cost: { total: 0.3, partial: false },
+      pr: null,
       steps: [{ run: byId("run-triage-1"), depth: 0 }],
     },
   ],
