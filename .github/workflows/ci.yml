@@ -78,7 +78,13 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: ./scripts/check-file-length.sh
+      # Fork PRs get no secrets, so they skip this step rather than fail
+      # it. Run `make standards` locally before merging one; the push to
+      # main re-runs it with the secret either way.
       - name: affiliation guard (patterns come from a secret, never the repo)
+        if: >-
+          github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository
         run: ./scripts/check-affiliation.sh
         env:
           BEAGLE_AFFILIATION_PATTERNS: ${{ secrets.BEAGLE_AFFILIATION_PATTERNS }}
