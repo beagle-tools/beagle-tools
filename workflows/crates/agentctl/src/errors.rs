@@ -183,14 +183,14 @@ mod tests {
         assert!(w.basis.contains("capped at 48h"));
 
         // No earlier resolver run: the full (capped) window.
-        let w = window(&store, None, Some("agentd/pipeline-resolver"), 48, now).unwrap();
+        let w = window(&store, None, Some("agentd/job-doctor"), 48, now).unwrap();
         assert_eq!(w.since, now - Duration::hours(48));
 
         // An earlier successful run: from its start.
         let prev = store
             .create_pending_run(
                 "agentd",
-                "pipeline-resolver",
+                "job-doctor",
                 Trigger::Cron,
                 None,
                 None,
@@ -203,7 +203,7 @@ mod tests {
         store
             .finish_run(&prev.id, RunState::Succeeded, Some(0))
             .unwrap();
-        let w = window(&store, None, Some("agentd/pipeline-resolver"), 48, now).unwrap();
+        let w = window(&store, None, Some("agentd/job-doctor"), 48, now).unwrap();
         assert!(w.since > now - Duration::hours(1));
         assert!(w.basis.contains(&prev.id));
 
