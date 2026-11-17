@@ -8,20 +8,26 @@ version bump and no release PR.
 ## What triggers a release
 
 Every push to `main` runs `release`. For each app (`tandem`, `rca`,
-`workflows`) it diffs the push (`github.event.before..HEAD`) and releases the
-app if any **release-relevant** path changed:
+`workflows`, `cli`) it diffs the push (`github.event.before..HEAD`) and
+releases the app if any **release-relevant** path changed:
 
-| App       | Release-relevant paths                                                           |
-| --------- | -------------------------------------------------------------------------------- |
-| tandem    | `tandem/**`                                                                      |
-| rca       | `rca/**`, `skills/beagle/**`, `skills/beagle-review/**` (embedded in the binary) |
-| workflows | `workflows/**`                                                                   |
-| all three | `utils/**`, `rust-toolchain.toml` (compiled into every app)                      |
+| App       | Release-relevant paths                                                                                                                                              |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| tandem    | `tandem/**`                                                                                                                                                         |
+| rca       | `rca/**`, `skills/beagle/**`, `skills/beagle-review/**` (embedded in the binary)                                                                                    |
+| workflows | `workflows/**`                                                                                                                                                      |
+| cli       | `cli/**`; the crates it links from other apps: `rca/cli/**`, `tandem/crates/tandem-cli/**`, `tandem/crates/tandem-core/**`, `tandem/Cargo.toml`; and the rca skills |
+| all four  | `utils/**`, `rust-toolchain.toml` (compiled into every app)                                                                                                         |
+
+`cli` is the unified `beagle` command. It compiles rca's CLI crate and
+`tandem-cli` in, so a change there releases both that app and `cli`.
 
 Excluded everywhere: `**/*.md` and `<app>/docs/**`. Docs-only merges don't
-release. The two `skills/` paths above are the one exception, because rca
-embeds those `SKILL.md` files. Changes to CI, `scripts/` or this
-workflow don't release anything by themselves either.
+release. Markdown an app embeds with `include_str!` is the exception: the
+rca skills (`skills/beagle/**`, `skills/beagle-review/**`, in rca and cli)
+and, in cli, `cli/crates/{recap,standup}/docs/` and
+`cli/crates/scout/skills/`. Changes to CI, `scripts/` or this workflow
+don't release anything by themselves either.
 
 If the push's previous SHA is unknown (the first push, or a force push),
 every app counts as changed.
@@ -41,7 +47,8 @@ app that releases:
    it is skipped. The newer push's run releases it.
 3. Else if the app has no tag yet, the version comes from its version file:
    `tandem/src-tauri/tauri.conf.json`, `rca/cli/Cargo.toml` `[package]`,
-   or `workflows/Cargo.toml` `[workspace.package]`.
+   `workflows/Cargo.toml` `[workspace.package]` or `cli/Cargo.toml`
+   `[workspace.package]`.
 4. Else the app's highest tag is bumped by the merged PR's label:
 
 | PR label                  | Bump              |
@@ -53,8 +60,9 @@ app that releases:
 One label applies to every app the PR releases.
 
 **First release.** The first push that releases each app tags its current
-version-file value: `beagle-tandem-v0.0.1`, `beagle-rca-v0.29.0` and
-`beagle-workflows-v0.1.0`. From then on, bumps come from labels.
+version-file value: `beagle-tandem-v0.0.1`, `beagle-rca-v0.29.0`,
+`beagle-workflows-v0.1.0` and `beagle-cli-v0.1.0`. From then on, bumps come
+from labels.
 
 Version files in the repo aren't bumped by commits. Release CI runs
 `node scripts/set-version.mjs <X.Y.Z>` in each app dir to stamp every version
@@ -67,20 +75,23 @@ tag.
 ```
 plan ─┬─ tandem-desktop ──────────────────────────► tandem-publish ──► homebrew
       ├─ rca-cli + rca-desktop + rca-web ─────────► rca-publish ─────► homebrew
-      └─ workflows-cli + workflows-desktop ───────► workflows-publish ► homebrew
+      ├─ workflows-cli + workflows-desktop ───────► workflows-publish ► homebrew
+      └─ cli-build ───────────────────────────────► cli-publish ─────► homebrew
 ```
 
 - **plan** (`scripts/release/plan.mjs`) decides the versions, then pushes the
   tags. It also creates one **draft** release per app
   (`scripts/release/draft.sh`), titled `Beagle Tandem vX.Y.Z` /
-  `Beagle RCA vX.Y.Z` / `Beagle Workflows vX.Y.Z`. Each draft has install
+  `Beagle RCA vX.Y.Z` / `Beagle Workflows vX.Y.Z` / `Beagle CLI vX.Y.Z`. Each draft has install
   instructions plus generated notes for the PRs since the app's previous tag.
 - **build** jobs upload into that draft:
   - `_release-tauri.yml` builds the desktop apps with tauri-action. It signs
     the updater bundles, merges `latest.json`, and adds stable-named copies of
     the installers.
   - `_release-cli.yml` cross-builds the CLIs. It runs a `--version` smoke
-    test on native targets, then uploads tarballs plus `.sha256` files.
+    test on native targets, then uploads tarballs plus `.sha256` files. It
+    sets `BEAGLE_RELEASE_TARGET` to the target, which marks the unified
+    `beagle` as a release build (`beagle version`, `beagle update`).
   - `rca-web` pushes the Docker image.
 - **publish** (`scripts/release/publish.sh`) runs only if every build for that
   app succeeded. It un-drafts the release with `make_latest=false`, so no app
@@ -108,6 +119,7 @@ The rolling mirror release `beagle-<app>-latest` (title
 | tandem    | `Tandem-macos-arm64.dmg`, `Tandem-macos-x64.dmg`, `Tandem-windows-x64-setup.exe`, `Tandem-linux-x86_64.AppImage`, `Tandem-linux-amd64.deb`, `latest.json`             |
 | rca       | `Beagle-macos-arm64.dmg`, `Beagle-macos-x64.dmg`, `Beagle-linux-x86_64.AppImage`, `Beagle-linux-amd64.deb`, `latest.json`, `beagle-rca-<target>.tar.gz` (+ `.sha256`) |
 | workflows | `Agentdesk-macos-arm64.dmg`, `Agentdesk-macos-x64.dmg`, `latest.json`, `beagle-workflows-<target>.tar.gz` (+ `.sha256`)                                               |
+| cli       | `beagle-cli-<target>.tar.gz` (+ `.sha256`)                                                                                                                            |
 
 Tandem has no CLI tarball: `tandem-cli` ships inside the app bundle. The
 tandem build passes `sidecar-package: tandem-cli` to `_release-tauri.yml`,
@@ -121,10 +133,26 @@ CLI tarballs hold the binaries at the tarball root:
   `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-musl`.
 - `beagle-workflows-<target>.tar.gz` holds `agentd`, `agentctl` and
   `agenttop`. Targets: the two macOS targets.
+- `beagle-cli-<target>.tar.gz` holds `beagle`, the unified command. Targets:
+  `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-musl`.
+  `beagle update` installs these; it lists only `beagle-cli-v*` tags, so the
+  standalone rca `beagle` (also named `beagle`) is never offered.
 
 rca also pushes `ghcr.io/beagle-tools/beagle-rca-web:<X.Y.Z>` and `:latest`.
 
 Stable URL: `https://github.com/beagle-tools/beagle-tools/releases/download/beagle-<app>-latest/<asset>`.
+
+## CLI self-update
+
+The unified `beagle` updates itself with `beagle update` / `beagle version
+list` (`cli/crates/beagle/src/selfupdate/`): it downloads the
+`beagle-cli-<target>.tar.gz` for a `beagle-cli-vX.Y.Z` tag, verifies its
+`.sha256` and swaps the binary atomically (`beagle_utils::update`). A
+Homebrew install runs `brew upgrade beagle-tools/tap/beagle` instead, and a
+source build prints the `cargo install` that rebuilds it. Tools linked into
+`beagle` never update themselves there (`beagle rca update`,
+`beagle tandem update` point at `beagle update`). The standalone rca binary
+keeps its own updater over the same shared code, on `beagle-rca-v*` tags.
 
 ## In-app updates
 
@@ -137,7 +165,8 @@ filters releases by the tag prefix `beagle-<app>-v`.
 ## Homebrew
 
 ```sh
-brew install beagle-tools/tap/beagle-rca              # beagle + beagle-agentd (macOS, Linux x86_64)
+brew install beagle-tools/tap/beagle                  # the unified beagle command (macOS, Linux x86_64)
+brew install beagle-tools/tap/beagle-rca              # standalone rca beagle + beagle-agentd (being retired)
 brew install beagle-tools/tap/beagle-workflows        # agentd, agentctl, agenttop (macOS)
 brew install --cask beagle-tools/tap/beagle-tandem    # Tandem.app
 brew install --cask beagle-tools/tap/beagle-rca-desktop  # Beagle.app
@@ -150,6 +179,12 @@ because the next release overwrites the tap.
 - **Formulas** (`Formula/*.rb.tmpl`) are versioned. Release CI fills in
   `@VERSION@` and a sha256 per target (`@SHA_<TARGET>@`) from the release's
   `.sha256` assets.
+- `beagle` and `beagle-rca` both install a `beagle` binary, so each
+  formula declares `conflicts_with` the other. Users switch with
+  `brew uninstall beagle-rca && brew install beagle-tools/tap/beagle`.
+  `beagle-agentd` ships only in `beagle-rca` (and its tarball) for now.
+- The cli app's formula is `beagle` but its tarballs are `beagle-cli-*`:
+  `scripts/release/apps.sh` sets `APP_ASSET` apart from `APP_FORMULA` for it.
 - **Casks** (`Casks/*.rb`) are static: `version :latest` and
   `sha256 :no_check`, pointing at the mirror. They clear the quarantine flag
   after install. After the first install, the apps update themselves.
@@ -191,7 +226,7 @@ releases and GHCR, through `contents: write` and `packages: write`.
 ## Testing the pipeline locally
 
 ```sh
-node --test scripts/release/plan.test.mjs
+make test-scripts    # plan.test.mjs, cli/scripts/set-version.test.mjs and the CI-script tests
 node scripts/release/plan.mjs --dry-run --before <sha> --after <sha> [--labels release:minor]
 ```
 

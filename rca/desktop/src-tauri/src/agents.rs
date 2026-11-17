@@ -166,7 +166,7 @@ fn request(payload: &Value) -> Result<Value> {
 }
 
 /// Opens the control socket as a (writer, line reader) pair. `hint` adds the
-/// "try `beagle agent start`" suffix to the unreachable message.
+/// "try `beagle rca agent start`" suffix to the unreachable message.
 fn connect(hint: bool) -> Result<(UnixStream, BufReader<UnixStream>)> {
     let path = beagle::agentd::socket_path();
     let stream = match UnixStream::connect(&path) {

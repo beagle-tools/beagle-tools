@@ -173,7 +173,7 @@ pub(super) fn draw_welcome(frame: &mut Frame, area: Rect) {
         Line::from(""),
         Line::from("  Create one:"),
         Line::styled(
-            "    beagle new my-incident --title \"What broke\" --severity high",
+            "    beagle rca new my-incident --title \"What broke\" --severity high",
             Style::default().fg(Color::LightGreen),
         ),
         Line::from(""),

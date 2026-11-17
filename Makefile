@@ -23,7 +23,7 @@ help:
 	@echo "make check-cli        - the unified `beagle` command (cli/)"
 	@echo ""
 	@echo "make test-affected [BASE=origin/main] - cargo tests for packages changed since BASE (+ dependents)"
-	@echo "make test-scripts     - unit tests for the CI scripts (test selection)"
+	@echo "make test-scripts     - unit tests for the CI and release scripts"
 	@echo "make e2e-<app>        - Playwright e2e: tandem, rca-desktop, rca-web, workflows-desktop"
 	@echo ""
 	@echo "make bootstrap        - install/verify the local toolchain on macOS (idempotent)"
@@ -37,7 +37,7 @@ standards:
 	./scripts/check-file-length.sh;
 	./scripts/check-affiliation.sh;
 	node scripts/check-standards.mjs;
-	node --test scripts/ci/*.test.mjs;
+	node --test scripts/ci/*.test.mjs scripts/release/*.test.mjs cli/scripts/*.test.mjs;
 
 check-utils:
 	./scripts/ci/rust.sh utils;
@@ -74,7 +74,7 @@ test-affected:
 	done
 
 test-scripts:
-	node --test scripts/ci/*.test.mjs;
+	node --test scripts/ci/*.test.mjs scripts/release/*.test.mjs cli/scripts/*.test.mjs;
 
 e2e: e2e-tandem e2e-rca-desktop e2e-rca-web e2e-workflows-desktop
 

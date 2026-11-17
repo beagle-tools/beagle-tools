@@ -69,6 +69,14 @@ jobs:
             cli:
               - *shared
               - "cli/**"
+              # Linked into the `beagle` binary (rca, tandem-cli) or
+              # embedded in it (the rca skills).
+              - "rca/cli/**"
+              - "tandem/Cargo.toml"
+              - "tandem/crates/tandem-cli/**"
+              - "tandem/crates/tandem-core/**"
+              - "skills/beagle/**"
+              - "skills/beagle-review/**"
 
   standards:
     name: standards (400-line rule, affiliation, shared config)
@@ -94,8 +102,8 @@ jobs:
           BEAGLE_AFFILIATION_PATTERNS: ${{ secrets.BEAGLE_AFFILIATION_PATTERNS }}
           BEAGLE_AFFILIATION_REQUIRED: "1"
       - run: node scripts/check-standards.mjs
-      - name: unit tests for the CI scripts (test selection)
-        run: node --test scripts/ci/*.test.mjs
+      - name: unit tests for the CI and release scripts
+        run: node --test scripts/ci/*.test.mjs scripts/release/*.test.mjs cli/scripts/*.test.mjs
 
   utils:
     needs: changes

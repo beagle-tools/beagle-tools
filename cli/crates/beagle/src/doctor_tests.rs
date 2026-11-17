@@ -1,0 +1,84 @@
+//! Tests for `beagle doctor`'s PATH scan, over temp directories.
+#![allow(clippy::expect_used)] // panicking is the correct failure mode in tests
+
+use std::ffi::OsString;
+use std::fs;
+
+use super::*;
+
+fn executable(dir: &Path, name: &str) -> PathBuf {
+    fs::create_dir_all(dir).expect("dir");
+    let path = dir.join(name);
+    fs::write(&path, "#!/bin/sh\n").expect("write");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).expect("chmod");
+    }
+    path
+}
+
+fn path_of(dirs: &[&Path]) -> OsString {
+    std::env::join_paths(dirs).expect("joinable")
+}
+
+#[test]
+fn a_clean_path_has_nothing_to_report() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let bin = tmp.path().join("bin");
+    let this = resolve(&executable(&bin, "beagle"));
+    executable(&bin, "unrelated");
+    assert_eq!(scan(&path_of(&[&bin]), Some(&this)), []);
+}
+
+#[test]
+fn finds_retired_tools_and_other_beagles_in_path_order() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let (early, ours, late) = (
+        tmp.path().join("early"),
+        tmp.path().join("ours"),
+        tmp.path().join("late"),
+    );
+    let shadow = executable(&early, "beagle");
+    let this = resolve(&executable(&ours, "beagle"));
+    let scout = executable(&ours, "scout");
+    let duplicate = executable(&late, "beagle");
+
+    let findings = scan(&path_of(&[&early, &ours, &late]), Some(&this));
+    assert_eq!(
+        findings,
+        [
+            Finding::Shadowing(shadow),
+            Finding::Retired {
+                name: "scout",
+                path: scout
+            },
+            Finding::Duplicate(duplicate),
+        ]
+    );
+}
+
+#[test]
+fn a_directory_listed_twice_is_reported_once() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let bin = tmp.path().join("bin");
+    let recap = executable(&bin, "recap");
+    let findings = scan(&path_of(&[&bin, &bin]), None);
+    assert_eq!(
+        findings,
+        [Finding::Retired {
+            name: "recap",
+            path: recap
+        }]
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn non_executables_are_ignored() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let bin = tmp.path().join("bin");
+    fs::create_dir_all(&bin).expect("dir");
+    fs::write(bin.join("standup"), "notes").expect("write");
+    assert_eq!(scan(&path_of(&[&bin]), None), []);
+}

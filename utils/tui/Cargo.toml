@@ -12,7 +12,7 @@ name = "beagle_tui"
 path = "src/lib.rs"
 
 [dependencies]
-beagle-utils = { path = ".." }
+beagle-utils = { path = "..", features = ["update"] }
 crossterm = "0.28"
 notify = "7"
 ratatui = "0.29"

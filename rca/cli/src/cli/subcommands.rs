@@ -3,8 +3,8 @@
 
 use std::path::PathBuf;
 
-use beagle::model::{RcaId, Severity, Status};
-use beagle::update;
+use crate::model::{RcaId, Severity, Status};
+use crate::update;
 
 use super::{take_value, AgentAction, Command, SkillAction};
 
@@ -57,7 +57,9 @@ pub(super) fn parse_update(args: &mut impl Iterator<Item = String>) -> Result<Co
     let mut version: Option<update::Version> = None;
     while let Some(flag) = args.next() {
         match flag.as_str() {
-            "--version" => version = Some(take_value(args, "--version")?.parse()?),
+            "--version" => {
+                version = Some(update::parse_version(&take_value(args, "--version")?)?);
+            }
             other => return Err(format!("unknown flag `{other}` for `update`")),
         }
     }

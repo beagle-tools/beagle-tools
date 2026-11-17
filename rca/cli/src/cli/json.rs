@@ -11,10 +11,10 @@
 use serde::Serialize;
 use time::OffsetDateTime;
 
-use beagle::model::{RcaSummary, Severity, Status};
-use beagle::Error;
+use crate::model::{RcaSummary, Severity, Status};
+use crate::Error;
 
-/// One workspace, as emitted by `beagle list --json`.
+/// One workspace, as emitted by `beagle rca list --json`.
 #[derive(Debug, Serialize)]
 struct ListEntry<'a> {
     /// The workspace slug, which is also its directory name under `rcas/`.

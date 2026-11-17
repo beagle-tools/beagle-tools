@@ -120,7 +120,7 @@ impl App {
     }
 
     /// `E`: suspend the TUI, open `path` in the user's editor (same
-    /// resolution as `beagle config`: config `editor` → `$VISUAL` →
+    /// resolution as `beagle rca config`: config `editor` → `$VISUAL` →
     /// `$EDITOR` → vim), and restore. Editor failures land in the status
     /// bar — a typoed `$EDITOR` must never take the TUI down. The user's
     /// own edit is not flagged unread for them.

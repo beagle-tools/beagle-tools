@@ -22,6 +22,11 @@ pub struct Tool {
 /// Every registered tool, in the order `beagle help` lists them.
 pub const TOOLS: &[Tool] = &[
     Tool {
+        name: "rca",
+        about: beagle_rca::ABOUT,
+        run: beagle_rca::run,
+    },
+    Tool {
         name: "recap",
         about: recap::ABOUT,
         run: recap::run,
@@ -36,9 +41,48 @@ pub const TOOLS: &[Tool] = &[
         about: standup::ABOUT,
         run: standup::run,
     },
+    Tool {
+        name: "tandem",
+        about: tandem_cli::ABOUT,
+        run: tandem,
+    },
 ];
+
+/// `beagle tandem`: tandem-cli under the name the user typed, so its help
+/// and errors say `beagle tandem` and its `update` defers to ours.
+fn tandem(args: Vec<OsString>) -> ExitCode {
+    tandem_cli::run_as("beagle tandem", args)
+}
 
 /// The tool called `name`, if there is one.
 pub fn find(name: &str) -> Option<&'static Tool> {
     TOOLS.iter().find(|t| t.name == name)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Names `beagle` itself answers before looking up a tool (`main.rs`).
+    const BUILTINS: &[&str] = &["help", "version", "update", "doctor"];
+
+    #[test]
+    fn tools_are_unique_sorted_and_never_shadow_a_builtin() {
+        let names: Vec<&str> = TOOLS.iter().map(|t| t.name).collect();
+        let mut sorted = names.clone();
+        sorted.sort_unstable();
+        sorted.dedup();
+        assert_eq!(names, sorted, "TOOLS stays alphabetical, no duplicates");
+        for name in names {
+            assert!(!BUILTINS.contains(&name), "`{name}` is a builtin");
+        }
+    }
+
+    #[test]
+    fn every_tool_is_findable() {
+        for name in ["rca", "recap", "scout", "standup", "tandem"] {
+            assert!(find(name).is_some(), "{name}");
+        }
+        assert!(find("update").is_none());
+    }
 }

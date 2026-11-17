@@ -36,7 +36,7 @@ fn unreachable_hint_is_optional() {
     };
     assert_eq!(
         make(true).to_string(),
-        "daemon not reachable at /run/beagle-agentd.sock (gone); is it running? try `beagle agent start`"
+        "daemon not reachable at /run/beagle-agentd.sock (gone); is it running? try `beagle rca agent start`"
     );
     assert_eq!(
         make(false).to_string(),

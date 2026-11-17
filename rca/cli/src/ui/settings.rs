@@ -18,7 +18,7 @@ use super::App;
 pub(crate) enum Field {
     /// Default workspace root (string; restart to apply).
     Root,
-    /// Editor for `beagle config` (string).
+    /// Editor for `beagle rca config` (string).
     Editor,
     /// Desktop notifications (bool; applies live).
     Notify,
@@ -41,7 +41,7 @@ impl Field {
     pub fn describe(self) -> &'static str {
         match self {
             Self::Root => "default workspace root (restart to apply)",
-            Self::Editor => "editor for `beagle config`",
+            Self::Editor => "editor for `beagle rca config`",
             Self::Notify => "desktop notifications (applies live)",
         }
     }
@@ -104,7 +104,7 @@ impl SettingsOverlay {
 impl App {
     /// Opens the settings overlay with the config as it stands on disk.
     /// A broken config file surfaces as a status message instead of a
-    /// half-loaded overlay — fix it with `beagle config` first.
+    /// half-loaded overlay — fix it with `beagle rca config` first.
     pub(crate) fn open_settings(&mut self) {
         let path = config::path();
         match config::load(&path) {

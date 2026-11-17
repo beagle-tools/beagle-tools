@@ -1,16 +1,16 @@
-//! Setup and self-management: `beagle config`, `beagle update` / `version
-//! list`, `beagle agent <action>`, and `beagle skill <action>`.
+//! Setup and self-management: `beagle rca config`, `beagle update` / `version
+//! list`, `beagle rca agent <action>`, and `beagle rca skill <action>`.
 
 use std::env;
 use std::fs;
 use std::io::IsTerminal as _;
 
-use beagle::skill::{self, Agent, Skill, SkillStatus};
-use beagle::{config, update, Error};
+use crate::skill::{self, Agent, Skill, SkillStatus};
+use crate::{config, update, Error};
 
 use crate::cli::{AgentAction, SkillAction};
 
-/// `beagle config`: create the file from the template if absent, open it in
+/// `beagle rca config`: create the file from the template if absent, open it in
 /// the user's editor, and validate it when the editor closes.
 pub(crate) fn run_config() -> Result<(), Error> {
     let path = config::path();
@@ -54,7 +54,7 @@ pub(crate) fn run_config() -> Result<(), Error> {
                 println!("  editor = {editor}");
             }
             if let Some(zone) = &config.timezone {
-                match beagle::tz::TimeZone::parse(zone) {
+                match crate::tz::TimeZone::parse(zone) {
                     Ok(tz) => {
                         let clock = config.clock.unwrap_or_default();
                         let (now, abbr) = tz.localize(time::OffsetDateTime::now_utc());
@@ -74,7 +74,7 @@ pub(crate) fn run_config() -> Result<(), Error> {
         }
         Err(e) => {
             eprintln!("your edits are saved, but the config does not validate;");
-            eprintln!("run `beagle config` again to fix it:");
+            eprintln!("run `beagle rca config` again to fix it:");
             Err(e)
         }
     }
@@ -88,23 +88,16 @@ pub(crate) fn run_version_list() -> Result<(), Error> {
         println!("no releases published yet — {}/releases", update::REPO_URL);
         return Ok(());
     }
-    let current = update::Version::current();
+    let current = update::current();
     if std::io::stdout().is_terminal() {
         match update::pick_version(&releases, current)? {
             Some(version) => install_version(version),
             None => Ok(()),
         }
     } else {
-        for (i, release) in releases.iter().enumerate() {
-            let mut markers = String::new();
-            if i == 0 {
-                markers.push_str("  latest");
-            }
-            if release.version == current {
-                markers.push_str("  current");
-            }
-            println!("{}{markers}", release.version.tag());
-        }
+        let listing =
+            beagle_tui::version_picker::plain_listing(&update::channel(), &releases, current);
+        print!("{listing}");
         Ok(())
     }
 }
@@ -113,7 +106,7 @@ pub(crate) fn run_version_list() -> Result<(), Error> {
 pub(crate) fn latest_release() -> Result<update::Version, Error> {
     update::fetch_releases()?
         .first()
-        .map(|release| release.version)
+        .copied()
         .ok_or_else(|| Error::Tool {
             tool: "update",
             message: format!("no releases published yet — {}/releases", update::REPO_URL),
@@ -123,7 +116,7 @@ pub(crate) fn latest_release() -> Result<update::Version, Error> {
 /// Installs `version` over the running binary — the same path for upgrades
 /// and downgrades. A no-op (with a message) when already on that version.
 pub(crate) fn install_version(version: update::Version) -> Result<(), Error> {
-    let current = update::Version::current();
+    let current = update::current();
     if version == current {
         println!("already on beagle {current}; nothing to do");
         offer_skill_install();
@@ -143,15 +136,15 @@ pub(crate) fn install_version(version: update::Version) -> Result<(), Error> {
     Ok(())
 }
 
-/// `beagle agent <action>`: install/uninstall/start/stop the daemon service
+/// `beagle rca agent <action>`: install/uninstall/start/stop the daemon service
 /// or print its status.
 pub(crate) fn run_agent_service(action: AgentAction) -> Result<(), Error> {
     let outcome = match action {
-        AgentAction::Install => beagle::agentd::install(),
-        AgentAction::Uninstall => beagle::agentd::uninstall(),
-        AgentAction::Start => beagle::agentd::start(),
-        AgentAction::Stop => beagle::agentd::stop(),
-        AgentAction::Status => beagle::agentd::status(),
+        AgentAction::Install => crate::agentd::install(),
+        AgentAction::Uninstall => crate::agentd::uninstall(),
+        AgentAction::Start => crate::agentd::start(),
+        AgentAction::Stop => crate::agentd::stop(),
+        AgentAction::Status => crate::agentd::status(),
     };
     match outcome {
         Ok(message) => {
@@ -159,13 +152,13 @@ pub(crate) fn run_agent_service(action: AgentAction) -> Result<(), Error> {
             Ok(())
         }
         Err(message) => Err(Error::Tool {
-            tool: "beagle agent",
+            tool: "beagle rca agent",
             message,
         }),
     }
 }
 
-/// `beagle skill`: report where each agent's copy of the skill stands, or
+/// `beagle rca skill`: report where each agent's copy of the skill stands, or
 /// write the bundled skill for each.
 pub(crate) fn run_skill(action: SkillAction) -> Result<(), Error> {
     let home = skill::home()?;
@@ -177,10 +170,10 @@ pub(crate) fn run_skill(action: SkillAction) -> Result<(), Error> {
                         match skill::status(skill, agent, &home) {
                             SkillStatus::Current => "up to date",
                             SkillStatus::Outdated => {
-                                "outdated — `beagle skill install` refreshes it"
+                                "outdated — `beagle rca skill install` refreshes it"
                             }
                             SkillStatus::Missing => {
-                                "not installed — `beagle skill install` adds it"
+                                "not installed — `beagle rca skill install` adds it"
                             }
                             SkillStatus::Linked => "symlinked — managed where it points",
                         }
@@ -255,7 +248,7 @@ fn offer_skill_install() {
 
     if !(std::io::stdin().is_terminal() && std::io::stdout().is_terminal()) {
         println!("\nbundled beagle skills are newer than what's installed for {list}.");
-        println!("run `beagle skill install` to update them.");
+        println!("run `beagle rca skill install` to update them.");
         return;
     }
 
@@ -268,7 +261,7 @@ fn offer_skill_install() {
         return;
     }
     if !matches!(answer.trim(), "y" | "Y" | "yes") {
-        println!("skipped — run `beagle skill install` anytime.");
+        println!("skipped — run `beagle rca skill install` anytime.");
         return;
     }
     for (skill, agent) in pending {

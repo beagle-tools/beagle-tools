@@ -55,7 +55,7 @@ export function RcaContent({
       ) : (
         <div className="section-hint">
           No RCA workspaces under {incidents.listing?.root ?? "the current directory"} — create one
-          with `beagle new`.
+          with `beagle rca new`.
         </div>
       )}
     </section>

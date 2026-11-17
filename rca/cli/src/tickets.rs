@@ -1,5 +1,5 @@
 //! Discovering the PRs linked to an attached tracking ticket, for
-//! `beagle ticket sync`.
+//! `beagle rca ticket sync`.
 //!
 //! Like [`crate::prs`], nothing here adds a dependency: it shells out to
 //! `gh` (GitHub CLI mode) or `curl` (any API mode / Linear), parsing the

@@ -18,7 +18,7 @@ fn bundled_skills_are_embedded_and_look_like_themselves() {
         "the review skill is embedded"
     );
     assert!(
-        Skill::Review.markdown().contains("beagle context <id>"),
+        Skill::Review.markdown().contains("beagle rca context <id>"),
         "the review skill drives the context command"
     );
     assert_eq!(Skill::Review.slug(), "beagle-review");

@@ -13,7 +13,7 @@ impl App {
     /// by the `systems/*.md` docs matching the selected workspace's systems
     /// (all of them when nothing is selected or the workspace lists none).
     ///
-    /// A missing toolbox is scaffolded on the spot (`beagle init`) —
+    /// A missing toolbox is scaffolded on the spot (`beagle rca init`) —
     /// pressing `T` means the user wants one, and `init_context` never
     /// overwrites existing files, so this is always safe.
     pub(crate) fn open_toolbox(&mut self) {
@@ -24,7 +24,7 @@ impl App {
             match self.store.init_context() {
                 Ok(created) if !created.is_empty() => {
                     lines.push(Line::styled(
-                        "Scaffolded toolbox.md + systems/ (what `beagle init` does) — \
+                        "Scaffolded toolbox.md + systems/ (what `beagle rca init` does) — \
                          fill them in for your stack; agents read them before every \
                          investigation.",
                         Style::default().fg(Color::LightGreen),
@@ -42,7 +42,7 @@ impl App {
         match self.store.read_toolbox() {
             Ok(Some(content)) => lines.extend(markdown::to_text(&content).lines),
             Ok(None) => lines.push(Line::styled(
-                "No toolbox.md yet — run `beagle init` to scaffold the \
+                "No toolbox.md yet — run `beagle rca init` to scaffold the \
                  investigation context (toolbox.md + systems/).",
                 dim,
             )),

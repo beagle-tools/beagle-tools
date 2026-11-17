@@ -1,6 +1,6 @@
 //! Investigation context at the store root: `toolbox.md` (what an agent has
 //! to work with) and `systems/*.md` (per-system knowledge). Scaffolded by
-//! `beagle init` and shown in the TUI via `T`.
+//! `beagle rca init` and shown in the TUI via `T`.
 
 use std::fmt::Write as _;
 use std::fs;

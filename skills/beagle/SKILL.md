@@ -5,7 +5,7 @@ description: Create and maintain RCA (root-cause analysis) workspaces rendered l
 
 # RCA workspaces
 
-The user keeps a Beagle app open — the terminal TUI (`beagle`) or the
+The user keeps a Beagle app open — the terminal TUI (`beagle rca`) or the
 desktop app — while you work. Both watch `rcas/` and re-render **live**
 as files change: the workspace you write *is* how you explain the
 incident to them. Write as you investigate, not at the end.
@@ -32,7 +32,7 @@ The user sees the same context (`T` in the TUI). **If you learn something
 durable during the investigation** — a dashboard moved, a new failure
 mode, a dependency nobody wrote down — update the relevant `systems/`
 file or `toolbox.md`; that knowledge compounds across incidents. If none
-of these files exist yet, suggest `beagle init` to the user (don't run it
+of these files exist yet, suggest `beagle rca init` to the user (don't run it
 unprompted mid-incident).
 
 ## 0.5 Check history — the archive is the memory
@@ -40,7 +40,7 @@ unprompted mid-incident).
 Right after scaffolding, run:
 
 ```sh
-beagle similar <slug>
+beagle rca similar <slug>
 ```
 
 It ranks past RCAs sharing this incident's systems and tags — **including
@@ -54,10 +54,10 @@ fuzzy-search every line of every incident (archived included) with `\`.
 ## 1. Scaffold
 
 ```sh
-beagle new <slug> --title "One-line incident title" --severity <sev> \
+beagle rca new <slug> --title "One-line incident title" --severity <sev> \
   --system <name> --system <name>
 # not installed? from a beagle checkout:
-#   cargo run -q --manifest-path rca/cli/Cargo.toml -- new ...
+#   cargo run -q --manifest-path cli/Cargo.toml -p beagle-cli -- rca new ...
 ```
 
 - Slug: lowercase `[a-z0-9-]`, ≤64 chars, convention `YYYY-MM-DD-short-description`.
@@ -65,7 +65,7 @@ beagle new <slug> --title "One-line incident title" --severity <sev> \
 - Severity: `critical` | `high` | `medium` | `low` | `info`.
 - One workspace per debugged system/incident; it is the whole debug flow's home.
 - Never scaffold by hand-creating files; the CLI validates and writes the
-  manifest atomically. Verify with `beagle list`.
+  manifest atomically. Verify with `beagle rca list`.
 
 ## 2. Investigate and write, in this order
 
@@ -75,7 +75,7 @@ All files live in `rcas/<slug>/`. Update them as evidence arrives.
 step — what you're about to check, then what you found:
 
 ```sh
-beagle log <slug> "p99 dashboard normal; checking Redis pool saturation"
+beagle rca log <slug> "p99 dashboard normal; checking Redis pool saturation"
 ```
 
 This is the user's live view of what you're doing (the Log tab; they often
@@ -127,17 +127,17 @@ Edit `rca.toml` as the investigation progresses:
 
 - `status`: `investigating` → `fixing` (optional — root cause found,
   fix being written; same spinner, in orange) → `review` (fix reviewed) → `agent`
-  (optional — set it here and `beagle handoff <slug>` launches a
+  (optional — set it here and `beagle rca handoff <slug>` launches a
   configured agent to do remediation from a prompt; poll for work with
-  `beagle list --status agent`) → `final-review` (beagle flips here
+  `beagle rca list --status agent`) → `final-review` (beagle flips here
   automatically when every attached PR merges, from `review` or `agent`)
   → `finished` (the user signs off with `V` after working your Final
   Review checklist). Skip `agent` if you don't run one. Old names
   (identified/monitoring/resolved) still parse. The easy way:
-  `beagle status <slug> <status>` stamps `updated` for you.
+  `beagle rca status <slug> <status>` stamps `updated` for you.
 - `updated`: bump to now (RFC 3339, **quoted string**, e.g. `"2026-07-05T14:32:00Z"`).
 - `tags`: **always set these** — 3–6 kebab-case topics (e.g. `webhooks`,
-  `config`, `data-loss`, `redis`). They matter downstream: `beagle export`
+  `config`, `data-loss`, `redis`). They matter downstream: `beagle rca export`
   emits them as YAML frontmatter `tags`, which Obsidian and similar tools
   index directly, and `similar` ranks on them. Tag the failure class and
   the technologies involved, not the incident specifics.
@@ -147,20 +147,20 @@ Edit `rca.toml` as the investigation progresses:
   drills); a real outage always deserves the checklist.
 - Unknown fields are rejected — don't invent new ones.
 - **When remediation lands as a PR**, attach it:
-  `beagle pr add <slug> <url>`. Both apps then track its merge status live
+  `beagle rca pr add <slug> <url>`. Both apps then track its merge status live
   (via `gh`) — the TUI in the header, the desktop app as clickable chips —
   and the merge of every attached PR is what advances the lifecycle.
   Attach every fix PR you open or find.
 - **When the incident has a tracking ticket** (a Linear issue or a GitHub
-  issue), attach it: `beagle ticket add <slug> <ref>` (the issue URL or a
-  bare `ABC-123` id). Then `beagle ticket sync <slug>` polls the ticket
+  issue), attach it: `beagle rca ticket add <slug> <ref>` (the issue URL or a
+  bare `ABC-123` id). Then `beagle rca ticket sync <slug>` polls the ticket
   and auto-attaches its linked PRs to `prs` for you — so you don't have to
   hunt the PRs down by hand. Attach the ticket as soon as you know it.
 
 ## After sign-off: archiving
 
-Finished RCAs can move out of the sidebar with `beagle archive <slug>`
-(to `rcas/archive/`; `beagle unarchive <slug>` reverses it). Archived
+Finished RCAs can move out of the sidebar with `beagle rca archive <slug>`
+(to `rcas/archive/`; `beagle rca unarchive <slug>` reverses it). Archived
 incidents stay fully readable, exportable, searchable (`\`), and ranked
 by `similar`. **Don't archive unprompted** — whether an incident is
 "done being looked at" is the user's call; suggest it when a finished
@@ -169,7 +169,7 @@ write-up has clearly gone quiet.
 ## Exporting (deterministic, no LLM involved)
 
 The user can press `e`, or anyone can run
-`beagle export <slug> [--out <file>]`, to produce **one** markdown
+`beagle rca export <slug> [--out <file>]`, to produce **one** markdown
 document: frontmatter (title/severity/status/dates/systems/tags) + all
 sections + diagrams in code fences with ANSI colors stripped. Same files
 in → same document out. Default target is `<root>/exports/<slug>.md`. You

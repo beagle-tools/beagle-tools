@@ -42,7 +42,7 @@ pub enum Error {
     #[error(
         "daemon not reachable at {} ({source}){}",
         path.display(),
-        if *hint { "; is it running? try `beagle agent start`" } else { "" }
+        if *hint { "; is it running? try `beagle rca agent start`" } else { "" }
     )]
     DaemonUnreachable {
         /// The socket path that was tried.

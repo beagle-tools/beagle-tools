@@ -1,70 +1,55 @@
-//! The download → verify → swap pipeline behind `beagle update`.
+//! The download → verify → extract → swap pipeline.
 
 use std::fs;
 use std::path::Path;
 use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::error::{Error, Result};
-
-use super::{asset_name, asset_url, Version, REPO_URL};
-
-/// A human description of the build target, for the unsupported-target error.
-const TARGET_DESCRIPTION: &str = if cfg!(target_os = "macos") {
-    "this macOS architecture"
-} else if cfg!(target_os = "linux") {
-    "this Linux architecture"
-} else {
-    "this platform"
-};
+use super::{Error, Result};
 
 /// Distinguishes concurrent installs (tests run in parallel in one process).
 static INSTALL_SEQ: AtomicUsize = AtomicUsize::new(0);
 
-/// Downloads `version` for this platform, verifies its sha256 against the
-/// published checksum, and atomically replaces the binary at `exe` — the
-/// same flow whether that is an upgrade or a downgrade.
-///
-/// # Errors
-/// [`Error::UnsupportedTarget`] on platforms without prebuilt binaries, and
-/// [`Error::Tool`] / [`Error::ChecksumMismatch`] / [`Error::Io`] for
-/// download, verification, and install failures.
-pub fn update_to(version: Version, exe: &Path) -> Result<()> {
-    let target = super::release_target().ok_or(Error::UnsupportedTarget {
-        target: TARGET_DESCRIPTION,
-        repo: REPO_URL,
-    })?;
-    let asset = asset_name(target);
-    install(
-        &asset_url(version, &asset),
-        &asset_url(version, &format!("{asset}.sha256")),
-        exe,
-    )
-}
-
 /// Downloads a release tarball and its checksum from the given URLs,
-/// verifies, extracts, and atomically swaps the binary at `exe`. URL-based
-/// so tests can drive the whole flow with `file://` URLs.
+/// verifies the sha256, extracts it, and atomically swaps `binary` from the
+/// tarball root over `exe`. URL-based so tests drive the whole flow with
+/// `file://` URLs.
 ///
-/// The tarball holds `beagle` and `beagle-agentd` at its root. When a
-/// `beagle-agentd` already sits next to `exe` (the brew / tarball layout) it
-/// is swapped too, so the CLI and daemon never drift apart.
+/// Each of `companions` (e.g. a daemon shipped beside the CLI) is swapped
+/// too, but only when it is in the tarball AND already installed next to
+/// `exe` — an update never adds binaries the user didn't install.
 ///
 /// # Errors
-/// As for [`update_to`], minus the target lookup.
-pub fn install(tarball_url: &str, sha_url: &str, exe: &Path) -> Result<()> {
+/// [`Error::Tool`] / [`Error::ChecksumMismatch`] / [`Error::Io`] for
+/// download, verification and install failures. `exe` is untouched on any
+/// failure before the final rename.
+pub fn install(
+    tarball_url: &str,
+    sha_url: &str,
+    exe: &Path,
+    binary: &str,
+    companions: &[&str],
+) -> Result<()> {
     let workdir = std::env::temp_dir().join(format!(
         "beagle-update-{}-{}",
         std::process::id(),
         INSTALL_SEQ.fetch_add(1, Ordering::Relaxed),
     ));
     fs::create_dir_all(&workdir).map_err(|e| Error::io(&workdir, e))?;
-    let result = install_in(&workdir, tarball_url, sha_url, exe);
-    let _ = fs::remove_dir_all(&workdir); // best effort; temp dir anyway
+    let result = install_in(&workdir, tarball_url, sha_url, exe, binary, companions);
+    // Best effort: it is a temp dir, and the install result matters more.
+    let _ = fs::remove_dir_all(&workdir);
     result
 }
 
-fn install_in(workdir: &Path, tarball_url: &str, sha_url: &str, exe: &Path) -> Result<()> {
+fn install_in(
+    workdir: &Path,
+    tarball_url: &str,
+    sha_url: &str,
+    exe: &Path,
+    binary: &str,
+    companions: &[&str],
+) -> Result<()> {
     let tarball = workdir.join("release.tar.gz");
     download(tarball_url, &tarball)?;
     let sha_file = workdir.join("release.tar.gz.sha256");
@@ -91,22 +76,22 @@ fn install_in(workdir: &Path, tarball_url: &str, sha_url: &str, exe: &Path) -> R
             &extracted.to_string_lossy(),
         ],
     )?;
-    let new_binary = extracted.join("beagle");
+    let new_binary = extracted.join(binary);
     if !new_binary.is_file() {
         return Err(Error::Tool {
             tool: "tar",
-            message: "extracted archive has no `beagle` binary at its root".to_owned(),
+            message: format!("extracted archive has no `{binary}` binary at its root"),
         });
     }
     swap_in(&new_binary, exe)?;
 
-    let new_agentd = extracted.join("beagle-agentd");
-    let installed_agentd = exe
-        .parent()
-        .unwrap_or_else(|| Path::new("."))
-        .join("beagle-agentd");
-    if new_agentd.is_file() && installed_agentd.is_file() {
-        swap_in(&new_agentd, &installed_agentd)?;
+    let dir = exe.parent().unwrap_or_else(|| Path::new("."));
+    for companion in companions {
+        let new_file = extracted.join(companion);
+        let installed = dir.join(companion);
+        if new_file.is_file() && installed.is_file() {
+            swap_in(&new_file, &installed)?;
+        }
     }
     Ok(())
 }
@@ -117,31 +102,30 @@ fn install_in(workdir: &Path, tarball_url: &str, sha_url: &str, exe: &Path) -> R
 fn swap_in(new_file: &Path, dest: &Path) -> Result<()> {
     let name = dest
         .file_name()
-        .map_or_else(|| "beagle".into(), |n| n.to_string_lossy().into_owned());
+        .map_or_else(|| "binary".into(), |n| n.to_string_lossy().into_owned());
     let staging = dest
         .parent()
         .unwrap_or_else(|| Path::new("."))
         .join(format!(".{name}.update"));
     fs::copy(new_file, &staging).map_err(|e| Error::io(&staging, e))?;
     fs::rename(&staging, dest).map_err(|e| {
+        // Best effort: the rename failure is the error worth reporting.
         let _ = fs::remove_file(&staging);
         Error::io(dest, e)
     })?;
     Ok(())
 }
 
-/// Downloads `url` to `to` via curl. `file://` URLs work too, which is how
-/// the install flow is tested without a network.
+/// Downloads `url` to `to` via curl. `file://` URLs work too.
 fn download(url: &str, to: &Path) -> Result<()> {
     curl_stdout(&["-fsSL", "--retry", "2", "-o", &to.to_string_lossy(), url]).map(|_| ())
 }
 
-/// Runs curl with `args` and returns its stdout. Shared with the release
-/// listing in the parent module.
+/// Runs curl with `args` and returns its stdout.
 pub(super) fn curl_stdout(args: &[&str]) -> Result<String> {
     let output = Command::new("curl").args(args).output().map_err(|e| {
         let message = if e.kind() == std::io::ErrorKind::NotFound {
-            "curl not found on PATH; install curl or update via cargo install".to_owned()
+            "curl not found on PATH; install curl to update".to_owned()
         } else {
             e.to_string()
         };

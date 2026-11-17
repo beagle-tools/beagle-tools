@@ -11,7 +11,7 @@ RCA at status `agent`  ──▶  beagle-agentd  ──▶  isolated git worktre
                                        headless `claude -p` implements
                                        remediation.md and commits
                                                      │
-                              Rust pushes → opens a PR → beagle pr add
+                              Rust pushes → opens a PR → beagle rca pr add
                                        → advances the RCA to final-review
 ```
 
@@ -29,7 +29,7 @@ crates/beagle-agent/    the engine: config, sqlite job store, RCA poller,
                         orchestrator, and the control protocol + client/server
 crates/beagle-agentd/   the always-on daemon that hosts the engine and serves
                         the control socket
-cli/  (beagle)          `beagle agent …` — install/uninstall/start/stop/status,
+cli/  (beagle)          `beagle rca agent …` — install/uninstall/start/stop/status,
                         and the TUI's Agents screen
 desktop/                the desktop app's Agents view (Tauri commands + a live
                         event stream)
@@ -47,13 +47,13 @@ mkdir -p ~/.config/beagle
 $EDITOR ~/.config/beagle/agents.toml        # see the format below
 
 # 3. Autostart it (launchd on macOS, systemd --user on Linux).
-beagle agent install
+beagle rca agent install
 
 # 4. Watch it: press `A` in the beagle TUI, or click "Agents" in the desktop app.
-beagle agent status                          # or a one-shot from the shell
+beagle rca agent status                          # or a one-shot from the shell
 ```
 
-Then move an RCA to `status = "agent"` (`beagle status <id> agent`) and the
+Then move an RCA to `status = "agent"` (`beagle rca status <id> agent`) and the
 daemon picks it up on its next poll.
 
 ## Configuring agents (`agents.toml`)
@@ -91,7 +91,7 @@ max_concurrent = 2
 ```
 
 Edit it any time. From the UIs, editing and reloading is one step (the TUI's
-`e`, the desktop's **Reload config**); by hand, run `beagle agent status` after
+`e`, the desktop's **Reload config**); by hand, run `beagle rca agent status` after
 a restart, or send a reload from a UI. Enable/disable and pause/resume changes
 apply live; adding or removing an `[[agent]]` needs a daemon restart.
 
@@ -103,14 +103,14 @@ runs `claude -p` in the isolated worktree. Keep the prompt focused on *how* to
 implement a fix in `target_repo` (house rules, verification commands); the
 per-RCA specifics come from `remediation.md`.
 
-## Autostart & control: `beagle agent`
+## Autostart & control: `beagle rca agent`
 
 ```sh
-beagle agent install      # write + load the service (starts on login, restarts on crash)
-beagle agent uninstall    # unload + remove it
-beagle agent start        # (re)start the loaded service
-beagle agent stop         # stop it (stays stopped until start/install)
-beagle agent status       # query the running daemon over its control socket
+beagle rca agent install      # write + load the service (starts on login, restarts on crash)
+beagle rca agent uninstall    # unload + remove it
+beagle rca agent start        # (re)start the loaded service
+beagle rca agent stop         # stop it (stays stopped until start/install)
+beagle rca agent status       # query the running daemon over its control socket
 ```
 
 - **macOS** installs a launchd `LaunchAgent` (`~/Library/LaunchAgents/com.beagle.agentd.plist`,

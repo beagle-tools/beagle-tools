@@ -84,7 +84,7 @@ fn unknown_status_lists_as_broken_and_beagle_status_repairs_it() {
     assert_eq!(listing.summaries, [] as [crate::model::RcaSummary; 0]);
     assert_eq!(listing.broken.len(), 1, "visible as broken, not dropped");
 
-    // `beagle status` can now repair exactly this: the bad value is what
+    // `beagle rca status` can now repair exactly this: the bad value is what
     // it is overwriting anyway.
     let meta = store
         .set_status(&id, Status::Review)

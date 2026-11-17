@@ -27,6 +27,10 @@ class BeagleRca < Formula
     end
   end
 
+  # The unified `beagle` command (formula `beagle`) installs a `beagle` too
+  # and replaces this CLI as `beagle rca …`.
+  conflicts_with "beagle", because: "both install a `beagle` binary"
+
   def install
     bin.install "beagle", "beagle-agentd"
   end

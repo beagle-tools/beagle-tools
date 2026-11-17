@@ -1,5 +1,5 @@
 //! Project-local `.beagle` files: discovery (git-style, walking up),
-//! layering over the global config, and creation by `beagle init`.
+//! layering over the global config, and creation by `beagle rca init`.
 
 use std::env;
 use std::fs;
