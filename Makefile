@@ -11,7 +11,7 @@ NVM_DIR := $(HOME)/.nvm
 NODE_BIN_DIR := $(shell ls -d $(NVM_DIR)/versions/node/*/bin 2>/dev/null | sort -V | tail -1)
 export PATH := $(HOME)/.cargo/bin:$(NODE_BIN_DIR):$(PATH)
 
-.PHONY: help check standards check-utils check-tandem check-rca check-workflows
+.PHONY: help check standards check-utils check-tandem check-rca check-workflows check-cli
 
 help:
 	@echo "make check            - every gate CI runs (standards + all apps)"
@@ -20,6 +20,7 @@ help:
 	@echo "make check-tandem     - tandem (rust + frontend)"
 	@echo "make check-rca        - rca (cli/crates, desktop rust + frontend, web)"
 	@echo "make check-workflows  - workflows (crates, desktop rust + frontend)"
+	@echo "make check-cli        - the unified `beagle` command (cli/)"
 	@echo ""
 	@echo "make test-affected [BASE=origin/main] - cargo tests for packages changed since BASE (+ dependents)"
 	@echo "make test-scripts     - unit tests for the CI scripts (test selection)"
@@ -30,7 +31,7 @@ help:
 	@echo "make dev APP=<target> [BROWSER=1] [ARGS=...]  - start an app (or make dev-<target>)"
 	@echo "                        targets: ./scripts/dev/run.sh --list"
 
-check: standards check-utils check-tandem check-rca check-workflows
+check: standards check-utils check-tandem check-rca check-workflows check-cli
 
 standards:
 	./scripts/check-file-length.sh;
@@ -51,6 +52,9 @@ check-rca:
 	./scripts/ci/frontend.sh rca/desktop;
 	./scripts/ci/frontend.sh rca/web;
 
+check-cli:
+	./scripts/ci/rust.sh cli;
+
 check-workflows:
 	./scripts/ci/rust.sh workflows;
 	./scripts/ci/rust.sh workflows/desktop;
@@ -60,7 +64,7 @@ check-workflows:
 # Same selection CI applies to pull requests (docs/TESTING.md). Includes
 # uncommitted and untracked files, so it works before you commit.
 BASE ?= origin/main
-RUST_WORKSPACES := utils tandem rca rca/desktop/src-tauri workflows workflows/desktop
+RUST_WORKSPACES := utils tandem rca rca/desktop/src-tauri workflows workflows/desktop cli
 
 .PHONY: test-affected test-scripts e2e e2e-tandem e2e-rca-desktop e2e-rca-web e2e-workflows-desktop
 

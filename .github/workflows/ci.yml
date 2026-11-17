@@ -34,6 +34,7 @@ jobs:
       tandem: ${{ steps.filter.outputs.tandem }}
       rca: ${{ steps.filter.outputs.rca }}
       workflows: ${{ steps.filter.outputs.workflows }}
+      cli: ${{ steps.filter.outputs.cli }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -65,6 +66,9 @@ jobs:
             workflows:
               - *shared
               - "workflows/**"
+            cli:
+              - *shared
+              - "cli/**"
 
   standards:
     name: standards (400-line rule, affiliation, shared config)
@@ -172,6 +176,14 @@ jobs:
     with:
       dir: workflows/desktop
 
+  cli:
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    uses: ./.github/workflows/_rust.yml
+    with:
+      affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+      dir: cli
+
   gate:
     name: gate
     if: always()
@@ -188,6 +200,7 @@ jobs:
       - workflows-rust
       - workflows-desktop-rust
       - workflows-desktop-frontend
+      - cli
     runs-on: ubuntu-latest
     steps:
       - name: every gate that ran is green

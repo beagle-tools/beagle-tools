@@ -1,0 +1,17 @@
+[package]
+name = "beagle-cli"
+description = "The `beagle` command: every beagle-tools tool behind one binary"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[[bin]]
+name = "beagle"
+path = "src/main.rs"
+
+[dependencies]
+
+[lints]
+workspace = true

@@ -9,6 +9,7 @@ change code in an app.
 | `tandem/` | Tandem: Tauri desktop app for reviewing GitHub PRs alongside coding agents | `tandem/AGENTS.md` |
 | `rca/` | Beagle: RCA workspaces, with a TUI/CLI (`cli/`), an agent daemon (`crates/`), a desktop app (`desktop/`) and a static site (`web/`) | `rca/AGENTS.md` |
 | `workflows/` | agentd: a scheduled agent-job daemon with CLIs/TUI (`crates/`) and the Agentdesk desktop app (`desktop/`) | `workflows/AGENTS.md` |
+| `cli/` | The single `beagle` command: one library crate per tool, linked into one binary | `cli/AGENTS.md` |
 | `utils/` | `beagle-utils`: Rust helpers shared by two or more apps | `utils/README.md` |
 | `standards/`, `scripts/`, root configs | Shared lint, format, compiler and CI configuration | `docs/CODING_STANDARDS.md` |
 | `skills/` | Agent skills: `beagle-create-issue`, `beagle-complete-issue`, and rca's `beagle` / `beagle-review` (embedded into the rca binary). `.claude/skills/*` symlink here | `skills/README.md` |
@@ -85,6 +86,7 @@ The scripts behind these:
   - `rca/desktop/src-tauri`
   - `workflows` (crates)
   - `workflows/desktop`
+  - `cli`
 - **Frontends:**
   - `tandem`
   - `rca/desktop`
