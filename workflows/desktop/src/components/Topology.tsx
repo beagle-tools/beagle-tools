@@ -4,6 +4,7 @@ import { age } from "../lib/format";
 import { errorMessage, ipc } from "../lib/ipc";
 import type { AgentNode } from "../lib/types";
 import { useStore } from "../state/store";
+import { YamlView } from "./YamlView";
 import { StateBadge } from "./RunList";
 
 // agenttop's AGENTS + CONFIG panes: the DECLARED topology, grouped by
@@ -83,7 +84,7 @@ export function Topology(): ReactElement {
         {picked ? (
           <>
             <div className="muted small pathline">{picked.spec.source}</div>
-            <pre>{manifest ?? "Reading…"}</pre>
+            {manifest === null ? <pre>Reading…</pre> : <YamlView text={manifest} />}
           </>
         ) : (
           <div className="empty muted">Pick an agent to see its manifest.</div>

@@ -10,15 +10,23 @@
 //! ticket_url: https://tracker.example.com/issue/{key}
 //! # Where long-lived investigation write-ups land: <dir>/<run id>/OUTPUT.md
 //! investigations_dir: ~/notes/investigations
+//! # Projects left out of the jobs screens. Their jobs still exist and
+//! # still run (`agentctl run demo/writeup`); they are only not shown.
+//! hidden_projects: [demo]
 //! ```
+//!
+//! A viewing preference, not desired state: it lives beside the manifests
+//! root, not in any manifest, so the same manifests can be watched with a
+//! different set hidden on another machine. Read on every refresh, so an
+//! edit shows within a tick.
 
 use std::path::{Path, PathBuf};
 
-use beagle_utils::paths::{env_path, expand_tilde, xdg_config_home};
+use beagle_utils::paths::expand_tilde;
 use serde::Deserialize;
 
 /// The parsed `ui.yaml`. A missing or unreadable file is the default:
-/// no ticket links (beyond full URLs) and no investigations dir.
+/// no ticket links (beyond full URLs), no investigations dir, nothing hidden.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(default)]
 pub struct UiConfig {
@@ -26,6 +34,8 @@ pub struct UiConfig {
     pub ticket_url: Option<String>,
     /// Directory holding `<run id>/OUTPUT.md` investigation write-ups.
     pub investigations_dir: Option<PathBuf>,
+    /// Projects whose jobs the jobs screens leave out.
+    pub hidden_projects: Vec<String>,
 }
 
 impl UiConfig {
@@ -39,10 +49,24 @@ impl UiConfig {
     /// Load from an explicit path (see [`UiConfig::load`]).
     #[must_use]
     pub fn load_from(path: &Path) -> Self {
-        std::fs::read_to_string(path)
-            .ok()
-            .and_then(|text| serde_yaml::from_str(&text).ok())
-            .unwrap_or_default()
+        Self::try_load_from(path).unwrap_or_default()
+    }
+
+    /// Like [`UiConfig::load`], but a file that exists and does not parse
+    /// is an error, so a UI can say so instead of silently showing
+    /// everything. A missing file is still the default.
+    pub fn try_load() -> Result<Self, String> {
+        config_path().map_or_else(|| Ok(Self::default()), |p| Self::try_load_from(&p))
+    }
+
+    /// [`UiConfig::try_load`] from an explicit path.
+    pub fn try_load_from(path: &Path) -> Result<Self, String> {
+        match std::fs::read_to_string(path) {
+            Ok(text) if text.trim().is_empty() => Ok(Self::default()),
+            Ok(text) => serde_yaml::from_str(&text).map_err(|e| e.to_string()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
+            Err(e) => Err(format!("{}: {e}", path.display())),
+        }
     }
 
     /// The URL for a run's `ticket` param: a full URL as given, otherwise
@@ -61,6 +85,12 @@ impl UiConfig {
         Some(template.replace("{key}", raw))
     }
 
+    /// Whether the jobs screens leave `project` out.
+    #[must_use]
+    pub fn hides(&self, project: &str) -> bool {
+        self.hidden_projects.iter().any(|p| p == project)
+    }
+
     /// `investigations_dir` with `~` expanded.
     #[must_use]
     pub fn investigations_dir(&self) -> Option<PathBuf> {
@@ -68,13 +98,11 @@ impl UiConfig {
     }
 }
 
-/// `$AGENTD_CONFIG_DIR/ui.yaml`, else `$XDG_CONFIG_HOME/agentd/ui.yaml`
-/// (`~/.config/agentd/ui.yaml`).
+/// `ui.yaml` inside [`crate::paths::config_dir`]
+/// (`$AGENTD_CONFIG_DIR`, else `~/.config/agentd`).
 #[must_use]
 pub fn config_path() -> Option<PathBuf> {
-    env_path("AGENTD_CONFIG_DIR")
-        .or_else(|| xdg_config_home().map(|d| d.join("agentd")))
-        .map(|d| d.join("ui.yaml"))
+    crate::paths::config_dir().ok().map(|d| d.join("ui.yaml"))
 }
 
 /// The key part of a `ticket` param, which may be a key or a pasted
@@ -98,6 +126,7 @@ mod tests {
         UiConfig {
             ticket_url: Some("https://tracker.example.com/issue/{key}".to_owned()),
             investigations_dir: None,
+            hidden_projects: Vec::new(),
         }
     }
 
@@ -133,14 +162,19 @@ mod tests {
         let file = dir.join("ui.yaml");
         std::fs::write(
             &file,
-            "hidden_projects: [demo]\nticket_url: https://t.example/{key}\ninvestigations_dir: /tmp/inv\n",
+            "future_key: 1\nhidden_projects: [demo]\nticket_url: https://t.example/{key}\ninvestigations_dir: /tmp/inv\n",
         )
         .unwrap();
         let cfg = UiConfig::load_from(&file);
         assert_eq!(cfg.ticket_url.as_deref(), Some("https://t.example/{key}"));
         assert_eq!(cfg.investigations_dir(), Some(PathBuf::from("/tmp/inv")));
+        assert!(cfg.hides("demo"));
+        assert!(!cfg.hides("widgets"));
         std::fs::write(&file, ": not yaml [").unwrap();
         assert_eq!(UiConfig::load_from(&file), UiConfig::default());
+        assert!(UiConfig::try_load_from(&file).is_err());
+        std::fs::write(&file, "  \n").unwrap();
+        assert_eq!(UiConfig::try_load_from(&file), Ok(UiConfig::default()));
         assert_eq!(
             UiConfig::load_from(&dir.join("missing.yaml")),
             UiConfig::default()

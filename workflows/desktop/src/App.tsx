@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState, type ReactElement } from "react";
 
+import { AllRunsPage } from "./components/AllRunsPage";
+import { DaemonBar, TopStatus } from "./components/DaemonStatus";
 import { DagPage } from "./components/DagPage";
 import { JobLauncher } from "./components/JobLauncher";
 import { JobPage } from "./components/JobPage";
@@ -18,7 +20,10 @@ import { useStore } from "./state/store";
 // The old Runs page is gone: a flat list of every run mixed entry
 // points with steps, which is precisely the distinction that makes this
 // readable.
-type Page = "jobs" | "activity";
+//
+// All runs is a job's Runs tab for every job at once — the list view of
+// what Activity draws as graphs.
+type Page = "jobs" | "runs" | "activity";
 
 export default function App(): ReactElement {
   const init = useStore((s) => s.init);
@@ -65,8 +70,6 @@ export default function App(): ReactElement {
     }, [runs, selectedId, kill]),
   });
 
-  const anyRunning = pipelines.filter((p) => p.active_runs > 0);
-
   return (
     <div className="app">
       <nav className="topbar">
@@ -82,6 +85,14 @@ export default function App(): ReactElement {
             Jobs
           </button>
           <button
+            className={page === "runs" ? "on" : ""}
+            onClick={() => {
+              setPage("runs");
+            }}
+          >
+            All runs
+          </button>
+          <button
             className={page === "activity" ? "on" : ""}
             onClick={() => {
               setPage("activity");
@@ -90,14 +101,7 @@ export default function App(): ReactElement {
             Activity
           </button>
         </div>
-        {/* Always visible, on every page: is anything running at all. */}
-        <span className="topstatus muted small">
-          {anyRunning.length === 0
-            ? "idle"
-            : `${String(anyRunning.length)} running · ${anyRunning
-                .flatMap((p) => p.active_steps)
-                .join(", ")}`}
-        </span>
+        <TopStatus />
         <UpdateButton />
         <VersionButton />
         <button
@@ -110,6 +114,8 @@ export default function App(): ReactElement {
         </button>
       </nav>
 
+      <DaemonBar />
+
       {error && (
         <div className="errorbar">
           <span>{error}</span>
@@ -119,6 +125,8 @@ export default function App(): ReactElement {
 
       {page === "activity" ? (
         <DagPage />
+      ) : page === "runs" ? (
+        <AllRunsPage />
       ) : current ? (
         <JobPage
           job={current}

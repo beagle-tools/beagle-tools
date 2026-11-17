@@ -1,14 +1,19 @@
-//! The shape of a job as it has actually run. Split from `pipelines`,
-//! which groups agents into jobs; this draws the edges between them.
-//! Re-exported there as `pipelines::flow_tree`.
+//! The shape of a job: as declared, and as it has actually run. Split from
+//! `pipelines`, which groups agents into jobs; this draws the edges between
+//! them. Re-exported there as `pipelines::flow_tree`.
 
 use std::collections::{BTreeSet, HashMap};
 
-use crate::types::Run;
+use crate::types::{AgentSpec, Run};
 
-/// The shape of a job as it has actually run: every agent-to-agent edge
-/// observed in any of its chains, unioned, then walked depth-first from
-/// the entry point. Rows are `(agent, depth)`; the entry is row 0.
+/// The shape of a job: every edge its manifests declare (`triggers:`) and
+/// every agent-to-agent edge observed in any of its chains, unioned, then
+/// walked depth-first from the entry point. Rows are `(agent, depth)`; the
+/// entry is row 0.
+///
+/// Declared edges are what make a job's shape visible before it has run end
+/// to end. Without them a job is only what its runs have shown, so a chain
+/// that has only ever run its first stage looks like a single step.
 ///
 /// A union rather than one run's shape, because a job branches — ticket
 /// goes context → implement on a code ticket and context → investigate on
@@ -17,8 +22,14 @@ use crate::types::Run;
 /// under both) appears under each: that is the shape, not duplication.
 ///
 /// Siblings sort by name, so the tree is stable from one refresh to the
-/// next. A job that has never run is just its entry point.
-pub fn flow_tree(project: &str, entry: &str, runs: &[Run]) -> Vec<(String, usize)> {
+/// next. A job that has never run and declares nothing is just its entry
+/// point.
+pub fn flow_tree(
+    project: &str,
+    entry: &str,
+    runs: &[Run],
+    specs: &[AgentSpec],
+) -> Vec<(String, usize)> {
     let by_id: HashMap<&str, &Run> = runs.iter().map(|r| (r.id.as_str(), r)).collect();
     let root_agent = |run: &Run| -> String {
         let mut cursor = run;
@@ -32,6 +43,17 @@ pub fn flow_tree(project: &str, entry: &str, runs: &[Run]) -> Vec<(String, usize
     };
 
     let mut children: HashMap<String, BTreeSet<String>> = HashMap::new();
+    // Declared edges are per agent, not per chain: a shared step (a scan
+    // every workflow ends in) belongs under each job that reaches it, and
+    // the walk from `entry` only ever visits what is reachable.
+    for spec in specs.iter().filter(|s| s.project == project) {
+        for target in &spec.triggers {
+            children
+                .entry(spec.name.clone())
+                .or_default()
+                .insert(target.clone());
+        }
+    }
     for run in runs.iter().filter(|r| r.project == project) {
         let Some(parent) = run.parent_run_id.as_deref().and_then(|p| by_id.get(p)) else {
             continue;
@@ -118,7 +140,7 @@ mod tests {
             run("b3", "investigate", Some("b2"), 6, RunState::Succeeded),
             run("b4", "report", Some("b3"), 7, RunState::Succeeded),
         ];
-        let tree = flow_tree("p", "root", &runs);
+        let tree = flow_tree("p", "root", &runs, &[]);
         let flat: Vec<(&str, usize)> = tree.iter().map(|(a, d)| (a.as_str(), *d)).collect();
         assert_eq!(
             flat,
@@ -136,7 +158,7 @@ mod tests {
     #[test]
     fn flow_tree_of_a_job_that_never_ran_is_just_the_job() {
         assert_eq!(
-            flow_tree("p", "lonely", &[]),
+            flow_tree("p", "lonely", &[], &[]),
             vec![("lonely".to_owned(), 0)]
         );
     }
@@ -149,10 +171,65 @@ mod tests {
             run("b1", "other", None, 2, RunState::Succeeded),
             run("b2", "theirs", Some("b1"), 3, RunState::Succeeded),
         ];
-        let names: Vec<String> = flow_tree("p", "root", &runs)
+        let names: Vec<String> = flow_tree("p", "root", &runs, &[])
             .into_iter()
             .map(|(a, _)| a)
             .collect();
         assert_eq!(names, vec!["root".to_owned(), "mine".to_owned()]);
+    }
+
+    fn declaring(name: &str, triggers: &[&str]) -> AgentSpec {
+        let mut spec: AgentSpec =
+            serde_json::from_str(&format!(r#"{{"project":"p","name":"{name}","source":"x","runner":"script","workdir":"/","timeout_minutes":1}}"#))
+                .unwrap();
+        spec.triggers = triggers.iter().map(|t| (*t).to_owned()).collect();
+        spec
+    }
+
+    #[test]
+    fn declared_edges_show_a_job_that_has_never_run_end_to_end() {
+        // Only the gate has ever run; the declared chain is the shape.
+        let specs = vec![
+            declaring("gate", &["investigate"]),
+            declaring("investigate", &["report", "scan"]),
+            declaring("report", &["scan"]),
+            declaring("scan", &["push", "resolve"]),
+            declaring("resolve", &["scan"]),
+            declaring("push", &[]),
+        ];
+        let runs = vec![run("g1", "gate", None, 0, RunState::Succeeded)];
+        let flat: Vec<(String, usize)> = flow_tree("p", "gate", &runs, &specs);
+        let names: Vec<(&str, usize)> = flat.iter().map(|(a, d)| (a.as_str(), *d)).collect();
+        assert_eq!(
+            names,
+            vec![
+                ("gate", 0),
+                ("investigate", 1),
+                ("report", 2),
+                ("scan", 3),
+                ("push", 4),
+                ("resolve", 4),
+                // resolve → scan again: the cycle guard stops it here.
+                ("scan", 5),
+                ("scan", 2),
+                ("push", 3),
+                ("resolve", 3),
+                ("scan", 4),
+            ]
+        );
+    }
+
+    #[test]
+    fn declared_and_observed_edges_union() {
+        let specs = vec![declaring("root", &["declared"])];
+        let runs = vec![
+            run("a1", "root", None, 0, RunState::Succeeded),
+            run("a2", "observed", Some("a1"), 1, RunState::Succeeded),
+        ];
+        let names: Vec<String> = flow_tree("p", "root", &runs, &specs)
+            .into_iter()
+            .map(|(a, _)| a)
+            .collect();
+        assert_eq!(names, vec!["root", "declared", "observed"]);
     }
 }

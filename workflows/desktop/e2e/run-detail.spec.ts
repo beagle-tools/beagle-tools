@@ -14,7 +14,7 @@ test("opens on the newest run's first step and shows its conversation", async ({
   await expect(pane).toContainText("4 lines");
 });
 
-test("clicking a failed step shows its script log and a retry", async ({ page }) => {
+test("clicking a failed step shows its script log and a restart", async ({ page }) => {
   await page.goto("/");
   await page.locator(".jobblock", { hasText: "triage" }).click();
   await page.locator(".steprows li", { hasText: "report" }).click();
@@ -24,7 +24,19 @@ test("clicking a failed step shows its script log and a retry", async ({ page })
   await expect(pane.locator(".stephead")).toContainText("exit 1");
   await expect(pane).toContainText("script log");
   await expect(pane).toContainText("slack webhook returned 403");
-  await expect(pane.getByRole("button", { name: "Retry" })).toBeVisible();
+  await expect(pane.getByRole("button", { name: "Restart…" })).toBeVisible();
+});
+
+test("restarting a failed step asks first, and Esc cancels", async ({ page }) => {
+  await page.goto("/");
+  await page.locator(".jobblock", { hasText: "triage" }).click();
+  await page.locator(".steprows li", { hasText: "report" }).click();
+  await page.locator(".steppane").getByRole("button", { name: "Restart…" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Restart from this step" });
+  await expect(dialog).toContainText("Restart the chain at report");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
 });
 
 test("the log search filters lines", async ({ page }) => {

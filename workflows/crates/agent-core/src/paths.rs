@@ -6,7 +6,7 @@
 
 use std::path::{Path, PathBuf};
 
-use beagle_utils::paths::{env_path, xdg_state_home};
+use beagle_utils::paths::{env_path, xdg_config_home, xdg_state_home};
 
 use crate::CoreError;
 
@@ -32,6 +32,19 @@ pub fn manifests_dir() -> Result<PathBuf, CoreError> {
         return Ok(dir);
     }
     Ok(home_dir()?.join(".config/agentd/manifests"))
+}
+
+/// agentd's config root, holding `ui.yaml`.
+///
+/// Resolution order: `$AGENTD_CONFIG_DIR`, then `$XDG_CONFIG_HOME/agentd`,
+/// then `~/.config/agentd`. `$AGENTD_MANIFESTS_DIR` does not move it.
+pub fn config_dir() -> Result<PathBuf, CoreError> {
+    if let Some(dir) = env_path("AGENTD_CONFIG_DIR") {
+        return Ok(dir);
+    }
+    xdg_config_home()
+        .map(|dir| dir.join("agentd"))
+        .ok_or_else(home_missing)
 }
 
 /// The `SQLite` store every agentd binary shares: `state_dir()/state.db`.

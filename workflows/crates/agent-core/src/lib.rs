@@ -14,10 +14,13 @@
 //! `agenttop` only ever read/write the store — they never talk to the daemon.
 
 mod codex;
+pub mod daemon;
 /// The crate-wide [`CoreError`].
 pub mod error;
+pub mod errscan;
 mod events;
 pub mod flow;
+pub mod guard;
 /// Run id generation (sortable, human-readable).
 pub mod ids;
 pub mod lineage;
@@ -30,6 +33,9 @@ pub mod params;
 pub mod paths;
 pub mod pipelines;
 mod prune;
+pub mod purpose;
+pub mod repotrace;
+pub mod resume;
 mod schema;
 /// The `SQLite` [`state::Store`]: runs, events, agents, and daemon metadata.
 pub mod state;

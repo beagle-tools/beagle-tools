@@ -3,7 +3,7 @@
 //! Split out of [`crate::dag`] to keep that file inside the 500-line limit.
 
 use agent_core::types::Run;
-use ratatui::style::{Modifier, Style};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 
 use crate::format::elapsed_between;
@@ -13,30 +13,49 @@ use crate::format::elapsed_between;
 /// know and the run's own numbers are what you came for.
 pub fn run_detail(run: &Run) -> Vec<Line<'static>> {
     let dim = Style::new().add_modifier(Modifier::DIM);
+    // Values coloured by what they are, so the pane reads at a glance:
+    // ids cyan, the state in its own colour, money and counts yellow,
+    // the model magenta, paths blue, an exit red unless it is 0.
+    let id = Style::new().fg(Color::Cyan);
+    let number = Style::new().fg(Color::Yellow);
+    let path = Style::new().fg(Color::Blue);
     let mut out: Vec<Line<'static>> = Vec::new();
-    let mut row = |k: &str, v: String| {
+    let mut row = |k: &str, v: String, style: Style| {
         out.push(Line::from(vec![
             Span::styled(format!("{k:<12}"), dim),
-            Span::raw(v),
+            Span::styled(v, style),
         ]));
     };
-    row("run", run.id.clone());
-    row("agent", format!("{}/{}", run.project, run.agent));
-    row("state", run.state.to_string());
-    row("trigger", run.trigger.to_string());
+    row("run", run.id.clone(), id);
+    row(
+        "agent",
+        format!("{}/{}", run.project, run.agent),
+        id.add_modifier(Modifier::BOLD),
+    );
+    row(
+        "state",
+        run.state.to_string(),
+        crate::dag::state_style(run.state).add_modifier(Modifier::BOLD),
+    );
+    row(
+        "trigger",
+        run.trigger.to_string(),
+        Style::new().fg(Color::Magenta),
+    );
     if let Some(m) = &run.model {
-        row("model", m.clone());
+        row("model", m.clone(), Style::new().fg(Color::Magenta));
     }
-    row("cost", crate::format::cost(run.cost_usd));
+    row("cost", crate::format::cost(run.cost_usd), number);
     if let Some(n) = run.num_turns {
         // The runner calls this num_turns, but it counts agent-loop
         // round-trips — model acts, tool runs, result returns — not
         // conversation turns. Measured: 65 reported against 64 tool calls and
         // 115 assistant messages, so this is what it is.
-        row("tool calls", n.to_string());
+        row("tool calls", n.to_string(), number);
     }
     if let Some(code) = run.exit_code {
-        row("exit", code.to_string());
+        let ok = if code == 0 { Color::Green } else { Color::Red };
+        row("exit", code.to_string(), Style::new().fg(ok));
     }
     let started = run.started_at.unwrap_or(run.created_at);
     row(
@@ -45,18 +64,19 @@ pub fn run_detail(run: &Run) -> Vec<Line<'static>> {
             .with_timezone(&chrono::Local)
             .format("%H:%M:%S")
             .to_string(),
+        Style::new(),
     );
     if let Some(end) = run.finished_at {
-        row("duration", elapsed_between(started, end));
+        row("duration", elapsed_between(started, end), number);
     }
     if let Some(parent) = &run.parent_run_id {
-        row("parent", parent.clone());
+        row("parent", parent.clone(), id);
     }
     if let Some(s) = &run.tmux_session {
-        row("tmux", s.clone());
+        row("tmux", s.clone(), path);
     }
     if let Some(w) = &run.workdir {
-        row("workdir", w.display().to_string());
+        row("workdir", w.display().to_string(), path);
     }
     // Params spelled out one per line: `ticket=ABC-123` is the single most
     // useful thing on this pane and it is buried inside a JSON blob.
@@ -66,7 +86,12 @@ pub fn run_detail(run: &Run) -> Vec<Line<'static>> {
             out.push(Line::from(Span::styled("params", dim)));
             for (k, v) in map {
                 let shown = v.as_str().map_or_else(|| v.to_string(), str::to_owned);
-                out.push(Line::from(format!("  {k} = {shown}")));
+                out.push(Line::from(vec![
+                    Span::raw("  "),
+                    Span::styled(k, id),
+                    Span::styled(" = ", dim),
+                    Span::styled(shown, Style::new().fg(Color::Green)),
+                ]));
             }
         }
     }
@@ -74,7 +99,7 @@ pub fn run_detail(run: &Run) -> Vec<Line<'static>> {
     out.push(Line::from(""));
     out.push(Line::from(vec![
         Span::styled("data dir     ", dim),
-        Span::raw(format!("~/.local/state/agentd/data/{}", run.id)),
+        Span::styled(format!("~/.local/state/agentd/data/{}", run.id), path),
     ]));
     out
 }
@@ -118,18 +143,14 @@ pub fn run_links_in_context(app: &crate::app::App, run: &Run) -> Vec<Link> {
             });
         }
     }
-    out.extend(run_links(run));
+    out.extend(run_links_with(run, &app.view));
     out
 }
 
 /// Walk up `parent_run_id` to the root of this run's chain.
 fn chain_root(app: &crate::app::App, run: &Run) -> String {
-    let by_id: std::collections::HashMap<&str, &Run> = app
-        .active
-        .iter()
-        .chain(app.recent.iter())
-        .map(|r| (r.id.as_str(), r))
-        .collect();
+    let by_id: std::collections::HashMap<&str, &Run> =
+        app.history.iter().map(|r| (r.id.as_str(), r)).collect();
     let mut cur = run;
     for _ in 0..32 {
         match cur.parent_run_id.as_deref().and_then(|p| by_id.get(p)) {
@@ -220,14 +241,9 @@ pub fn run_summary(run: &Run) -> Option<String> {
     (!joined.is_empty()).then_some(joined)
 }
 
-/// The run whichever screen is showing has selected: the FLOWS cursor on the
-/// DAG page, the table cursor on the dashboard.
+/// The step under the runs-screen cursor.
 pub fn focused_run(app: &crate::app::App) -> Option<&Run> {
-    if app.show_dag {
-        app.dag_selected_run()
-    } else {
-        app.selected_run()
-    }
+    app.dag_selected_run()
 }
 
 /// The expanded run pane: 85% of the screen, the summary, every field, and a
@@ -307,81 +323,5 @@ pub fn draw_overlay(frame: &mut ratatui::Frame<'_>, app: &crate::app::App) {
 #[cfg(test)]
 // Tests should fail loudly on a broken fixture; unwrapping is the clearest way.
 #[allow(clippy::unwrap_used)]
-mod tests {
-    use agent_core::types::{RunState, Trigger};
-    use chrono::Utc;
-
-    use super::*;
-
-    fn run(params: Option<&str>) -> Run {
-        Run {
-            id: "r1".to_owned(),
-            project: "work".to_owned(),
-            agent: "ticket".to_owned(),
-            state: RunState::Succeeded,
-            trigger: Trigger::Manual,
-            parent_run_id: None,
-            params: params.map(str::to_owned),
-            tmux_session: None,
-            log_path: None,
-            workdir: None,
-            model: None,
-            created_at: Utc::now(),
-            started_at: None,
-            finished_at: None,
-            exit_code: None,
-            cost_usd: None,
-            num_turns: None,
-            usage_json: None,
-        }
-    }
-
-    #[test]
-    fn the_ticket_param_is_read_from_the_run() {
-        assert_eq!(
-            ticket_param(&run(Some(r#"{"ticket":"ABC-123"}"#))).as_deref(),
-            Some("ABC-123")
-        );
-        assert_eq!(ticket_param(&run(None)), None);
-        assert_eq!(ticket_param(&run(Some("not json"))), None);
-    }
-
-    #[test]
-    fn a_ticket_links_through_the_configured_template() {
-        // The ticket lives on the run row, so this one survives retention
-        // even after the data dir holding the PR link is pruned.
-        let ui = agent_core::ui::UiConfig {
-            ticket_url: Some("https://tracker.example.com/issue/{key}".to_owned()),
-            investigations_dir: None,
-        };
-        let links = run_links_with(&run(Some(r#"{"ticket":"ABC-123"}"#)), &ui);
-        assert_eq!(links[0].label, "ticket ABC-123");
-        assert_eq!(links[0].target, "https://tracker.example.com/issue/ABC-123");
-        // No template: a bare key is not guessed into a broken link.
-        let none = agent_core::ui::UiConfig::default();
-        assert_eq!(
-            run_links_with(&run(Some(r#"{"ticket":"ABC-123"}"#)), &none),
-            [] as [Link; 0]
-        );
-        // No params, no data dir: nothing to offer rather than a broken link.
-        assert_eq!(run_links_with(&run(None), &ui), [] as [Link; 0]);
-    }
-
-    #[test]
-    fn pr_urls_are_recovered_without_trailing_punctuation() {
-        let dir = std::env::temp_dir().join(format!("agenttop-detail-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let f = dir.join("result.md");
-        std::fs::write(
-            &f,
-            "- **PR:** https://github.com/acme/widgets/pull/1333 (draft)\n",
-        )
-        .unwrap();
-        assert_eq!(
-            agent_core::links::first_url_in_file(&f, "/pull/").as_deref(),
-            Some("https://github.com/acme/widgets/pull/1333")
-        );
-        assert_eq!(agent_core::links::first_url_in_file(&f, "/nope/"), None);
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-}
+#[path = "tests/detail.rs"]
+mod tests;

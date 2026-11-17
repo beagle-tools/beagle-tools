@@ -12,9 +12,11 @@ fn spec(project: &str, name: &str) -> AgentSpec {
         project: project.to_owned(),
         name: name.to_owned(),
         source: std::path::PathBuf::new(),
+        purpose: None,
         runner: Runner::Claude,
         model: None,
         schedule: Some("0 7 * * *".to_owned()),
+        timezone: crate::types::ScheduleTz::Utc,
         workdir: "/tmp".into(),
         prompt: Some("/tmp/prompt.md".into()),
         command: None,
@@ -38,6 +40,7 @@ fn spec(project: &str, name: &str) -> AgentSpec {
         isolation: Isolation::None,
         enabled: true,
         entrypoint: None,
+        triggers: Vec::new(),
     }
 }
 

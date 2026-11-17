@@ -61,6 +61,7 @@ pub fn run() {
             jobs::list_jobs,
             pipelines::list_pipelines,
             pipelines::pipeline_detail,
+            pipelines::all_chains,
             jobs::trigger_job,
             links::run_links,
             links::read_markdown,

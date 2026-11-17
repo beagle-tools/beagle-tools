@@ -2,6 +2,13 @@
 //! more than the configured window ago (rows stay as history), and — for
 //! agents opting in via `noop_retention_minutes` — delete quiet poller
 //! ticks outright.
+//!
+//! Data dirs (the handover between a chain's steps) are kept far longer
+//! than logs — [`agent_core::resume::DATA_RETENTION_HOURS`] — because they
+//! are what lets a failed step be resumed in place days later, and they are
+//! a few KB each.
+
+use std::path::{Path, PathBuf};
 
 use agent_core::state::{RunFilter, Store};
 use agent_core::types::{AgentSpec, Run, RunState};
@@ -13,21 +20,49 @@ use tracing::{info, warn};
 /// `now` is injected so tests control the clock.
 /// Delete run write-ups older than this. Deliberately longer than the log
 /// window: a summary exists to be read the next morning, by which time the
-/// logs and the data dir are long gone.
+/// logs are long gone.
 pub(crate) const SUMMARY_RETENTION_HOURS: i64 = 24;
 
 /// Meta key the daemon writes when it cannot reach GitHub, so agenttop can
 /// say so rather than the problem living only in a log nobody opens.
 pub const RETENTION_PROBLEM_KEY: &str = "retention_problem";
 
+/// The directories a retention pass may delete from — passed in, never
+/// looked up inside the pass.
+///
+/// They used to be looked up (`paths::state_dir()`), which meant a TEST
+/// running a pass against a throwaway store still swept the REAL
+/// `summaries/`: none of the machine's real runs exist in the test store,
+/// so every real write-up looked orphaned and was deleted — silently, since
+/// tests install no logger. Every `cargo test` wiped every write-up on the
+/// machine, minutes after the report step wrote it.
+/// A pass now touches only the directories it is handed.
+#[derive(Debug, Clone)]
+pub struct Dirs {
+    pub summaries: PathBuf,
+    pub data: PathBuf,
+}
+
+impl Dirs {
+    /// The daemon's real directories. Only `main` calls this.
+    pub fn real() -> Result<Self> {
+        Ok(Self {
+            summaries: agent_core::paths::state_dir()?.join("summaries"),
+            data: agent_core::paths::data_dir()?,
+        })
+    }
+}
+
 pub fn tick(
     store: &Store,
     specs: &[AgentSpec],
     now: DateTime<Utc>,
     retention_hours: u64,
+    dirs: &Dirs,
 ) -> Result<()> {
-    crate::summaries::prune_summaries(store, now);
-    prune_noop_runs(store, specs, now)?;
+    crate::summaries::prune_summaries(store, &dirs.summaries, now);
+    prune_noop_runs(store, specs, now, &dirs.data)?;
+    prune_data_dirs(store, now, &dirs.data);
     let Some(cutoff) = cutoff(now, retention_hours) else {
         return Ok(());
     };
@@ -41,10 +76,7 @@ pub fn tick(
             }
         }
         store.prune_run_artifacts(&run.id)?;
-        // The run's data-passing scratch dir expires with its logs.
-        if let Ok(data_root) = agent_core::paths::data_dir() {
-            let _ = std::fs::remove_dir_all(data_root.join(&run.id));
-        }
+        // Not the data dir: that outlives the log (see prune_data_dirs).
         info!(run = %run.id, "pruned logs + events (retention window passed)");
     }
     Ok(())
@@ -55,7 +87,12 @@ pub fn tick(
 /// announcement — once they're older than the agent's
 /// `noop_retention_minutes`. Failed/killed runs are always kept, and the
 /// newest run of all is kept so "last run" status stays visible.
-fn prune_noop_runs(store: &Store, specs: &[AgentSpec], now: DateTime<Utc>) -> Result<()> {
+fn prune_noop_runs(
+    store: &Store,
+    specs: &[AgentSpec],
+    now: DateTime<Utc>,
+    data: &Path,
+) -> Result<()> {
     for spec in specs {
         let Some(minutes) = spec.noop_retention_minutes else {
             continue;
@@ -73,15 +110,13 @@ fn prune_noop_runs(store: &Store, specs: &[AgentSpec], now: DateTime<Utc>) -> Re
         // Newest first; index 0 is the keeper.
         for run in runs.iter().skip(1) {
             let expired = run.finished_at.is_some_and(|t| t < cutoff);
-            if !expired || announced(run) {
+            if !expired || announced(run, data) {
                 continue;
             }
             if let Some(log) = &run.log_path {
                 let _ = std::fs::remove_file(log);
             }
-            if let Ok(data_root) = agent_core::paths::data_dir() {
-                let _ = std::fs::remove_dir_all(data_root.join(&run.id));
-            }
+            let _ = std::fs::remove_dir_all(data.join(&run.id));
             store.delete_run(&run.id)?;
             info!(run = %run.id, "deleted no-op run (noop_retention_minutes)");
         }
@@ -89,10 +124,48 @@ fn prune_noop_runs(store: &Store, specs: &[AgentSpec], now: DateTime<Utc>) -> Re
     Ok(())
 }
 
+/// Delete data dirs of runs that finished more than a week ago, and of
+/// runs whose row is gone, once the dir itself is that old. A pending or
+/// running run's dir is never touched. Best-effort: a dir that will not go
+/// is retried next pass.
+fn prune_data_dirs(store: &Store, now: DateTime<Utc>, data: &Path) {
+    let Some(cutoff) =
+        Duration::try_hours(agent_core::resume::DATA_RETENTION_HOURS).map(|w| now - w)
+    else {
+        return;
+    };
+    // The error evidence prune_run_artifacts kept goes with the data dir.
+    if let Err(e) = store.prune_kept_events(cutoff) {
+        warn!(error = %e, "could not prune kept events");
+    }
+    let Ok(entries) = std::fs::read_dir(data) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let Some(id) = entry.file_name().to_str().map(ToOwned::to_owned) else {
+            continue;
+        };
+        let expired = match store.get_run(&id) {
+            Ok(Some(run)) => run.finished_at.is_some_and(|t| t < cutoff),
+            Ok(None) => entry
+                .metadata()
+                .and_then(|m| m.modified())
+                .is_ok_and(|t| DateTime::<Utc>::from(t) < cutoff),
+            Err(_) => false,
+        };
+        if expired {
+            match std::fs::remove_dir_all(entry.path()) {
+                Ok(()) => info!(run = %id, "pruned data dir (resume window passed)"),
+                Err(e) => warn!(run = %id, error = %e, "could not delete data dir"),
+            }
+        }
+    }
+}
+
 /// A run that wrote `$AGENTD_DATA_DIR/notify.txt` did real work — never
 /// treated as a no-op.
-fn announced(run: &Run) -> bool {
-    agent_core::paths::data_dir().is_ok_and(|root| root.join(&run.id).join("notify.txt").is_file())
+fn announced(run: &Run, data: &Path) -> bool {
+    data.join(&run.id).join("notify.txt").is_file()
 }
 
 /// The instant before which finished runs are pruned; `None` = never prune.
@@ -109,169 +182,5 @@ fn cutoff(now: DateTime<Utc>, retention_hours: u64) -> Option<DateTime<Utc>> {
 #[cfg(test)]
 // Tests should fail loudly on a broken fixture; unwrapping is the clearest way.
 #[allow(clippy::unwrap_used)]
-mod tests {
-    use std::path::PathBuf;
-
-    use agent_core::types::{RunState, Trigger};
-
-    use super::*;
-
-    fn temp_dir(tag: &str) -> PathBuf {
-        let dir =
-            std::env::temp_dir().join(format!("agentd-retention-{tag}-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        dir
-    }
-
-    #[test]
-    fn cutoff_disabled_at_zero_hours() {
-        let now = Utc::now();
-        assert!(cutoff(now, 0).is_none());
-        assert_eq!(cutoff(now, 4).unwrap(), now - Duration::hours(4));
-    }
-
-    #[test]
-    fn prunes_old_run_logs_but_spares_recent_ones() {
-        let dir = temp_dir("prune");
-        let store = Store::open(&dir.join("state.db")).unwrap();
-        let log = dir.join("old.jsonl");
-        std::fs::write(&log, "{}\n").unwrap();
-
-        let run = store
-            .create_pending_run("p", "a", Trigger::Manual, None, None, None)
-            .unwrap();
-        store.mark_running(&run.id, "agentd-x", &log, &dir).unwrap();
-        store.insert_event(&run.id, "message", Some("hi")).unwrap();
-        store
-            .finish_run(&run.id, RunState::Succeeded, Some(0))
-            .unwrap();
-
-        // Within the window: nothing happens.
-        tick(&store, &[], Utc::now(), 4).unwrap();
-        assert!(log.is_file());
-        assert_eq!(store.events_after(&run.id, 0, 10).unwrap().len(), 1);
-
-        // Window elapsed (simulated by a future clock): log + events go.
-        tick(&store, &[], Utc::now() + Duration::hours(5), 4).unwrap();
-        assert!(!log.exists());
-        assert_eq!(
-            store.events_after(&run.id, 0, 10).unwrap(),
-            [] as [agent_core::types::Event; 0]
-        );
-        assert!(store.get_run(&run.id).unwrap().is_some());
-
-        let _ = std::fs::remove_dir_all(dir);
-    }
-
-    #[test]
-    fn noop_runs_die_young_but_the_newest_survives() {
-        let dir = temp_dir("noop");
-        let store = Store::open(&dir.join("state.db")).unwrap();
-        let spec = AgentSpec {
-            project: "demo".to_owned(),
-            name: "watch-poll".to_owned(),
-            source: PathBuf::new(),
-            runner: agent_core::types::Runner::Script,
-            model: None,
-            schedule: None,
-            workdir: "/tmp".into(),
-            prompt: None,
-            command: Some("watch-poll".to_owned()),
-            allowed_tools: None,
-            disallowed_tools: None,
-            append_system_prompt: None,
-            add_dirs: Vec::new(),
-            params: Vec::new(),
-            requires_mcp: Vec::new(),
-            mcp_config: None,
-            env: std::collections::BTreeMap::default(),
-            env_file: None,
-            database: false,
-            max_concurrent: None,
-            noop_retention_minutes: Some(1),
-            timeout_minutes: 2,
-            notify: None,
-            notify_icon: None,
-            notify_icon_failure: None,
-            concurrency: agent_core::types::ConcurrencyPolicy::Forbid,
-            isolation: agent_core::types::Isolation::None,
-            enabled: true,
-            entrypoint: None,
-        };
-
-        let mut ids = Vec::new();
-        for _ in 0..3 {
-            let run = store
-                .create_pending_run("demo", "watch-poll", Trigger::Cron, None, None, None)
-                .unwrap();
-            store
-                .mark_running(&run.id, "s", &dir.join("x.jsonl"), &dir)
-                .unwrap();
-            store
-                .finish_run(&run.id, RunState::Succeeded, Some(0))
-                .unwrap();
-            ids.push(run.id);
-        }
-        // A timed-out poll (slept-through) is a no-op too; a failed run must
-        // never be touched by the no-op pass.
-        let slept = store
-            .create_pending_run("demo", "watch-poll", Trigger::Cron, None, None, None)
-            .unwrap();
-        store
-            .finish_run(&slept.id, RunState::TimedOut, None)
-            .unwrap();
-        let failed = store
-            .create_pending_run("demo", "watch-poll", Trigger::Cron, None, None, None)
-            .unwrap();
-        store
-            .finish_run(&failed.id, RunState::Failed, Some(1))
-            .unwrap();
-
-        // Not old enough yet: everything stays.
-        tick(&store, std::slice::from_ref(&spec), Utc::now(), 4).unwrap();
-        assert_eq!(store.list_runs(&RunFilter::default()).unwrap().len(), 5);
-
-        // Two minutes later: old no-ops (succeeded AND timed-out) go; the
-        // newest of them + the failed run stay.
-        tick(
-            &store,
-            std::slice::from_ref(&spec),
-            Utc::now() + Duration::minutes(2),
-            4,
-        )
-        .unwrap();
-        let left = store.list_runs(&RunFilter::default()).unwrap();
-        assert_eq!(left.len(), 2);
-        assert!(left.iter().any(|r| r.id == failed.id));
-        // The newest prunable (the timed-out one, created last) is the
-        // keeper; all three older succeeded no-ops are gone.
-        assert!(left.iter().any(|r| r.id == slept.id));
-        assert!(ids.iter().all(|id| !left.iter().any(|r| &r.id == id)));
-
-        let _ = std::fs::remove_dir_all(dir);
-    }
-
-    #[test]
-    fn missing_log_file_still_prunes_events() {
-        let dir = temp_dir("missing");
-        let store = Store::open(&dir.join("state.db")).unwrap();
-        let run = store
-            .create_pending_run("p", "a", Trigger::Manual, None, None, None)
-            .unwrap();
-        store
-            .mark_running(&run.id, "agentd-x", &dir.join("never-created.jsonl"), &dir)
-            .unwrap();
-        store
-            .finish_run(&run.id, RunState::Failed, Some(1))
-            .unwrap();
-
-        tick(&store, &[], Utc::now() + Duration::hours(5), 4).unwrap();
-        assert_eq!(
-            store.events_after(&run.id, 0, 10).unwrap(),
-            [] as [agent_core::types::Event; 0]
-        );
-
-        let _ = std::fs::remove_dir_all(dir);
-    }
-}
+#[path = "tests/retention.rs"]
+mod tests;

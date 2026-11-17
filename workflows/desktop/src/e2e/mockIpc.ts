@@ -17,7 +17,7 @@ import type { InvokeArgs } from "@tauri-apps/api/core";
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 
 import { makeRun } from "../lib/testing";
-import type { ForestRow, PipelineDetail, PipelineSummary, Run } from "../lib/types";
+import type { ChainView, ForestRow, PipelineDetail, PipelineSummary, Run } from "../lib/types";
 import {
   AGENTS,
   APP_VERSION,
@@ -107,8 +107,24 @@ function pipelineDetail(a: Args): PipelineDetail {
       root,
       cost: { total: 0, partial: false },
       steps: [{ run: root, depth: 0 }],
+      pr: null,
     })),
   };
+}
+
+/** `all_chains`: every job's chains, newest root first. */
+function allChains(a: Args): ChainView[] {
+  const runningOnly = a.runningOnly === true;
+  const chains = pipelines.flatMap(
+    (p) => pipelineDetail({ project: p.project, name: p.name }).chains,
+  );
+  return chains
+    .filter((c) => !runningOnly || c.steps.some((s) => isLive(s.run.state)))
+    .sort((x, y) => y.root.created_at.localeCompare(x.root.created_at));
+}
+
+function isLive(state: string): boolean {
+  return state === "pending" || state === "running";
 }
 
 /** Tauri plugin commands (`plugin:<name>|<cmd>`) the UI relies on. */
@@ -151,6 +167,8 @@ function handle(cmd: string, payload?: InvokeArgs): unknown {
       return pipelines;
     case "pipeline_detail":
       return pipelineDetail(a);
+    case "all_chains":
+      return allChains(a);
     case "list_jobs":
       return JOBS;
     case "trigger_job":

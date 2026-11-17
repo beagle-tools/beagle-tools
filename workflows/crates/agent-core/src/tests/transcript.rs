@@ -108,7 +108,7 @@ fn a_script_line_becomes_a_levelled_entry_with_its_source() {
     assert_eq!(out[0].source.as_deref(), Some("gather"));
     assert_eq!(out[0].body, "wrote 6 files");
 
-    let warn = prettify(&event("raw", "WARN pr-watch: gh could not read the PR"));
+    let warn = prettify(&event("raw", "WARN inbox-sweep: gh could not read the PR"));
     assert_eq!(warn[0].tag, "warn");
 }
 

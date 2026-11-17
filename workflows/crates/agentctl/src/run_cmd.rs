@@ -48,6 +48,7 @@ pub fn run(
     )?;
     println!("{}", created.id);
     println!("watch with: agentctl logs {} -f", created.id);
+    crate::fmt::warn_if_daemon_down();
     Ok(())
 }
 
@@ -67,6 +68,16 @@ fn encode_params(params: &[String]) -> Result<Option<String>> {
         map.insert(key.to_owned(), serde_json::Value::String(value.to_owned()));
     }
     Ok(Some(serde_json::Value::Object(map).to_string()))
+}
+
+/// Queue a failed step again in its chain (see `agent_core::resume`).
+pub fn resume(store: &Store, run_id: &str) -> Result<()> {
+    let data = agent_core::paths::data_dir()?;
+    let created = agent_core::resume::resume_run(store, run_id, &data)?;
+    println!("{}", created.id);
+    println!("watch with: agentctl logs {} -f", created.id);
+    crate::fmt::warn_if_daemon_down();
+    Ok(())
 }
 
 /// Kill a Running run: tear down its tmux session and mark it Killed.
@@ -131,9 +142,11 @@ mod tests {
             project: project.to_owned(),
             name: name.to_owned(),
             source: std::path::PathBuf::new(),
+            purpose: None,
             runner: Runner::Claude,
             model: None,
             schedule: None,
+            timezone: agent_core::types::ScheduleTz::Utc,
             workdir: "/tmp".into(),
             prompt: Some("/tmp/prompt.md".into()),
             command: None,
@@ -157,6 +170,7 @@ mod tests {
             isolation: Isolation::None,
             enabled: true,
             entrypoint: None,
+            triggers: Vec::new(),
         }
     }
 

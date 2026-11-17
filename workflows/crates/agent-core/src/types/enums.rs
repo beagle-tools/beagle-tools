@@ -198,6 +198,19 @@ impl FromStr for NotifyPolicy {
     }
 }
 
+/// The clock a `schedule` is read in.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ScheduleTz {
+    /// UTC — the default. Fixed all year, so `0 13 * * *` drifts an hour
+    /// against the wall clock when daylight saving changes.
+    #[default]
+    Utc,
+    /// The machine's own zone, daylight saving included: `0 12 * * *` is
+    /// noon on the wall clock all year.
+    Local,
+}
+
 /// Where the run executes relative to the agent's workdir.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

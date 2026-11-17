@@ -1,3 +1,4 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useState, type ReactElement } from "react";
 
 import { age, cost, duration } from "../lib/format";
@@ -5,6 +6,7 @@ import { errorMessage, ipc } from "../lib/ipc";
 import { treePrefixes } from "../lib/tree";
 import type { ChainView, PipelineDetail, PipelineSummary, Run } from "../lib/types";
 import { useStore } from "../state/store";
+import { JobMenu } from "./ConfirmRun";
 import { StepPane } from "./StepPane";
 
 type Tab = "shape" | "runs";
@@ -91,6 +93,7 @@ export function JobPage({
                 running · {job.active_steps.join(", ") || "starting"}
               </span>
             )}
+            <JobMenu project={job.project} name={job.name} />
           </div>
         </div>
 
@@ -157,27 +160,48 @@ function Shape({ detail }: { detail: PipelineDetail }) {
 
 // One run: a ruled partition with when, how it ended and the chain total,
 // then its steps as a tree. The partition is what keeps two runs from
-// reading as one long list.
-function ChainBlock({
+// reading as one long list. `showJob` names the job in the partition —
+// the all-runs page mixes every job's runs.
+export function ChainBlock({
   chain,
   selectedId,
   onPick,
+  showJob = false,
 }: {
   chain: ChainView;
   selectedId: string | null;
   onPick: (id: string) => void;
-}) {
+  showJob?: boolean;
+}): ReactElement {
   const prefixes = treePrefixes(chain.steps.map((s) => s.depth));
   const when = new Date(chain.root.created_at);
+  const pr = chain.pr;
   return (
     <section className="chainblock">
       <header className={`partition ${chain.root.state}`}>
+        {showJob && (
+          <span className="jobname">
+            {chain.root.project}/{chain.root.agent}
+          </span>
+        )}
         <span className="when">
           {when.toLocaleDateString(undefined, { month: "short", day: "numeric" })}{" "}
           {when.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
         </span>
         <span>{chain.root.state}</span>
         <span className="muted">{age(chain.root.created_at)} ago</span>
+        {pr && (
+          <button
+            className="prchip"
+            title={pr}
+            onClick={(e) => {
+              e.stopPropagation();
+              void openUrl(pr);
+            }}
+          >
+            PR #{pr.split("/pull/")[1]} ↗
+          </button>
+        )}
         {chain.cost.total > 0 && (
           <span className="chain-total">
             Σ {cost(chain.cost.total)}

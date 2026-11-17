@@ -25,54 +25,59 @@ fn run(id: &str, state: RunState) -> Run {
     }
 }
 
-fn app_with_rows() -> App {
+#[test]
+fn attach_target_is_the_selected_step_only_while_it_runs() {
+    // x and t act on the step under the runs-screen cursor.
     let mut app = App::new();
-    app.active = vec![run("r1", RunState::Running), run("r2", RunState::Pending)];
-    app.recent = vec![run("r3", RunState::Succeeded)];
-    app
-}
+    let mut live = run("r1", RunState::Running);
+    live.created_at = Utc::now();
+    let mut done = run("r0", RunState::Succeeded);
+    done.created_at = Utc::now() - chrono::Duration::hours(1);
+    app.history = vec![live, done];
+    app.job_open = Some(("p".to_owned(), "a".to_owned()));
 
-#[test]
-fn selection_spans_active_then_recent() {
-    let mut app = app_with_rows();
-    assert_eq!(app.row_count(), 3);
-    assert_eq!(app.selected_run().unwrap().id, "r1");
-    app.move_selection(true);
-    app.move_selection(true);
-    assert_eq!(app.selected_run().unwrap().id, "r3");
-    app.move_selection(true); // clamped at the end
-    assert_eq!(app.selected_run().unwrap().id, "r3");
-    app.move_selection(false);
-    assert_eq!(app.selected_run().unwrap().id, "r2");
-}
-
-#[test]
-fn selection_clamps_when_rows_shrink() {
-    let mut app = app_with_rows();
-    app.selected = 2;
-    app.recent.clear();
-    app.selected = clamp_selection(app.selected, app.row_count());
-    assert_eq!(app.selected_run().unwrap().id, "r2");
-}
-
-#[test]
-fn empty_app_has_no_selection() {
-    let mut app = App::new();
-    assert!(app.is_empty());
-    assert!(app.selected_run().is_none());
-    app.move_selection(true);
-    assert_eq!(app.selected, 0);
-}
-
-#[test]
-fn attach_target_requires_running_with_session() {
-    let mut app = app_with_rows();
     assert_eq!(app.attach_target().unwrap(), "agentd-r1");
-    app.move_selection(true); // pending
+    app.dag_move(true); // the finished run
     assert!(app.attach_target().is_none());
-    app.active[0].tmux_session = None;
-    app.selected = 0;
-    assert!(app.attach_target().is_none());
+}
+
+#[test]
+fn all_runs_shows_every_jobs_chains_and_r_keeps_the_live_ones() {
+    let mut app = App::new();
+    let mut live = run("j1", RunState::Running);
+    live.agent = "job-one".to_owned();
+    let mut child = run("j1-step", RunState::Pending);
+    child.agent = "step".to_owned();
+    child.parent_run_id = Some("j1".to_owned());
+    let mut done = run("j2", RunState::Succeeded);
+    done.agent = "job-two".to_owned();
+    done.created_at = Utc::now() - chrono::Duration::hours(1);
+    app.history = vec![live, child, done];
+
+    app.open_all_runs();
+    assert!(app.runs_open());
+    let steps: Vec<&str> = app.job_steps().iter().map(|r| r.id.as_str()).collect();
+    assert_eq!(steps, vec!["j1", "j1-step", "j2"]);
+    // R on a step of another job's chain targets that chain's job.
+    app.dag_move(true);
+    assert_eq!(
+        app.root_of(app.dag_selected_run().unwrap()).agent,
+        "job-one"
+    );
+
+    app.all_running_only = true;
+    let steps: Vec<&str> = app.job_steps().iter().map(|r| r.id.as_str()).collect();
+    assert_eq!(steps, vec!["j1", "j1-step"]);
+
+    // W rides the top; moving stops it.
+    app.toggle_follow();
+    assert!(app.follow_top);
+    assert_eq!(app.job_step_selected, 0);
+    app.dag_move(true);
+    assert!(!app.follow_top);
+
+    app.close_job();
+    assert!(!app.runs_open());
 }
 
 #[test]
@@ -109,23 +114,4 @@ fn log_view_scroll_clamps_to_event_count() {
     assert_eq!(app.log_view.as_ref().unwrap().scroll_x, 0);
     app.close_logs();
     assert!(app.log_view.is_none());
-}
-
-#[test]
-fn activity_keeps_the_newest_event_per_run() {
-    let mk = |id: i64, run_id: &str, kind: &str, payload: &str| Event {
-        id,
-        run_id: run_id.to_owned(),
-        ts: Utc::now(),
-        kind: kind.to_owned(),
-        payload: Some(payload.to_owned()),
-    };
-    let events = vec![
-        mk(1, "r1", "state", "running"),
-        mk(2, "r1", "tool_use", r#"{"name":"Bash"}"#),
-        mk(3, "r2", "message", "hi"),
-    ];
-    let map = build_activity(&events);
-    assert_eq!(map["r1"], "tool_use Bash");
-    assert_eq!(map["r2"], "message hi");
 }

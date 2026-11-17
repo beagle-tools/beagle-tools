@@ -284,8 +284,10 @@ fn tag_style(tag: &str) -> Style {
             .add_modifier(Modifier::ITALIC),
         // A script run: the log levels.
         // Something went wrong, from either kind of run.
-        "error" | "denied" => Style::new().fg(Color::Red).add_modifier(Modifier::BOLD),
-        "warn" => Style::new().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+        "error" => Style::new().fg(Color::Red).add_modifier(Modifier::BOLD),
+        // A denial is warning-level: the run's allowlist refusing a command
+        // is the guardrail working, not the run failing — amber, not red.
+        "warn" | "denied" => Style::new().fg(Color::Yellow).add_modifier(Modifier::BOLD),
         // Something finished well, from either kind of run.
         "ok" | "result" => Style::new().fg(Color::Green).add_modifier(Modifier::BOLD),
         "step" => Style::new().fg(Color::Blue).add_modifier(Modifier::BOLD),
@@ -300,8 +302,9 @@ fn tag_style(tag: &str) -> Style {
 /// the body is the content (a model's answer, a tool's command).
 fn body_style(tag: &str, body: &str) -> Style {
     match tag {
-        "error" | "denied" => Style::new().fg(Color::Red),
+        "error" => Style::new().fg(Color::Red),
         "warn" => Style::new().fg(Color::Yellow),
+        "denied" => Style::new().fg(Color::Yellow).add_modifier(Modifier::DIM),
         "ok" => Style::new().fg(Color::Green),
         "thinking" | "tool_result" | "out" | "debug" | "clipped" | "init" | "system" => {
             Style::new().add_modifier(Modifier::DIM)

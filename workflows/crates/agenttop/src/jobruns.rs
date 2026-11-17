@@ -17,7 +17,10 @@ use crate::dag::{badge, hints, pane_block, state_style, tree_prefixes, window};
 use crate::format::{cost, elapsed_between};
 use crate::jobs::RunRow;
 
-const RUNS_HINTS: &str = "j/k:step  enter:logs  m:details  esc:back";
+const RUNS_HINTS: &str =
+    "j/k:step  enter:logs  y:copy id  W:watch  w:write-up  o:open PR  m:details  R:resume/run  x:kill  esc:back";
+const ALL_RUNS_HINTS: &str =
+    "j/k:step  enter:logs  y:copy id  W:watch  r:running  a:all  w:write-up  o:PR  R:resume/run  esc:back";
 /// Width of the guide + step name column, so state lines up down the
 /// whole tree whatever the depth.
 const NAME_COL: usize = 34;
@@ -38,20 +41,7 @@ pub fn draw(frame: &mut Frame<'_>, app: &App) {
         .as_ref()
         .map_or(("", ""), |(p, n)| (p.as_str(), n.as_str()));
 
-    // The job's name lives up here, once, so the rows below can be just
-    // the steps.
-    frame.render_widget(
-        Paragraph::new(Line::from(vec![
-            badge(" jobs "),
-            Span::styled(
-                format!(" › {project}/{name} "),
-                Style::new().fg(Color::Cyan).add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(format!(" {run_count} runs  ")),
-            hints(app, RUNS_HINTS),
-        ])),
-        header,
-    );
+    draw_header(frame, app, header, (project, name), run_count);
 
     let inner_width = usize::from(runs_area.width.saturating_sub(2));
     let now = chrono::Utc::now();
@@ -96,6 +86,7 @@ pub fn draw(frame: &mut Frame<'_>, app: &App) {
                     total.partial,
                     inner_width,
                     now,
+                    app.all_runs,
                 ));
                 chain_lines_at = lines.len();
             }
@@ -113,23 +104,109 @@ pub fn draw(frame: &mut Frame<'_>, app: &App) {
     flush(&mut lines, chain_lines_at, &chain_depths);
 
     if lines.is_empty() {
+        let empty = if app.all_runs && app.all_running_only {
+            "nothing is running right now — a to show every chain".to_owned()
+        } else if app.all_runs {
+            "no runs yet".to_owned()
+        } else {
+            format!("{name} has not run yet — start it with: ag -j {name}")
+        };
         lines.push(Line::from(Span::styled(
-            format!("{name} has not run yet — start it with: ag -j {name}"),
+            empty,
             Style::new().add_modifier(Modifier::DIM),
         )));
     }
 
+    let title = if app.all_runs {
+        "RUNS · all jobs".to_owned()
+    } else {
+        format!("RUNS · {name}")
+    };
     frame.render_widget(
-        Paragraph::new(window(lines, selected_line, runs_area))
-            .block(pane_block(&format!("RUNS · {name}"))),
+        Paragraph::new(window(lines, selected_line, runs_area)).block(pane_block(&title)),
         runs_area,
     );
 
+    draw_step_pane(frame, app, detail_area);
+}
+
+/// The one-line header: which job (or all of them), how many runs, the
+/// running-only badge, and the keys.
+fn draw_header(
+    frame: &mut Frame<'_>,
+    app: &App,
+    header: ratatui::layout::Rect,
+    (project, name): (&str, &str),
+    run_count: usize,
+) {
+    // The job's name lives up here, once, so the rows below can be just
+    // the steps. On the all-runs page each partition names its job instead.
+    let mut head = vec![
+        badge(" jobs "),
+        Span::styled(
+            if app.all_runs {
+                " › all runs ".to_owned()
+            } else {
+                format!(" › {project}/{name} ")
+            },
+            Style::new().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(" {run_count} runs  ")),
+    ];
+    if app.follow_top {
+        head.push(Span::styled(
+            " watching ",
+            Style::new()
+                .fg(Color::Black)
+                .bg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ));
+        head.push(Span::raw("  "));
+    }
+    if app.all_runs && app.all_running_only {
+        head.push(Span::styled(
+            " running only ",
+            Style::new()
+                .fg(Color::Black)
+                .bg(Color::Green)
+                .add_modifier(Modifier::BOLD),
+        ));
+        head.push(Span::raw("  "));
+    }
+    head.push(hints(
+        app,
+        if app.all_runs {
+            ALL_RUNS_HINTS
+        } else {
+            RUNS_HINTS
+        },
+    ));
+    frame.render_widget(Paragraph::new(Line::from(head)), header);
+}
+
+/// The selected step's details beside the runs list — what it is (and the
+/// PR it opened) before you open its log.
+fn draw_step_pane(frame: &mut Frame<'_>, app: &App, detail_area: ratatui::layout::Rect) {
     // The step's details beside the list — what it is before you open
     // the log of it.
     let detail = match app.dag_selected_run() {
         Some(run) => {
             let mut lines = crate::detail::run_detail(run);
+            // The PR first: it is what a step on a code ticket produced,
+            // and the thing you most want from its metadata.
+            if let Some(pr) = app.selected_step_pr() {
+                lines.insert(
+                    0,
+                    Line::from(vec![
+                        Span::styled("draft PR    ", Style::new().add_modifier(Modifier::DIM)),
+                        Span::styled(
+                            pr.to_owned(),
+                            Style::new().fg(Color::Green).add_modifier(Modifier::BOLD),
+                        ),
+                    ]),
+                );
+                lines.insert(1, Line::raw(""));
+            }
             lines.truncate(usize::from(detail_area.height.saturating_sub(2)));
             Paragraph::new(lines).block(pane_block(&format!("STEP · {}", run.agent)))
         }
@@ -151,6 +228,7 @@ fn partition<'a>(
     partial: bool,
     width: usize,
     now: chrono::DateTime<chrono::Utc>,
+    name_job: bool,
 ) -> Line<'a> {
     let when = root
         .created_at
@@ -165,8 +243,14 @@ fn partition<'a>(
     } else {
         String::new()
     };
+    // On the all-runs page the partition is the only place the job is named.
+    let job = if name_job {
+        format!("{}/{} · ", root.project, root.agent)
+    } else {
+        String::new()
+    };
     let label = format!(
-        "━━ {when} · {} · {} ago{spend} ",
+        "━━ {job}{when} · {} · {} ago{spend} ",
         root.state,
         elapsed_between(root.created_at, now)
     );

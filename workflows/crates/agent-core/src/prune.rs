@@ -9,7 +9,21 @@ use crate::store_rows::{collect_runs, run_from_row};
 use crate::types::Run;
 use crate::CoreError;
 
+/// The events [`Store::prune_run_artifacts`] keeps, as an SQL predicate.
+pub const KEPT_EVENTS: &str =
+    "kind IN ('state', 'note', 'result') OR (kind = 'raw' AND payload LIKE 'ERROR %')";
+
 impl Store {
+    /// Delete what [`Store::prune_run_artifacts`] kept, for runs that
+    /// finished before `cutoff` — the end of the data-retention window.
+    pub fn prune_kept_events(&self, cutoff: DateTime<Utc>) -> Result<usize, CoreError> {
+        Ok(self.conn.execute(
+            "DELETE FROM events WHERE run_id IN (
+                 SELECT id FROM runs WHERE finished_at IS NOT NULL AND finished_at < ?1)",
+            params![cutoff.to_rfc3339()],
+        )?)
+    }
+
     /// Terminal runs that finished before `cutoff` and still carry artifacts
     /// (a log path). `log_path` is cleared by [`Store::prune_run_artifacts`],
     /// which is what makes this query idempotent across passes.
@@ -41,9 +55,17 @@ impl Store {
     /// Drop a run's event feed and forget its log path. The run row (state,
     /// timings, exit code) stays for history. Deleting the log *file* is the
     /// caller's job — the store never touches the filesystem.
+    ///
+    /// The evidence of what went wrong survives: state changes, notes, the
+    /// runner's final `result`, and every `ERROR` line. They are a few rows
+    /// per run, and without them a failure older than the log window has no
+    /// reason attached — `agentctl errors` reads them. They go with the data
+    /// dir, after a week ([`Store::prune_kept_events`]).
     pub fn prune_run_artifacts(&self, run_id: &str) -> Result<(), CoreError> {
-        self.conn
-            .execute("DELETE FROM events WHERE run_id = ?1", params![run_id])?;
+        self.conn.execute(
+            &format!("DELETE FROM events WHERE run_id = ?1 AND NOT ({KEPT_EVENTS})"),
+            params![run_id],
+        )?;
         self.conn.execute(
             "UPDATE runs SET log_path = NULL WHERE id = ?1",
             params![run_id],
@@ -102,10 +124,12 @@ mod tests {
         assert_eq!(prunable[0].id, run.id);
 
         store.prune_run_artifacts(&run.id).unwrap();
-        assert_eq!(
-            store.events_after(&run.id, 0, 10).unwrap(),
-            [] as [crate::types::Event; 0]
-        );
+        // Only the evidence kinds are left — here, the state changes.
+        assert!(store
+            .events_after(&run.id, 0, 10)
+            .unwrap()
+            .iter()
+            .all(|e| e.kind == "state"));
         let kept = store.get_run(&run.id).unwrap().unwrap();
         assert_eq!(kept.state, RunState::Succeeded);
         assert!(kept.log_path.is_none());
@@ -114,6 +138,51 @@ mod tests {
             store.prunable_runs(future).unwrap(),
             [] as [crate::types::Run; 0]
         );
+
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn the_evidence_of_a_failure_outlives_the_log_then_goes_with_the_data_dir() {
+        let (store, dir) = temp_store("evidence");
+        let run = finished_run(&store, "a");
+        store
+            .insert_event(&run.id, "raw", Some("INFO a: fine"))
+            .unwrap();
+        store
+            .insert_event(&run.id, "raw", Some("ERROR a: broke"))
+            .unwrap();
+        store.insert_event(&run.id, "result", Some("{}")).unwrap();
+
+        store.prune_run_artifacts(&run.id).unwrap();
+        let kinds: Vec<(String, Option<String>)> = store
+            .events_after(&run.id, 0, 50)
+            .unwrap()
+            .into_iter()
+            .map(|e| (e.kind, e.payload))
+            .collect();
+        assert!(kinds
+            .iter()
+            .any(|(k, p)| k == "raw" && p.as_deref() == Some("ERROR a: broke")));
+        assert!(kinds.iter().any(|(k, _)| k == "result"));
+        assert!(!kinds
+            .iter()
+            .any(|(k, p)| k == "message" || p.as_deref() == Some("INFO a: fine")));
+
+        // Not yet past the window: kept.
+        assert_eq!(
+            store
+                .prune_kept_events(Utc::now() - Duration::hours(1))
+                .unwrap(),
+            0
+        );
+        assert!(
+            store
+                .prune_kept_events(Utc::now() + Duration::hours(1))
+                .unwrap()
+                > 0
+        );
+        assert_eq!(store.events_after(&run.id, 0, 50).unwrap().len(), 0);
 
         let _ = std::fs::remove_dir_all(dir);
     }

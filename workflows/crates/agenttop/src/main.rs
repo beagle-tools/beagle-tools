@@ -1,21 +1,30 @@
-//! agenttop — btop-style live dashboard over the agentd store.
+//! agenttop — a live TUI over the agentd store: jobs → runs → logs.
 //!
 //! Thin entry point: terminal setup/teardown plus the event loop. Data lives
 //! in [`app`], rendering in [`ui`], input mapping in [`keys`], tmux glue in
 //! [`tmux`], pure helpers in [`mod@format`].
 
 mod app;
+mod clip;
+mod confirm;
 mod dag;
 mod detail;
 mod format;
+mod highlight;
 mod jobruns;
 mod jobs;
 mod keys;
 mod logs;
 mod logview;
-mod select;
 mod tmux;
 mod ui;
+mod widgets;
+
+#[cfg(test)]
+// Tests should fail loudly on a broken fixture; unwrapping is the clearest way.
+#[allow(clippy::unwrap_used)]
+#[path = "tests/select.rs"]
+mod select_tests;
 
 use std::time::{Duration, Instant};
 
@@ -62,7 +71,10 @@ fn run(terminal: &mut DefaultTerminal) -> Result<()> {
             if let Event::Key(key) = event::read().context("read input")? {
                 // While a search term is being typed, keys are text — `j`
                 // must type a j, not scroll. So this runs before map_key.
-                if key.kind == KeyEventKind::Press && app.search_typing() {
+                // The R confirmation pane owns every key while it is open.
+                if key.kind == KeyEventKind::Press && app.confirm.is_some() {
+                    app.confirm_key(key.code);
+                } else if key.kind == KeyEventKind::Press && app.search_typing() {
                     app.search_key(key.code);
                 } else if key.kind == KeyEventKind::Press && app.job_search_typing() {
                     app.job_search_key(key.code);
@@ -96,62 +108,11 @@ fn handle_detail(app: &mut App, action: Action) -> bool {
             app.detail_selected = (app.detail_selected + 1).min(links - 1);
         }
         Action::Up => app.detail_selected = app.detail_selected.saturating_sub(1),
-        Action::Copy => copy_selected_link(app),
+        Action::Copy => clip::copy_selected_link(app),
         Action::ToggleHelp => app.show_help = true,
         _ => {}
     }
     true
-}
-
-/// `y` — put the highlighted link on the clipboard. For a markdown path that
-/// is the point: paste it at another agent and it can read the write-up.
-fn copy_selected_link(app: &mut App) {
-    let Some(target) = selected_link_target(app) else {
-        return;
-    };
-    match copy_to_clipboard(&target) {
-        Ok(()) => app.set_status(&format!("copied {target}")),
-        Err(e) => app.set_status(&format!("copy failed: {e}")),
-    }
-}
-
-fn selected_link_target(app: &App) -> Option<String> {
-    let run = crate::detail::focused_run(app)?;
-    crate::detail::run_links_in_context(app, run)
-        .get(app.detail_selected)
-        .map(|l| l.target.clone())
-}
-
-/// Hand a link to the OS: `open` takes a URL or a path and does the right
-/// thing with either. Best-effort — a failure must not take the TUI down.
-/// Open the highlighted link. A markdown file is rendered in the terminal
-/// (suspending the TUI, like `e`); anything else goes to the OS, which knows
-/// what a URL is.
-fn open_selected_link(terminal: &mut DefaultTerminal, app: &mut App) -> Result<()> {
-    let Some(target) = selected_link_target(app) else {
-        return Ok(());
-    };
-    let path = std::path::Path::new(&target);
-    let is_markdown = path
-        .extension()
-        .is_some_and(|e| e.eq_ignore_ascii_case("md"));
-    if is_markdown && path.is_file() {
-        if let Some(message) = tmux::render_markdown(terminal, path)? {
-            app.set_status(&message);
-        }
-        return Ok(());
-    }
-    let ok = std::process::Command::new("open")
-        .arg(&target)
-        .status()
-        .is_ok_and(|s| s.success());
-    let msg = if ok {
-        format!("opened {target}")
-    } else {
-        format!("could not open {target}")
-    };
-    app.set_status(&msg);
-    Ok(())
 }
 
 fn handle(terminal: &mut DefaultTerminal, app: &mut App, action: Action) -> Result<bool> {
@@ -164,12 +125,12 @@ fn handle(terminal: &mut DefaultTerminal, app: &mut App, action: Action) -> Resu
         }
         return Ok(false);
     }
-    // Overlays own the keys, topmost first. This sat below the show_dag
+    // Overlays own the keys, topmost first. This sat below the jobs-screen
     // branch, so on the DAG page `q` closed the whole page instead of the
     // overlay drawn above it.
     if app.show_run_detail {
         if matches!(action, Action::Open | Action::Attach) {
-            open_selected_link(terminal, app)?;
+            clip::open_selected_link(terminal, app)?;
         } else {
             handle_detail(app, action);
         }
@@ -184,7 +145,7 @@ fn handle(terminal: &mut DefaultTerminal, app: &mut App, action: Action) -> Resu
             // `l` doubles as pan-right here — it can't mean "open logs".
             Action::Right | Action::Logs => app.pan_logs(true),
             Action::Left => app.pan_logs(false),
-            Action::Copy => copy_log_view(app),
+            Action::Copy => clip::copy_log_view(app),
             Action::Search => app.search_begin(),
             Action::SearchNext => {
                 let s = terminal.size()?;
@@ -194,45 +155,12 @@ fn handle(terminal: &mut DefaultTerminal, app: &mut App, action: Action) -> Resu
                 let s = terminal.size()?;
                 app.search_step(s.width, s.height, false);
             }
-            Action::Refresh => app.refresh(),
             Action::ToggleHelp => app.show_help = true,
             _ => {}
         }
         return Ok(false);
     }
-    if app.show_dag {
-        return handle_dag(terminal, app, action);
-    }
-    match action {
-        Action::Quit => return Ok(true),
-        Action::Up => app.move_selection(false),
-        Action::Down => app.move_selection(true),
-        Action::Refresh => app.refresh(),
-        Action::ToggleHelp => app.show_help = true,
-        Action::Kill => app.kill_selected(),
-        Action::Logs => app.open_logs(),
-        Action::Copy => copy_selected_run_id(app),
-        Action::Dag => app.show_dag = true,
-        Action::DagFocus => app.focus_dag_on_selection(),
-        Action::Detail | Action::Open => {
-            app.show_run_detail = true;
-            app.detail_selected = 0;
-        }
-        Action::Filter => app.cycle_recent_filter(),
-        Action::Attach => attach_selected(terminal, app)?,
-        // Search belongs to the log view; on the dashboard these do nothing
-        // rather than something surprising.
-        Action::Edit
-        | Action::Left
-        | Action::Right
-        | Action::Back
-        | Action::Search
-        | Action::SearchNext
-        | Action::SearchPrev
-        | Action::ForceQuit
-        | Action::None => {}
-    }
-    Ok(false)
+    handle_dag(terminal, app, action)
 }
 
 /// `e` on the DAG page: open the selected agent's manifest in $EDITOR. The
@@ -272,45 +200,6 @@ fn scroll_log_view(terminal: &DefaultTerminal, app: &mut App, up: bool) -> Resul
     Ok(())
 }
 
-fn copy_log_view(app: &mut App) {
-    let Some(view) = &app.log_view else {
-        return;
-    };
-    let text = agent_core::transcript::plain_text(&view.events);
-    match copy_to_clipboard(&text) {
-        Ok(()) => app.set_status("log copied to clipboard"),
-        Err(e) => app.set_status(&format!("copy failed: {e}")),
-    }
-}
-
-fn copy_selected_run_id(app: &mut App) {
-    let Some(id) = app.selected_run().map(|run| run.id.clone()) else {
-        app.set_status("nothing selected");
-        return;
-    };
-    match copy_to_clipboard(&id) {
-        Ok(()) => app.set_status(&format!("copied {id}")),
-        Err(e) => app.set_status(&format!("copy failed: {e}")),
-    }
-}
-
-/// Pipe text into the system clipboard (`pbcopy` on macOS).
-fn copy_to_clipboard(text: &str) -> Result<()> {
-    use std::io::Write as _;
-    let mut child = std::process::Command::new("pbcopy")
-        .stdin(std::process::Stdio::piped())
-        .spawn()
-        .context("spawn pbcopy")?;
-    if let Some(stdin) = child.stdin.as_mut() {
-        stdin
-            .write_all(text.as_bytes())
-            .context("write to pbcopy")?;
-    }
-    let status = child.wait().context("wait for pbcopy")?;
-    anyhow::ensure!(status.success(), "pbcopy exited with {status}");
-    Ok(())
-}
-
 /// Enter: attach when the run is live; otherwise fall through to its logs
 /// (a finished run has no tmux session, but its event feed is the story).
 fn attach_selected(terminal: &mut DefaultTerminal, app: &mut App) -> Result<()> {
@@ -320,7 +209,7 @@ fn attach_selected(terminal: &mut DefaultTerminal, app: &mut App) -> Result<()> 
         }
         app.refresh();
     } else {
-        app.open_logs();
+        app.set_status("only a running step has a tmux session — enter opens its log");
     }
     Ok(())
 }
@@ -329,24 +218,78 @@ fn attach_selected(terminal: &mut DefaultTerminal, app: &mut App) -> Result<()> 
 /// step to its log — and esc comes back up one, so a key never skips
 /// past where you were. q quits only from the top.
 fn handle_dag(terminal: &mut DefaultTerminal, app: &mut App, action: Action) -> Result<bool> {
-    if app.job_open.is_some() {
+    if app.runs_open() {
         match action {
             Action::Back | Action::Quit => app.close_job(),
+            Action::Follow => app.toggle_follow(),
+            // r / a on the all-runs page: only live chains, or every chain.
+            Action::ShowRunning if app.all_runs => {
+                app.all_running_only = true;
+                app.job_step_selected = 0;
+            }
+            Action::ShowAll if app.all_runs => {
+                app.all_running_only = false;
+                app.job_step_selected = 0;
+            }
             Action::Up => app.dag_move(false),
             Action::Down => app.dag_move(true),
-            // Enter is `Action::Attach` in keys.rs — `Open` is `o`. Every
-            // earlier "enter drills in" matched only Open, so enter did
-            // nothing on this page and only `o` worked. Both, here.
-            Action::Attach | Action::Open | Action::Logs => match app.dag_selected_run().cloned() {
+            // Enter (`Action::Attach` in keys.rs) or `l`: the step's log.
+            Action::Attach | Action::Logs => match app.dag_selected_run().cloned() {
                 Some(run) => app.open_logs_for(run),
                 None => app.set_status("this job has no runs yet"),
+            },
+            // x: kill the selected step if it is running; t: attach to its
+            // tmux session (detach with ctrl-b d).
+            Action::Kill => app.kill_selected(),
+            Action::Run => app.ask_run(),
+            Action::Tmux => attach_selected(terminal, app)?,
+            // `w`: the step's write-up, rendered — an investigation's
+            // OUTPUT.md, or the chain's handover. Before this it was three
+            // keys into the details overlay that nothing advertised.
+            Action::WriteUp => match (app.step_writeup(), app.dag_selected_run()) {
+                (Some(path), _) => {
+                    if let Some(message) = tmux::render_markdown(terminal, &path)? {
+                        app.set_status(&message);
+                    }
+                }
+                (None, Some(run)) => {
+                    let msg = format!(
+                        "{} has no write-up — a step shows its summary.md here, an \
+                         investigation its OUTPUT.md, a code chain its handover",
+                        run.agent
+                    );
+                    app.set_status(&msg);
+                }
+                (None, None) => app.set_status("no step selected"),
+            },
+            // `o`: the draft PR THIS step opened, in the browser. Only the
+            // step that ran `gh pr create` has one — on a docs or report
+            // step it says so instead of opening the chain's PR.
+            Action::Open => match (app.selected_step_pr(), app.dag_selected_run()) {
+                (Some(pr), _) => {
+                    let pr = pr.to_owned();
+                    let ok = std::process::Command::new("open")
+                        .arg(&pr)
+                        .status()
+                        .is_ok_and(|s| s.success());
+                    app.set_status(&if ok {
+                        format!("opened {pr}")
+                    } else {
+                        format!("could not open {pr}")
+                    });
+                }
+                (None, Some(run)) => {
+                    let msg = format!("{} opened no PR", run.agent);
+                    app.set_status(&msg);
+                }
+                (None, None) => app.set_status("no step selected"),
             },
             Action::Detail => {
                 app.show_run_detail = true;
                 app.detail_selected = 0;
             }
             Action::Edit => edit_selected_manifest(terminal, app)?,
-            Action::Refresh => app.refresh(),
+            Action::Copy => clip::copy_selected(app),
             Action::ToggleHelp => app.show_help = true,
             _ => {}
         }
@@ -360,13 +303,28 @@ fn handle_dag(terminal: &mut DefaultTerminal, app: &mut App, action: Action) -> 
             app.job_search.clear();
             app.dag_selected = 0;
         }
-        Action::Dag => app.show_dag = false,
         Action::Up => app.dag_move(false),
         Action::Down => app.dag_move(true),
         Action::Attach | Action::Open => app.open_job(),
+        Action::AllRuns => app.open_all_runs(),
         Action::Search => app.job_search_begin(),
         Action::Edit => edit_selected_manifest(terminal, app)?,
-        Action::Refresh => app.refresh(),
+        // r / a: running jobs only, or all of them. The cursor goes back
+        // to the top — the old index points into the other list.
+        Action::ShowRunning => {
+            app.job_running_only = true;
+            app.dag_selected = 0;
+        }
+        Action::ShowAll => {
+            app.job_running_only = false;
+            app.dag_selected = 0;
+        }
+        Action::ToggleHidden => {
+            app.show_hidden = !app.show_hidden;
+            app.dag_selected = 0;
+        }
+        Action::Run => app.ask_run(),
+        Action::Copy => clip::copy_selected(app),
         Action::ToggleHelp => app.show_help = true,
         _ => {}
     }

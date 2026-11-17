@@ -3,34 +3,21 @@
 use chrono::{DateTime, Utc};
 
 pub use beagle_utils::duration::human_duration;
-pub use beagle_utils::text::{one_line, truncate_chars};
+
+/// How long ago, in its largest unit only — `30s`, `59m`, `19h`, `8d`. For
+/// the jobs list, where `8d19h59m` pushed the row past the pane.
+pub fn ago_coarse(start: DateTime<Utc>, end: DateTime<Utc>) -> String {
+    match (end - start).num_seconds().max(0) {
+        s if s < 60 => format!("{s}s"),
+        s if s < 3_600 => format!("{}m", s / 60),
+        s if s < 86_400 => format!("{}h", s / 3_600),
+        s => format!("{}d", s / 86_400),
+    }
+}
 
 /// Human duration between two instants (clamped at zero).
 pub fn elapsed_between(start: DateTime<Utc>, end: DateTime<Utc>) -> String {
     human_duration((end - start).num_seconds())
-}
-
-/// Best-effort single-line snippet of an event payload.
-///
-/// JSON object payloads prefer a human-readable text field; anything else
-/// (plain text, JSON arrays, invalid JSON) is used verbatim.
-pub fn payload_snippet(payload: Option<&str>, max: usize) -> String {
-    let Some(raw) = payload else {
-        return String::new();
-    };
-    let text = json_text(raw).unwrap_or_else(|| raw.to_owned());
-    one_line(&text, max)
-}
-
-fn json_text(raw: &str) -> Option<String> {
-    let value: serde_json::Value = serde_json::from_str(raw).ok()?;
-    let obj = value.as_object()?;
-    for key in ["text", "message", "content", "summary", "name"] {
-        if let Some(s) = obj.get(key).and_then(serde_json::Value::as_str) {
-            return Some(s.to_owned());
-        }
-    }
-    None
 }
 
 /// Greedy word-wrap into lines of at most `max` characters, preserving
@@ -116,34 +103,19 @@ mod tests {
     }
 
     #[test]
+    fn ago_coarse_keeps_the_largest_unit() {
+        let a = Utc.with_ymd_and_hms(2026, 8, 12, 10, 0, 0).unwrap();
+        let b = Utc.with_ymd_and_hms(2026, 8, 20, 5, 59, 0).unwrap();
+        assert_eq!(ago_coarse(a, b), "7d");
+        assert_eq!(ago_coarse(b, a), "0s");
+    }
+
+    #[test]
     fn elapsed_between_clamps_negative() {
         let a = Utc.with_ymd_and_hms(2026, 8, 12, 10, 0, 0).unwrap();
         let b = Utc.with_ymd_and_hms(2026, 8, 12, 10, 1, 30).unwrap();
         assert_eq!(elapsed_between(a, b), "1m");
         assert_eq!(elapsed_between(b, a), "0s");
-    }
-
-    #[test]
-    fn one_line_collapses_and_truncates() {
-        assert_eq!(one_line("a\nb\t  c", 10), "a b c");
-        assert_eq!(one_line("hello world", 6), "hello…");
-    }
-
-    #[test]
-    fn truncate_respects_char_boundaries() {
-        assert_eq!(truncate_chars("héllo wörld", 6), "héllo…");
-        assert_eq!(truncate_chars("short", 10), "short");
-    }
-
-    #[test]
-    fn snippet_prefers_json_text_fields() {
-        let json = r#"{"type":"tool_use","name":"Bash","input":{}}"#;
-        assert_eq!(payload_snippet(Some(json), 40), "Bash");
-        let msg = r#"{"text":"running   tests\nnow"}"#;
-        assert_eq!(payload_snippet(Some(msg), 40), "running tests now");
-        assert_eq!(payload_snippet(Some("plain text"), 40), "plain text");
-        assert_eq!(payload_snippet(Some("[1, 2]"), 40), "[1, 2]");
-        assert_eq!(payload_snippet(None, 40), "");
     }
 
     #[test]

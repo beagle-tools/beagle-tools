@@ -5,7 +5,7 @@
 //! on. What there is, is a convention — and two of them:
 //!
 //! * the standard logger (`$AGENTD_LOG_SH`): `LEVEL source: message`,
-//!   e.g. `WARN pr-watch: gh could not read …`. The level is explicit.
+//!   e.g. `WARN inbox-sweep: gh could not read …`. The level is explicit.
 //! * the house style every script already uses: `source: message`, e.g.
 //!   `gather: wrote 6 files`. The level is inferred from the words.
 //!
@@ -78,7 +78,7 @@ pub fn parse_script_line(line: &str) -> ScriptLine {
         }
     }
 
-    // `source: message` — the convention gather.sh and pr-watch.sh use.
+    // `source: message` — the convention gather.sh and inbox-sweep.sh use.
     let (source, message) = split_source(line);
     // ...unless the "source" is itself a level word: `Error: no such
     // file` is an error, not a message from something called Error.
@@ -205,15 +205,15 @@ mod tests {
     #[test]
     fn the_standard_logger_format_is_read_exactly() {
         assert_eq!(
-            parsed("WARN pr-watch: gh could not read the PR"),
+            parsed("WARN inbox-sweep: gh could not read the PR"),
             (
                 Level::Warn,
-                Some("pr-watch".to_owned()),
+                Some("inbox-sweep".to_owned()),
                 "gh could not read the PR".to_owned()
             )
         );
         assert_eq!(parsed("ERROR gather: no ticket").0, Level::Error);
-        assert_eq!(parsed("OK pr-watch: done").0, Level::Ok);
+        assert_eq!(parsed("OK inbox-sweep: done").0, Level::Ok);
         assert_eq!(
             parsed("STEP gather: triggering ticket-context").0,
             Level::Step
@@ -231,7 +231,7 @@ mod tests {
             )
         );
         assert_eq!(
-            parsed("pr-watch: WARNING gh could not read x").0,
+            parsed("inbox-sweep: WARNING gh could not read x").0,
             Level::Warn
         );
         assert_eq!(parsed("deploy: error: exit 2").0, Level::Error);

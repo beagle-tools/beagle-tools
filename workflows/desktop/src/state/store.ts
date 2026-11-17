@@ -27,6 +27,8 @@ interface State {
   log: Transcript | null;
   logFilter: string;
   error: string | null;
+  /** agentd not running: why (stopped / stalled). Null while it runs. */
+  daemon: string | null;
   loading: boolean;
 
   pipelines: PipelineSummary[];
@@ -60,6 +62,7 @@ export const useStore = create<State>((set, get) => ({
   log: null,
   logFilter: "",
   error: null,
+  daemon: null,
   loading: true,
   pipelines: [],
   forest: [],
@@ -92,6 +95,9 @@ export const useStore = create<State>((set, get) => ({
     // stale error on screen forever.
     await listen<string>("agentdesk://store-problem", (event) => {
       set({ error: event.payload ? event.payload : null });
+    });
+    await listen<string>("agentdesk://daemon", (event) => {
+      set({ daemon: event.payload ? event.payload : null });
     });
   },
 

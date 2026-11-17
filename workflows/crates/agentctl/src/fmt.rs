@@ -96,6 +96,14 @@ pub fn single_line_truncated(text: &str, max: usize) -> String {
     }
 }
 
+/// After queueing a run: say on stderr (stdout is the run id scripts read)
+/// when agentd is not running, because the run will sit Pending until it is.
+pub fn warn_if_daemon_down() {
+    if let Some(banner) = agent_core::daemon::status().banner(Utc::now()) {
+        eprintln!("warning: {banner} — this run waits Pending until agentd is started");
+    }
+}
+
 #[cfg(test)]
 // Tests should fail loudly on a broken fixture; unwrapping is the clearest way.
 #[allow(clippy::unwrap_used)]

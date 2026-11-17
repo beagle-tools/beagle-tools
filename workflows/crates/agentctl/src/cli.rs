@@ -70,6 +70,13 @@ pub enum Command {
         #[arg(long, value_name = "K")]
         kind: Option<String>,
     },
+    /// Run a failed, timed-out or killed step again, in its chain: same
+    /// parent, params and model, so it reads the same handover and the rest
+    /// of the chain carries on from there. Works for a week after the step.
+    Resume {
+        /// The run id of the step that failed.
+        run_id: String,
+    },
     /// Kill a running run's tmux session and mark the run killed.
     Kill {
         /// The run id to kill.
@@ -82,6 +89,28 @@ pub enum Command {
     },
     /// One-screen summary of agents and runs.
     Status,
+    /// What broke — failed or timed-out runs, and ERROR lines in runs that
+    /// carried on — grouped so a repeated failure is one entry with a
+    /// count. Never looks back more than 48 hours.
+    Errors {
+        /// Start of the window, RFC 3339.
+        #[arg(long, value_name = "TIME", conflicts_with = "since_last")]
+        since: Option<String>,
+        /// Start at this agent's previous successful run (excluding the
+        /// current run, `$AGENTD_RUN_ID`), as `<project>/<agent>`.
+        #[arg(long, value_name = "PROJECT/AGENT")]
+        since_last: Option<String>,
+        /// How far back at most, in hours (capped at 48).
+        #[arg(long, default_value_t = 48)]
+        max_hours: u32,
+        /// Print JSON instead of markdown.
+        #[arg(long)]
+        json: bool,
+        /// Write errors.md and errors.json into DIR and print only the
+        /// number of distinct errors.
+        #[arg(long, value_name = "DIR")]
+        write: Option<PathBuf>,
+    },
     /// Run agentd under launchd (macOS): install, restart, or remove it.
     Daemon {
         #[command(subcommand)]

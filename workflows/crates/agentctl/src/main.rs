@@ -6,6 +6,7 @@
 mod apply;
 mod cli;
 mod daemon;
+mod errors;
 mod fmt;
 mod get;
 mod job;
@@ -89,9 +90,24 @@ fn dispatch(cli: Cli) -> Result<ExitCode> {
         } => {
             logs::logs(&Store::open_default()?, &target, follow, kind.as_deref())?;
         }
+        Command::Resume { run_id } => run_cmd::resume(&Store::open_default()?, &run_id)?,
         Command::Kill { run_id } => run_cmd::kill(&Store::open_default()?, &run_id)?,
         Command::Attach { run_id } => run_cmd::attach(&Store::open_default()?, &run_id)?,
         Command::Status => status::status(&Store::open_default()?)?,
+        Command::Errors {
+            since,
+            since_last,
+            max_hours,
+            json,
+            write,
+        } => errors::errors(
+            &Store::open_default()?,
+            since.as_deref(),
+            since_last.as_deref(),
+            max_hours,
+            json,
+            write.as_deref(),
+        )?,
         Command::Daemon { action } => match action {
             DaemonAction::Install { print } => daemon::install(print)?,
             DaemonAction::Restart => daemon::restart()?,

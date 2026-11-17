@@ -8,6 +8,7 @@ import type {
   AgentNode,
   AppRelease,
   AgentSpec,
+  ChainView,
   ForestRow,
   Link,
   PipelineDetail,
@@ -36,6 +37,9 @@ export const ipc = {
     params: Record<string, string>,
     model: string | null,
   ): Promise<string> => invoke<string>("trigger_job", { project, agent, params, model }),
+
+  allChains: (showHidden: boolean, runningOnly: boolean): Promise<ChainView[]> =>
+    invoke<ChainView[]>("all_chains", { showHidden, runningOnly }),
 
   runForest: (focus: string | null): Promise<ForestRow[]> =>
     invoke<ForestRow[]>("run_forest", { focus }),

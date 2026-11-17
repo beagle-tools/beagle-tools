@@ -62,6 +62,11 @@ pub fn run_links(state: State<'_, AppState>, id: String) -> Result<Vec<Link>, Ap
         .into_iter()
         .map(|(r, _)| r.id.clone())
         .collect();
+    // The PR any stage of this chain opened — from result.md, or for a stage
+    // still working, from its own `gh pr create`. See agent_core::links::run_pr.
+    let chain_pr = chain_ids
+        .iter()
+        .find_map(|id| agent_core::links::run_pr(&store, id));
     drop(store);
 
     let mut links = Vec::new();
@@ -92,14 +97,14 @@ pub fn run_links(state: State<'_, AppState>, id: String) -> Result<Vec<Link>, Ap
             target: ticket,
         });
     }
-    // The PR. Recovered the same way retention and pr-watch recover it —
+    // The PR. Recovered the same way retention and inbox-sweep recover it —
     // through agent_core, so all three agree about what a run's PR is.
     //
     // Searched across the WHOLE chain, not just this run. Only
     // ticket-implement opens a PR, but the link is worth having from any
     // stage of the ticket: standing on ticket-report, "where is the PR"
     // is still the question.
-    if let Some(url) = chain_pr(&chain_ids) {
+    if let Some(url) = chain_pr {
         links.push(Link {
             label: "Draft PR".to_owned(),
             kind: "url".to_owned(),
@@ -109,6 +114,7 @@ pub fn run_links(state: State<'_, AppState>, id: String) -> Result<Vec<Link>, Ap
 
     if let Some(dir) = data_dir(&run.id) {
         for (file, label) in [
+            ("summary.md", "summary"),
             ("result.md", "result.md"),
             ("context.md", "context pack"),
             ("OUTPUT.md", "investigation write-up"),
@@ -147,26 +153,6 @@ pub fn read_markdown(path: String) -> Result<String, AppError> {
     }
     std::fs::read_to_string(&canonical)
         .map_err(|e| AppError::new(format!("could not read {}: {e}", canonical.display())))
-}
-
-/// The first PR URL any stage of the chain wrote down.
-///
-/// `result.md` first because that is where the implement stage reports
-/// it; the write-ups second, because a data dir is pruned after four
-/// hours while a write-up naming an open PR is kept indefinitely — so
-/// that is the copy that still answers tomorrow.
-fn chain_pr(chain_ids: &[String]) -> Option<String> {
-    for id in chain_ids {
-        if let Some(dir) = data_dir(id) {
-            if let Some(url) = agent_core::links::pr_url_in_file(&dir.join("result.md")) {
-                return Some(url);
-            }
-        }
-    }
-    chain_ids
-        .iter()
-        .filter_map(|id| existing_summary(id))
-        .find_map(|path| agent_core::links::pr_url_in_file(&path))
 }
 
 fn existing_summary(run_id: &str) -> Option<PathBuf> {

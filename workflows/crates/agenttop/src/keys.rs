@@ -1,4 +1,4 @@
-//! Key handling: map crossterm key events to dashboard actions.
+//! Key handling: map crossterm key events to actions on the jobs screens.
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -8,10 +8,10 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 pub enum Action {
     /// ctrl-c: exit unconditionally, whatever is on screen.
     ForceQuit,
-    /// q: close the current overlay (help, log view), or exit from the
-    /// dashboard.
+    /// q: close the current overlay (help, log view), go back a level, or
+    /// exit from the jobs list.
     Quit,
-    /// esc: close the current overlay; does nothing on the dashboard.
+    /// esc: close the current overlay, or go back a level.
     Back,
     Up,
     Down,
@@ -22,18 +22,20 @@ pub enum Action {
     Right,
     Attach,
     Kill,
+    /// R: run the selected job, or resume the chain at the selected failed
+    /// step — behind a confirmation pane (`confirm.rs`).
+    Run,
     Logs,
-    /// y: copy — the whole pretty log in the log view, the run id on the
-    /// dashboard.
+    /// y: copy — the whole pretty log in the log view.
     Copy,
-    /// d: toggle the DAG page (projects → agents + run lineage).
-    Dag,
-    /// D: open the DAG page showing ONLY the selected run's chain.
-    DagFocus,
+    /// t (runs screen): attach to the selected running step's tmux session.
+    Tmux,
     /// m: expand the selected run's detail into a floating pane.
     Detail,
     /// o: open the highlighted link (browser for a URL, editor for a file).
     Open,
+    /// `w` — read the selected step's write-up, rendered.
+    WriteUp,
     /// `/`: start typing a search term in the log view.
     Search,
     /// n / N: jump to the next / previous matching line.
@@ -41,9 +43,16 @@ pub enum Action {
     SearchPrev,
     /// e: edit the selected agent's manifest in $EDITOR (DAG page).
     Edit,
-    /// f: cycle the RECENT state filter (all → succeeded → failed).
-    Filter,
-    Refresh,
+    /// r (jobs page): only jobs with something running.
+    ShowRunning,
+    /// a (jobs page): every job again.
+    ShowAll,
+    /// H (jobs page): show / hide the projects `ui.yaml` hides.
+    ToggleHidden,
+    /// A (jobs page): every job's runs on one live page.
+    AllRuns,
+    /// W (runs screens): keep the cursor on the newest step as runs arrive.
+    Follow,
     ToggleHelp,
     None,
 }
@@ -66,17 +75,21 @@ pub fn map_key(key: KeyEvent) -> Action {
         KeyCode::Enter => Action::Attach,
         KeyCode::Char('x') => Action::Kill,
         KeyCode::Char('l') => Action::Logs,
+        KeyCode::Char('w') => Action::WriteUp,
         KeyCode::Char('y') => Action::Copy,
-        KeyCode::Char('d') => Action::Dag,
-        KeyCode::Char('D') => Action::DagFocus,
+        KeyCode::Char('t') => Action::Tmux,
         KeyCode::Char('m') => Action::Detail,
         KeyCode::Char('o') => Action::Open,
         KeyCode::Char('e') => Action::Edit,
-        KeyCode::Char('f') => Action::Filter,
         KeyCode::Char('/') => Action::Search,
         KeyCode::Char('n') => Action::SearchNext,
         KeyCode::Char('N') => Action::SearchPrev,
-        KeyCode::Char('r') => Action::Refresh,
+        KeyCode::Char('r') => Action::ShowRunning,
+        KeyCode::Char('a') => Action::ShowAll,
+        KeyCode::Char('H') => Action::ToggleHidden,
+        KeyCode::Char('A') => Action::AllRuns,
+        KeyCode::Char('W') => Action::Follow,
+        KeyCode::Char('R') => Action::Run,
         KeyCode::Char('?') => Action::ToggleHelp,
         _ => Action::None,
     }
@@ -139,7 +152,27 @@ mod tests {
         );
         assert_eq!(
             map_key(press(KeyCode::Char('r'), KeyModifiers::NONE)),
-            Action::Refresh
+            Action::ShowRunning
+        );
+        assert_eq!(
+            map_key(press(KeyCode::Char('a'), KeyModifiers::NONE)),
+            Action::ShowAll
+        );
+        assert_eq!(
+            map_key(press(KeyCode::Char('H'), KeyModifiers::SHIFT)),
+            Action::ToggleHidden
+        );
+        assert_eq!(
+            map_key(press(KeyCode::Char('R'), KeyModifiers::SHIFT)),
+            Action::Run
+        );
+        assert_eq!(
+            map_key(press(KeyCode::Char('A'), KeyModifiers::SHIFT)),
+            Action::AllRuns
+        );
+        assert_eq!(
+            map_key(press(KeyCode::Char('W'), KeyModifiers::SHIFT)),
+            Action::Follow
         );
         assert_eq!(
             map_key(press(KeyCode::Char('?'), KeyModifiers::SHIFT)),

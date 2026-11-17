@@ -114,8 +114,27 @@ pub fn pipelines<'a>(specs: &'a [AgentSpec], runs: &'a [Run]) -> Vec<Pipeline<'a
         );
     }
 
+    // An agent another manifest declares it triggers is a step, unless it
+    // says otherwise or runs on a schedule — known before it ever runs.
+    let declared_steps: std::collections::HashSet<(&str, &str)> = specs
+        .iter()
+        .flat_map(|s| {
+            s.triggers
+                .iter()
+                .map(move |t| (s.project.as_str(), t.as_str()))
+        })
+        .collect();
+    let declared_step = |s: &AgentSpec| {
+        s.entrypoint.is_none()
+            && s.schedule.is_none()
+            && declared_steps.contains(&(s.project.as_str(), s.name.as_str()))
+    };
+
     let mut out: Vec<Pipeline<'a>> = Vec::new();
-    for spec in specs.iter().filter(|s| is_entry(s, runs)) {
+    for spec in specs
+        .iter()
+        .filter(|s| is_entry(s, runs) && !declared_step(s))
+    {
         let key = format!("{}/{}", spec.project, spec.name);
         let mine: Vec<&Run> = runs
             .iter()
@@ -198,8 +217,11 @@ pub fn display_order(specs: &[AgentSpec], runs: &[Run]) -> Vec<AgentSpec> {
         jobs.sort_by(|a, b| a.entry.name.cmp(&b.entry.name));
 
         for job in jobs {
-            out.push(job.entry.clone());
-            placed.insert((project.to_owned(), job.entry.name.clone()));
+            // A job can also be a step of an earlier one (a review job that
+            // is also a step of two others): list it once.
+            if placed.insert((project.to_owned(), job.entry.name.clone())) {
+                out.push(job.entry.clone());
+            }
             for step in &job.steps {
                 if let Some(spec) = specs
                     .iter()

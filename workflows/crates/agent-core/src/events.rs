@@ -41,6 +41,20 @@ impl Store {
         collect_events(rows)
     }
 
+    /// How many of a run's events came from its log, rather than from the
+    /// daemon (`state` changes, `note`s). Each ingested log line is exactly
+    /// one such event, so this is how many lines a restarted daemon has
+    /// already read.
+    pub fn log_event_count(&self, run_id: &str) -> Result<u64, CoreError> {
+        let count: u64 = self.conn.query_row(
+            "SELECT COUNT(*) FROM events
+             WHERE run_id = ?1 AND kind NOT IN ('state', 'note')",
+            params![run_id],
+            |row| row.get(0),
+        )?;
+        Ok(count)
+    }
+
     /// Most recent events across all runs, newest first.
     pub fn recent_events(&self, limit: u32) -> Result<Vec<Event>, CoreError> {
         let mut stmt = self.conn.prepare(
