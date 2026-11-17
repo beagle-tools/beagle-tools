@@ -50,7 +50,7 @@ fn run(command: Command) -> Result<(), Error> {
         Command::Version => {
             println!(
                 "beagle {} ({})",
-                update::Version::current(),
+                update::current(),
                 update::release_target().unwrap_or("source build"),
             );
             Ok(())
@@ -131,7 +131,7 @@ fn run(command: Command) -> Result<(), Error> {
             println!(
                 "{}\nbeagle {} — a TUI for root-cause analysis workspaces",
                 beagle::banner::BANNER,
-                update::Version::current(),
+                update::current(),
             );
             Ok(())
         }

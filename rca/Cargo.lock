@@ -24,6 +24,7 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 name = "beagle"
 version = "0.29.0"
 dependencies = [
+ "beagle-tui",
  "beagle-utils",
  "crossterm",
  "notify",
@@ -61,8 +62,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "beagle-tui"
+version = "0.1.0"
+dependencies = [
+ "beagle-utils",
+ "crossterm",
+ "notify",
+ "ratatui",
+ "serde",
+ "thiserror",
+ "toml",
+ "unicode-width 0.2.0",
+]
+
+[[package]]
 name = "beagle-utils"
 version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "bitflags"

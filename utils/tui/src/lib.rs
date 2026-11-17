@@ -4,8 +4,9 @@
 //! Everything here renders with `ratatui` and is app-agnostic: markdown and
 //! ANSI rendering, word wrapping, a scrolling document pane with a vim-style
 //! cursor ([`DocView`]), common widgets, live-reload watching, clipboard and
-//! URL opening, and store-root / config-file discovery. Apps keep their own
-//! domain types and error enums; errors from here convert into them.
+//! URL opening, store-root / config-file discovery, and the release picker
+//! behind `version list`. Apps keep their own domain types and error
+//! enums; errors from here convert into them.
 //!
 //! Module layering (dependencies point strictly downward):
 //!
@@ -24,6 +25,7 @@ pub mod docview;
 pub mod error;
 pub mod links;
 pub mod markdown;
+pub mod version_picker;
 pub mod watch;
 pub mod widgets;
 pub mod wrap;

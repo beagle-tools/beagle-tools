@@ -17,6 +17,7 @@ Small, dependency-free helpers shared by the apps in this monorepo
 | `fs`       | Atomic writes (temp sibling + fsync + rename), optional reads              |
 | `notify`   | AppleScript string escaping                                                |
 | `log`      | `tracing` subscriber init — only with the `tracing` feature                |
+| `update`   | Self-update from GitHub releases: a `Channel` (repo, tag prefix, tarball), version parsing, release listing via `curl`, download + sha256 verify + atomic swap — only with the `update` feature |
 
 ## `beagle-tui` (`tui/`)
 
@@ -36,6 +37,7 @@ Terminal-UI pieces shared by the TUIs in `cli/` (`beagle recap`,
 | `clipboard` | Copy via `pbcopy` / `wl-copy` / `xclip`                                         |
 | `links`     | Open a URL with `open` / `xdg-open`, detached                                  |
 | `config`    | `AppDirs`: store root from `--root` → `$<APP>_ROOT` → config → ancestor → cwd  |
+| `version_picker` | The interactive `version list` picker over an `update::Channel`'s releases |
 
 ## Rules
 

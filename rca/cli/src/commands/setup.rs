@@ -88,23 +88,16 @@ pub(crate) fn run_version_list() -> Result<(), Error> {
         println!("no releases published yet — {}/releases", update::REPO_URL);
         return Ok(());
     }
-    let current = update::Version::current();
+    let current = update::current();
     if std::io::stdout().is_terminal() {
         match update::pick_version(&releases, current)? {
             Some(version) => install_version(version),
             None => Ok(()),
         }
     } else {
-        for (i, release) in releases.iter().enumerate() {
-            let mut markers = String::new();
-            if i == 0 {
-                markers.push_str("  latest");
-            }
-            if release.version == current {
-                markers.push_str("  current");
-            }
-            println!("{}{markers}", release.version.tag());
-        }
+        let listing =
+            beagle_tui::version_picker::plain_listing(&update::channel(), &releases, current);
+        print!("{listing}");
         Ok(())
     }
 }
@@ -113,7 +106,7 @@ pub(crate) fn run_version_list() -> Result<(), Error> {
 pub(crate) fn latest_release() -> Result<update::Version, Error> {
     update::fetch_releases()?
         .first()
-        .map(|release| release.version)
+        .copied()
         .ok_or_else(|| Error::Tool {
             tool: "update",
             message: format!("no releases published yet — {}/releases", update::REPO_URL),
@@ -123,7 +116,7 @@ pub(crate) fn latest_release() -> Result<update::Version, Error> {
 /// Installs `version` over the running binary — the same path for upgrades
 /// and downgrades. A no-op (with a message) when already on that version.
 pub(crate) fn install_version(version: update::Version) -> Result<(), Error> {
-    let current = update::Version::current();
+    let current = update::current();
     if version == current {
         println!("already on beagle {current}; nothing to do");
         offer_skill_install();

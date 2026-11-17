@@ -1,37 +1,34 @@
-//! Self-update: fetch released versions and swap the running binary.
+//! Self-update of the standalone rca `beagle` binary: rca's release
+//! channel over the shared updater (`beagle_utils::update`: curl, sha256
+//! verify, tar, atomic same-directory rename) and picker
+//! (`beagle_tui::version_picker`).
 //!
-//! Follows the crate's no-heavy-dependencies philosophy: networking shells
-//! out to `curl` (the same tool the README install uses), checksums to
-//! `shasum`/`sha256sum`, and extraction to `tar`. Every downloaded artifact
-//! is verified against the sha256 the release workflow publishes before a
-//! single byte replaces the installed binary, and the final swap is an
-//! atomic same-directory rename — an interrupted update can never leave a
-//! half-written executable.
+//! Only the standalone binary updates itself. Linked into the unified
+//! `beagle` command (`beagle rca …`), an rca-only download would replace
+//! every other tool, so there `beagle update` (the unified updater) owns
+//! updating — see `crate::run`.
 //!
 //! Versions are plain `MAJOR.MINOR.PATCH`; picking what to install is the
-//! user's call (`--version`, or the interactive `beagle version list`), and
-//! moving to an older version is as supported as moving to a newer one.
-//!
-//! Submodules: `install` (download, verify, swap) and `picker` (the
-//! interactive `beagle version list` TUI).
+//! user's call (`--version`, or the interactive `version list`), and moving
+//! to an older version is as supported as moving to a newer one.
 
-mod install;
-mod picker;
+use std::path::Path;
 
-pub use install::{install, update_to};
-pub use picker::pick_version;
+pub use beagle_utils::update::{release_target, Version};
 
-use std::fmt;
-use std::str::FromStr;
+use beagle_utils::update::Channel;
 
 use crate::error::{Error, Result};
 
-use install::curl_stdout;
+/// The repository URL from `Cargo.toml`.
+pub const REPO_URL: &str = env!("CARGO_PKG_REPOSITORY");
+
+/// Every rca release is tagged `beagle-rca-vX.Y.Z`; other apps in the
+/// monorepo (`beagle-tandem-v…`, `beagle-cli-v…`) are ignored.
+pub const TAG_PREFIX: &str = "beagle-rca-v";
 
 /// The GitHub repository releases come from, as `owner/name`. Derived from
-/// the crate metadata so a fork updates itself from the fork. The repo is a
-/// monorepo shared with other apps, so releases are filtered by
-/// [`TAG_PREFIX`].
+/// the crate metadata so a fork updates itself from the fork.
 #[must_use]
 pub fn repo_slug() -> &'static str {
     REPO_URL
@@ -39,166 +36,89 @@ pub fn repo_slug() -> &'static str {
         .unwrap_or(REPO_URL)
 }
 
-/// The repository URL from `Cargo.toml`.
-pub const REPO_URL: &str = env!("CARGO_PKG_REPOSITORY");
-
-/// Every rca release is tagged `beagle-rca-vX.Y.Z`; other apps in the
-/// monorepo (`beagle-tandem-v…`, `beagle-workflows-v…`) are ignored.
-pub const TAG_PREFIX: &str = "beagle-rca-v";
-
-/// The release asset holding the CLI binaries (`beagle`, `beagle-agentd`)
-/// for `target`, e.g. `beagle-rca-aarch64-apple-darwin.tar.gz`. A
-/// `<asset>.sha256` file is published beside it.
+/// rca's release channel: `beagle-rca-<target>.tar.gz` holding `beagle`
+/// and `beagle-agentd` at its root (the agentd is swapped too when it is
+/// installed beside the CLI, so the two never drift apart).
 #[must_use]
-pub fn asset_name(target: &str) -> String {
-    format!("beagle-rca-{target}.tar.gz")
+pub fn channel() -> Channel {
+    Channel {
+        repo: repo_slug(),
+        tag_prefix: TAG_PREFIX,
+        asset_prefix: "beagle-rca",
+        binary: "beagle",
+        companions: &["beagle-agentd"],
+    }
 }
 
-/// The download URL of `asset` in the versioned release for `version`.
+/// The version this binary was built as.
 #[must_use]
-pub fn asset_url(version: Version, asset: &str) -> String {
-    format!("{REPO_URL}/releases/download/{}/{asset}", version.tag())
+pub fn current() -> Version {
+    Version::from_pkg(env!("CARGO_PKG_VERSION"))
 }
 
-/// A released version: `MAJOR.MINOR.PATCH`. Ordered so newer sorts greater.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Version {
-    /// Incompatible-change counter (0 while the format is still settling).
-    pub major: u64,
-    /// Feature counter.
-    pub minor: u64,
-    /// Fix counter.
-    pub patch: u64,
+/// Parses a `--version` value: `0.2.0`, `v0.2.0`, or `beagle-rca-v0.2.0`.
+///
+/// # Errors
+/// A message naming the bad input when it is not `X.Y.Z`.
+pub fn parse_version(input: &str) -> std::result::Result<Version, String> {
+    channel().parse_version(input)
 }
 
-impl Version {
-    /// The version this binary was built as.
-    #[must_use]
-    pub fn current() -> Self {
-        // CARGO_PKG_VERSION is always well-formed x.y.z for this crate.
-        env!("CARGO_PKG_VERSION").parse().unwrap_or(Self {
-            major: 0,
-            minor: 0,
-            patch: 0,
-        })
-    }
-
-    /// The git tag for this version, e.g. `beagle-rca-v0.2.0`.
-    #[must_use]
-    pub fn tag(self) -> String {
-        format!("{TAG_PREFIX}{self}")
-    }
-
-    /// Parses an rca release tag (`beagle-rca-vX.Y.Z`); `None` for any other
-    /// app's tag or a non-`X.Y.Z` suffix.
-    #[must_use]
-    pub fn from_tag(tag: &str) -> Option<Self> {
-        tag.strip_prefix(TAG_PREFIX)?.parse().ok()
-    }
+/// Every published rca release, newest first.
+///
+/// # Errors
+/// [`Error::Tool`] if `curl` is missing or fails, [`Error::ParseReleases`]
+/// if the feed is not the expected JSON.
+pub fn fetch_releases() -> Result<Vec<Version>> {
+    Ok(channel().fetch_releases()?)
 }
 
-impl fmt::Display for Version {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
-    }
+/// Downloads `version` for this platform, verifies its sha256 and
+/// atomically replaces the binary at `exe` — upgrade or downgrade alike.
+///
+/// # Errors
+/// [`Error::UnsupportedTarget`] on platforms without prebuilt binaries, and
+/// [`Error::Tool`] / [`Error::ChecksumMismatch`] / [`Error::Io`] for
+/// download, verification and install failures.
+pub fn update_to(version: Version, exe: &Path) -> Result<()> {
+    Ok(channel().update_to(version, exe)?)
 }
 
-impl FromStr for Version {
-    type Err = String;
+/// The interactive `beagle version list` picker; `None` when cancelled.
+///
+/// # Errors
+/// [`Error::Terminal`] on draw or input failures.
+pub fn pick_version(releases: &[Version], current: Version) -> Result<Option<Version>> {
+    Ok(beagle_tui::version_picker::pick_version(
+        "beagle",
+        &channel(),
+        releases,
+        current,
+    )?)
+}
 
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        // Accept what users type: `0.2.0`, `v0.2.0`, or the full tag.
-        let trimmed = s.strip_prefix(TAG_PREFIX).unwrap_or(s);
-        let bare = trimmed.strip_prefix('v').unwrap_or(trimmed);
-        let mut parts = bare.split('.');
-        let mut next = |name: &str| {
-            parts
-                .next()
-                .and_then(|p| p.parse::<u64>().ok())
-                .ok_or_else(|| format!("invalid version `{s}`: bad {name} (expected X.Y.Z)"))
-        };
-        let version = Self {
-            major: next("major")?,
-            minor: next("minor")?,
-            patch: next("patch")?,
-        };
-        if parts.next().is_some() {
-            return Err(format!("invalid version `{s}`: too many components"));
+impl From<beagle_utils::update::Error> for Error {
+    fn from(err: beagle_utils::update::Error) -> Self {
+        use beagle_utils::update::Error as U;
+        match err {
+            U::Tool { tool, message } => Self::Tool { tool, message },
+            U::ParseReleases(message) => Self::ParseReleases(message),
+            U::ChecksumMismatch {
+                path,
+                expected,
+                actual,
+            } => Self::ChecksumMismatch {
+                path,
+                expected,
+                actual,
+            },
+            U::UnsupportedTarget => Self::UnsupportedTarget {
+                target: beagle_utils::update::TARGET_DESCRIPTION,
+                repo: REPO_URL,
+            },
+            U::Io { path, source } => Self::Io { path, source },
         }
-        Ok(version)
     }
-}
-
-/// One published release.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Release {
-    /// The released version (from the tag).
-    pub version: Version,
-}
-
-/// The compile-time target triple, exactly as the release workflow names its
-/// assets. `None` on platforms the release workflow does not build for.
-#[must_use]
-pub fn release_target() -> Option<&'static str> {
-    if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-        Some("aarch64-apple-darwin")
-    } else if cfg!(all(target_os = "macos", target_arch = "x86_64")) {
-        Some("x86_64-apple-darwin")
-    } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
-        Some("x86_64-unknown-linux-musl")
-    } else {
-        None
-    }
-}
-
-/// Fetches every published (non-draft, non-prerelease) rca release, newest
-/// first.
-///
-/// # Errors
-/// [`Error::Tool`] if `curl` is missing or the request fails,
-/// [`Error::ParseReleases`] if the response is not the expected JSON.
-pub fn fetch_releases() -> Result<Vec<Release>> {
-    let url = format!(
-        "https://api.github.com/repos/{}/releases?per_page=100",
-        repo_slug()
-    );
-    let json = curl_stdout(&[
-        "-fsSL",
-        "-H",
-        "Accept: application/vnd.github+json",
-        "-H",
-        "User-Agent: beagle",
-        &url,
-    ])?;
-    parse_releases(&json)
-}
-
-/// Parses the GitHub releases JSON. Split from [`fetch_releases`] so the
-/// parsing is testable without a network.
-///
-/// # Errors
-/// [`Error::ParseReleases`] when the body is not a JSON array of releases.
-pub fn parse_releases(json: &str) -> Result<Vec<Release>> {
-    #[derive(serde::Deserialize)]
-    struct Raw {
-        tag_name: String,
-        #[serde(default)]
-        draft: bool,
-        #[serde(default)]
-        prerelease: bool,
-    }
-    let raw: Vec<Raw> = serde_json::from_str(json).map_err(|e| {
-        let head: String = json.chars().take(120).collect();
-        Error::ParseReleases(format!("{e} (body starts: {head})"))
-    })?;
-    let mut releases: Vec<Release> = raw
-        .iter()
-        .filter(|r| !r.draft && !r.prerelease)
-        .filter_map(|r| Version::from_tag(&r.tag_name))
-        .map(|version| Release { version })
-        .collect();
-    releases.sort_by_key(|release| std::cmp::Reverse(release.version));
-    Ok(releases)
 }
 
 #[cfg(test)]

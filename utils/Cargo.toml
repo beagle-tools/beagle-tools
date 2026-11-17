@@ -14,8 +14,12 @@ path = "src/lib.rs"
 [features]
 default = []
 tracing = ["dep:tracing", "dep:tracing-subscriber"]
+# Self-update against GitHub releases (`update`): parses the releases feed.
+update = ["dep:serde", "dep:serde_json"]
 
 [dependencies]
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
 tracing = { version = "0.1", optional = true }
 tracing-subscriber = { version = "0.3", optional = true, features = ["env-filter"] }
 
