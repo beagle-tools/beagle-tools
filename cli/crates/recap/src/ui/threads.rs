@@ -137,7 +137,7 @@ fn tab_strip(
     DocLine::prose(Line::from(spans))
 }
 
-/// `Comment 2 of 3 · on helm/hpa.yaml:12` with the keys that move.
+/// `Comment 2 of 3 · on src/server.rs:12` with the keys that move.
 fn heading(thread: &Thread, at: usize, total: usize) -> Vec<DocLine> {
     let cyan = Style::default()
         .fg(Color::Cyan)

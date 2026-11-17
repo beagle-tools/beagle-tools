@@ -9,10 +9,10 @@ use super::*;
 /// approval, and a review with words.
 const RESPONSE: &str = r#"{"data":{"repository":{"pullRequest":{
   "reviewThreads":{"nodes":[
-    {"isResolved":false,"isOutdated":false,"path":"helm/hpa.yaml","line":12,"originalLine":12,
+    {"isResolved":false,"isOutdated":false,"path":"src/server.rs","line":12,"originalLine":12,
      "comments":{"nodes":[
-       {"databaseId":1,"author":{"login":"review-bot","__typename":"Bot"},"body":"Consider an HPA.","createdAt":"2026-11-01T10:00:00Z","url":"u1"},
-       {"databaseId":2,"author":{"login":"bob","__typename":"User"},"body":"HPAs are not needed for our ingress.","createdAt":"2026-11-01T11:00:00Z","url":"u2"}]}},
+       {"databaseId":1,"author":{"login":"review-bot","__typename":"Bot"},"body":"Consider a retry limit.","createdAt":"2026-11-01T10:00:00Z","url":"u1"},
+       {"databaseId":2,"author":{"login":"bob","__typename":"User"},"body":"This retry loop never gives up.","createdAt":"2026-11-01T11:00:00Z","url":"u2"}]}},
     {"isResolved":true,"isOutdated":true,"path":"a.go","line":null,"originalLine":3,
      "comments":{"nodes":[
        {"databaseId":3,"author":{"login":"lint-bot","__typename":"Bot"},"body":"bug?","createdAt":"2026-11-01T09:00:00Z","url":"u3"}]}}]},
@@ -35,7 +35,7 @@ fn bots_are_context_and_bot_only_threads_are_dropped() {
     // The bot-only thread, the tracker linkback and the bare approval are gone.
     assert_eq!(ids, vec!["t-1", "c-4", "r-7"]);
     let inline = &t[0];
-    assert_eq!(inline.place(), "helm/hpa.yaml:12");
+    assert_eq!(inline.place(), "src/server.rs:12");
     // The bot's opener stays, as context, with its [bot] name restored.
     assert_eq!(inline.comments[0].author, "review-bot[bot]");
     assert!(inline.comments[0].context);
@@ -146,11 +146,15 @@ fn resolved_threads_are_dropped_with_their_local_review() {
 fn a_review_splits_into_its_short_summary_and_the_rest() {
     let review = Review {
         covers: "2".to_owned(),
-        body: "## In short\n- bob says the HPA is redundant.\n\n## What they're saying\nMore."
-            .to_owned(),
+        body:
+            "## In short\n- bob says the retry loop needs a limit.\n\n## What they're saying\nMore."
+                .to_owned(),
     };
     let (short, rest) = review.split();
-    assert_eq!(short.as_deref(), Some("- bob says the HPA is redundant."));
+    assert_eq!(
+        short.as_deref(),
+        Some("- bob says the retry loop needs a limit.")
+    );
     assert_eq!(rest, "## What they're saying\nMore.");
     let plain = Review {
         covers: "2".to_owned(),

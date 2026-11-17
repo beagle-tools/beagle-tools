@@ -29,12 +29,12 @@ fn the_comments_tab_reads_threads_as_you_rest_on_them() {
             Thread {
                 id: "t-1".to_owned(),
                 kind: ThreadKind::Inline {
-                    path: "helm/hpa.yaml".to_owned(),
+                    path: "src/server.rs".to_owned(),
                     line: Some(12),
                     resolved: false,
                     outdated: false,
                 },
-                comments: vec![comment("1", "bob", "HPAs are not needed for our ingress.")],
+                comments: vec![comment("1", "bob", "This retry loop never gives up.")],
             },
             Thread {
                 id: "c-2".to_owned(),
@@ -53,7 +53,7 @@ fn the_comments_tab_reads_threads_as_you_rest_on_them() {
         &dir,
         "t-1",
         "",
-        "## In short\nbob thinks the ingress HPA is redundant.\n\n**Valid.** It scales on its own.",
+        "## In short\nbob thinks the retry loop needs a limit.\n\n**Valid.** It retries forever on a 500.",
     )
     .unwrap();
 
@@ -80,7 +80,7 @@ fn the_comments_tab_reads_threads_as_you_rest_on_them() {
         .map(ratatui::buffer::Cell::symbol)
         .collect();
     assert!(screen.contains("3 Comments"));
-    assert!(screen.contains("helm/hpa.yaml:12"));
+    assert!(screen.contains("src/server.rs:12"));
     assert!(screen.contains("agent review"));
     // Resting on the first thread read it.
     assert_eq!(marks(&app).unread, 1);
@@ -90,7 +90,7 @@ fn the_comments_tab_reads_threads_as_you_rest_on_them() {
     assert_eq!(app.status.as_deref(), Some("comment 2 of 2"));
     let shown: String = app.view.doc.iter().map(wrap::plain_text).collect();
     assert!(shown.contains("Why the new port?"));
-    assert!(!shown.contains("HPAs are not needed"));
+    assert!(!shown.contains("This retry loop never gives up"));
     t.draw(|f| view::draw(f, &mut app)).unwrap();
     assert_eq!(marks(&app).unread, 0);
 
