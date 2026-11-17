@@ -2,11 +2,13 @@
 // ready/open/draft grouping and the "approved by you" footer. Clicking
 // a row opens that PR (any repo) in the review view.
 
-import { CheckCircle2, RefreshCw } from "lucide-react";
+import { Check, CheckCircle2, Link, RefreshCw } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { relativeTime } from "../lib/format";
+import { prUrl } from "../lib/open";
+import { pushInfo } from "../state/toasts";
 import { isReadyToMerge } from "../lib/ready";
 import { EdgeStripes, useFailingChecksTip } from "./EdgeStripes";
 import { sortPrs } from "../lib/sort";
@@ -158,8 +160,39 @@ export function InboxRow({
           ) : null}
         </div>
       </button>
-      {aside ? <div className="shrink-0">{aside}</div> : null}
+      <div className="flex shrink-0 items-center gap-1.5">
+        <CopyPrUrl pr={pr} />
+        {aside}
+      </div>
     </div>
+  );
+}
+
+/** Grab the PR link without opening the PR — the thing you do when
+ * someone asks "which one?" in chat. Outside the row's own button, so
+ * copying never opens the PR. */
+function CopyPrUrl({ pr }: { pr: PullRequest }): ReactElement {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      title="copy the PR URL"
+      onClick={() => {
+        navigator.clipboard
+          .writeText(prUrl(pr.repo, pr.number))
+          .then(() => {
+            setCopied(true);
+            pushInfo("PR URL copied");
+            setTimeout(() => {
+              setCopied(false);
+            }, 1500);
+          })
+          .catch(console.warn);
+      }}
+      className="inline-flex size-6 items-center justify-center rounded-md text-muted transition-colors hover:bg-panel-2 hover:text-cream"
+    >
+      {copied ? <Check size={12} className="text-moss" /> : <Link size={12} />}
+    </button>
   );
 }
 

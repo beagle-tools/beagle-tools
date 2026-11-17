@@ -44,6 +44,8 @@ pub fn run() {
                 }
             }
             tauri::Manager::manage(app, state);
+            // Reviews another process queued (see commands/drain.rs).
+            commands::drain::spawn(tauri::Manager::app_handle(app).clone());
             // Distinguish a `cargo tauri dev` window from the installed
             // release app at a glance — they already keep separate data
             // (see AppDirs::resolve), but the title makes it obvious.

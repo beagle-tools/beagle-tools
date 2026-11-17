@@ -37,6 +37,16 @@ on:
         description: 'JSON list of {"name": macos-arm|macos-intel|windows|linux, "platform": runner, "args": tauri build args}'
         required: true
         type: string
+      sidecar-package:
+        description: optional cargo package (in cargo-dir) whose binary ships inside the bundle (scripts/release/stage-sidecar.sh)
+        required: false
+        type: string
+        default: ""
+      sidecar-bin:
+        description: the sidecar's binary name (required with sidecar-package)
+        required: false
+        type: string
+        default: ""
     secrets:
       TAURI_SIGNING_PRIVATE_KEY:
         required: true
@@ -107,6 +117,17 @@ jobs:
       - name: stamp release version
         working-directory: ${{ inputs.app-dir }}
         run: node scripts/set-version.mjs "${{ inputs.version }}"
+
+      # A CLI that ships inside the bundle: built for this job's target and
+      # declared in tauri.conf.json here (CI only, like the version stamp),
+      # before tauri-action bundles it.
+      - name: stage the sidecar CLI
+        if: inputs.sidecar-package != ''
+        env:
+          ARGS: ${{ matrix.args }}
+        run: >
+          ./scripts/release/stage-sidecar.sh "${{ inputs.project }}" "${{ inputs.cargo-dir }}"
+          "${{ inputs.sidecar-package }}" "${{ inputs.sidecar-bin }}" "$ARGS"
 
       - name: build + upload into the draft release
         uses: tauri-apps/tauri-action@v0

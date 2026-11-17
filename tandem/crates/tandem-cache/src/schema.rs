@@ -87,6 +87,29 @@ pub const MIGRATIONS: &[&str] = &[
     );
     CREATE INDEX idx_comment_revisions ON comment_revisions (comment_id, edited_at);
     ",
+    // 005: the outside-process seam — what GitHub is asking you to
+    // review, and reviews another process has asked Tandem to run.
+    "
+    CREATE TABLE review_requests (
+        repo        TEXT NOT NULL,
+        number      INTEGER NOT NULL,
+        fetched_at  TEXT NOT NULL,
+        json        TEXT NOT NULL,
+        PRIMARY KEY (repo, number)
+    );
+    CREATE TABLE review_jobs (
+        id           TEXT PRIMARY KEY,
+        repo         TEXT NOT NULL,
+        number       INTEGER NOT NULL,
+        agent        TEXT,
+        requested_by TEXT NOT NULL,
+        requested_at TEXT NOT NULL,
+        started_at   TEXT,
+        run_id       TEXT,
+        error        TEXT
+    );
+    CREATE INDEX idx_review_jobs_pending ON review_jobs (started_at);
+    ",
 ];
 
 /// Run any migrations newer than the connection's `user_version`.

@@ -14,14 +14,15 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
 
 ## Architecture map
 
-| Path                   | What lives there                                                                                                                                                                                                                                        |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `crates/tandem-core`   | Pure domain types (`github`, `review`, `agent`, `diff`), the unified-diff parser (`diff_parse`), `TandemError`. No I/O, nothing heavier than serde/chrono — every other crate speaks these types.                                                       |
-| `crates/tandem-github` | GitHub REST/GraphQL client. Wire structs in `wire.rs`, HTTP in `client.rs`, auth strategies in `auth.rs`, discovery in `discovery.rs`, rate-limit backoff in `rate_limit.rs`, the user-only write half in `write.rs`.                                   |
-| `crates/tandem-cache`  | SQLite. GitHub-data caching in `store.rs`; local-only review data in `review_store.rs` (+ `summaries.rs`, `revisions.rs`, `reviewed.rs`); merged-PR retention in `archive.rs`; migrations in `schema.rs`.                                               |
-| `crates/tandem-agents` | Agent runners. argv per runner in `command.rs`, stdout classification + the comment contract in `events.rs`, prompt assembly in `context.rs` / `reply.rs` / `conversation.rs` / `conventions.rs` / `summary.rs`, process lifecycle in `runner.rs`.      |
-| `src-tauri`            | Thin Tauri shell. One file per domain under `src/commands/`; `state.rs` (`AppState`), `settings.rs` (settings + `AppDirs`), `file_config.rs` (optional `tandem.yaml`). Commands validate, lock state briefly, and delegate to the crates.               |
-| `src/`                 | React frontend. IPC only through `src/lib/ipc.ts`; shared state only through the zustand store (`src/state/store.ts`, actions in `src/state/*Actions.ts`, event subscriptions in `src/state/initAction.ts`); Rust types mirrored in `src/lib/types.ts`. |
+| Path                   | What lives there                                                                                                                                                                                                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `crates/tandem-core`   | Pure domain types (`github`, `review`, `agent`, `diff`), the unified-diff parser (`diff_parse`), `TandemError`. No I/O, nothing heavier than serde/chrono — every other crate speaks these types.                                                                                                 |
+| `crates/tandem-github` | GitHub REST/GraphQL client. Wire structs in `wire.rs`, HTTP in `client.rs`, auth strategies in `auth.rs`, discovery in `discovery.rs`, rate-limit backoff in `rate_limit.rs`, the user-only write half in `write.rs`.                                                                             |
+| `crates/tandem-cache`  | SQLite. GitHub-data caching in `store.rs`; local-only review data in `review_store.rs` (+ `summaries.rs`, `revisions.rs`, `reviewed.rs`); merged-PR retention in `archive.rs`; the outside-process review queue in `queue.rs`; migrations in `schema.rs`.                                         |
+| `crates/tandem-agents` | Agent runners. argv per runner in `command.rs`, stdout classification + the comment contract in `events.rs`, prompt assembly in `context.rs` / `reply.rs` / `conversation.rs` / `conventions.rs` / `summary.rs`, process lifecycle in `runner.rs`.                                                |
+| `crates/tandem-cli`    | `tandem-cli`: read-only JSON CLI over the cache DB, plus `review` (enqueue) and `update`. A library (`tandem_cli::run`, `ABOUT`) with a thin `main.rs`, so `beagle` can link it. Reads raw SQL, so schema changes must keep it working (`query_tests.rs` builds a real store). See `docs/CLI.md`. |
+| `src-tauri`            | Thin Tauri shell. One file per domain under `src/commands/`; `state.rs` (`AppState`), `settings.rs` (settings + `AppDirs`), `file_config.rs` (optional `tandem.yaml`). Commands validate, lock state briefly, and delegate to the crates.                                                         |
+| `src/`                 | React frontend. IPC only through `src/lib/ipc.ts`; shared state only through the zustand store (`src/state/store.ts`, actions in `src/state/*Actions.ts`, event subscriptions in `src/state/initAction.ts`); Rust types mirrored in `src/lib/types.ts`.                                           |
 
 `src/lib/types.ts` must match Rust serde output: snake_case fields and
 `kind`-tagged enums. Change both sides together.
@@ -39,6 +40,10 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
   handle. `kill_on_drop` means a run never leaves orphaned children.
 - Agent checkouts for runs are serialized by a mutex on `AppState`
   (`ensure_pr_checkout`), with one directory per (repo, PR).
+- `commands/drain.rs` polls `review_jobs` every 20s (and once on
+  startup) and starts the reviews other processes queued through
+  `tandem-cli review`. The queue is the one place an outside process
+  writes; it records requests, never review data.
 
 ## Domain rules
 
@@ -171,6 +176,12 @@ merge to `main` touches release-relevant paths: `tandem/**` except
   - the Homebrew cask (`brew install --cask beagle-tools/tap/beagle-tandem`).
     The cask's source is root `packaging/homebrew/`, which release CI
     owns, not this directory.
+- **The CLI sidecar.** `tandem-cli` ships inside the bundle: release CI
+  builds it per target and declares it in `tauri.conf.json`'s
+  `bundle.externalBin` (`scripts/release/stage-sidecar.sh`, CI only, so
+  plain cargo builds never need it). The cask links
+  `Tandem.app/Contents/MacOS/tandem-cli` onto PATH, and
+  `set-version.mjs` stamps it with the other workspace members.
 - **Rollback.** Settings › Version (`src-tauri/src/commands/updates.rs`)
   lists the releases whose tag starts with `TAG_PREFIX = "beagle-tandem-v"`.
   It installs one through that tag's own `latest.json`, and the signature

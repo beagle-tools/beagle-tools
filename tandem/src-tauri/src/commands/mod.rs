@@ -3,6 +3,7 @@
 mod agent_pump;
 pub mod agents;
 pub mod conflicts;
+pub mod drain;
 pub mod files;
 pub mod github_write;
 pub mod mcp;

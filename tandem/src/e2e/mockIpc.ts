@@ -9,7 +9,7 @@
 import type { InvokeArgs } from "@tauri-apps/api/core";
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 
-import type { LocalComment, NewLocalComment, Settings } from "../lib/types";
+import type { AgentSpec, LocalComment, NewLocalComment, Settings } from "../lib/types";
 import {
   AGENT_RUNS,
   AGENT_SPECS,
@@ -39,6 +39,20 @@ const str = (a: Args, key: string): string => (typeof a[key] === "string" ? a[ke
 
 let settings: Settings = SETTINGS;
 const comments: LocalComment[] = [...LOCAL_COMMENTS];
+let agentSpecs: AgentSpec[] = [...AGENT_SPECS];
+
+/** Mirrors save_agent_spec: a differing `previousName` moves the spec,
+ * and a rename onto another agent's name is refused. */
+function saveAgentSpec(spec: AgentSpec, previousName: string | null): null {
+  const renaming = previousName !== null && previousName !== "" && previousName !== spec.name;
+  if (renaming && agentSpecs.some((s) => s.name === spec.name)) {
+    throw new Error(`there's already an agent called ${spec.name}`);
+  }
+  const keep = (s: AgentSpec): boolean =>
+    s.name !== spec.name && !(renaming && s.name === previousName);
+  agentSpecs = [...agentSpecs.filter(keep), spec].sort((x, y) => x.name.localeCompare(y.name));
+  return null;
+}
 
 function addComment(input: NewLocalComment): LocalComment {
   const now = new Date().toISOString();
@@ -135,7 +149,12 @@ function reviewCommand(cmd: string, a: Args): unknown {
     case "list_mcp_servers":
       return [{ name: "linear", tool_prefix: "mcp__linear", detail: "stdio", connected: true }];
     case "list_agent_specs":
-      return AGENT_SPECS;
+      return agentSpecs;
+    case "save_agent_spec":
+      return saveAgentSpec(a.spec as AgentSpec, (a.previousName as string | null) ?? null);
+    case "delete_agent_spec":
+      agentSpecs = agentSpecs.filter((s) => s.name !== str(a, "name"));
+      return null;
     case "list_agent_runs":
       return AGENT_RUNS.filter((r) => r.pr_number === num(a, "number"));
     case "list_all_agent_runs":

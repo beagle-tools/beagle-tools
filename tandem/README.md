@@ -117,6 +117,19 @@ to an older one. Every bundle is signature-checked either way.
 > Homebrew cask clear the quarantine flag for you; for a manual dmg
 > install, right-click → Open on first launch.
 
+## Scripting it: `tandem-cli`
+
+The app ships a read-only JSON CLI over its local store (the cask puts
+it on PATH): list cached PRs, comments (flat or threaded), summaries and
+agent runs, see which requested reviews nothing has looked at yet, and
+queue a review for Tandem to run with your agent config. See
+[`docs/CLI.md`](docs/CLI.md).
+
+```sh
+tandem-cli queue | jq -r '.[] | "\(.repo.owner)/\(.repo.name) \(.number)"'
+tandem-cli review --repo acme/widgets --pr 123
+```
+
 ## Building from source
 
 Prereqs: Rust (the toolchain pinned in the repo's `rust-toolchain.toml`

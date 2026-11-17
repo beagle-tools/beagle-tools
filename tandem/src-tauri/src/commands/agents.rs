@@ -24,11 +24,43 @@ pub async fn list_agent_specs(state: State<'_, AppState>) -> Result<Vec<AgentSpe
 pub async fn save_agent_spec(
     state: State<'_, AppState>,
     spec: AgentSpec,
+    // The name the editor opened with. Specs are keyed by name, so
+    // saving under a new one is an insert — without this the old spec
+    // stays behind and a rename quietly becomes a duplicate.
+    previous_name: Option<String>,
+) -> Result<(), TandemError> {
+    let cache = state.cache.lock().await;
+    save_spec(&*cache, &spec, previous_name.as_deref())
+}
+
+/// Save `spec`, moving it when `previous` names a different spec: written
+/// under the new name, removed under the old. A rename onto a name that
+/// already belongs to another agent is refused rather than overwriting it.
+fn save_spec(
+    cache: &impl ReviewStore,
+    spec: &AgentSpec,
+    previous: Option<&str>,
 ) -> Result<(), TandemError> {
     if spec.name.trim().is_empty() {
         return Err(TandemError::Config("agent name cannot be empty".into()));
     }
-    state.cache.lock().await.put_agent_spec(&spec)
+    match previous {
+        Some(previous) if !previous.is_empty() && previous != spec.name => {
+            let taken = cache
+                .list_agent_specs()?
+                .into_iter()
+                .any(|s| s.name == spec.name);
+            if taken {
+                return Err(TandemError::Config(format!(
+                    "there's already an agent called {}",
+                    spec.name
+                )));
+            }
+            cache.put_agent_spec(spec)?;
+            cache.delete_agent_spec(previous)
+        }
+        _ => cache.put_agent_spec(spec),
+    }
 }
 
 #[tauri::command]
@@ -292,3 +324,7 @@ pub(crate) async fn launch_run(
     tokio::spawn(pump_events(app, events, run, spec, repo, head_sha));
     Ok(run_id)
 }
+
+#[cfg(test)]
+#[path = "agents_tests.rs"]
+mod tests;

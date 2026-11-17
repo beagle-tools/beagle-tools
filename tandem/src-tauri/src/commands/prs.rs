@@ -6,7 +6,7 @@
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-use tandem_cache::{ArchiveStore, Cache, ReviewStore, ReviewedPrs, SummaryStore};
+use tandem_cache::{ArchiveStore, Cache, ReviewQueue, ReviewStore, ReviewedPrs, SummaryStore};
 use tandem_core::diff::FileDiff;
 use tandem_core::github::{ArchivedPr, PrDetail, PrState, PullRequest};
 use tandem_core::review::{LocalComment, PrSummary};
@@ -202,7 +202,15 @@ pub async fn list_my_prs(
         Some(slug) => format!("{base} repo:{slug}"),
         None => base.to_owned(),
     };
-    client.search_global_prs(&query).await
+    let prs = client.search_global_prs(&query).await?;
+    // Mirror the review-request inbox into the database: a cron job
+    // with no GitHub token still needs to know what's waiting on you.
+    if scope == "requested" && repo.is_none() {
+        if let Err(e) = state.cache.lock().await.put_review_requests(&prs) {
+            tracing::warn!(error = %e, "couldn't mirror review requests");
+        }
+    }
+    Ok(prs)
 }
 
 /// Failing check names for the hover tip on red-edged rows.
