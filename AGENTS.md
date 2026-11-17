@@ -12,7 +12,7 @@ change code in an app.
 | `cli/` | The single `beagle` command: one library crate per tool, linked into one binary | `cli/AGENTS.md` |
 | `utils/` | `beagle-utils`: Rust helpers shared by two or more apps | `utils/README.md` |
 | `standards/`, `scripts/`, root configs | Shared lint, format, compiler and CI configuration | `docs/CODING_STANDARDS.md` |
-| `skills/` | Agent skills: `beagle-create-issue`, `beagle-complete-issue`, and rca's `beagle` / `beagle-review` (embedded into the rca binary). `.claude/skills/*` symlink here | `skills/README.md` |
+| `skills/` | Agent skills: `beagle-create-issue`, `beagle-complete-issue`, and rca's `beagle` / `beagle-review` (embedded into `beagle`, served by `beagle rca skill install`). `.claude/skills/*` symlink here | `skills/README.md` |
 | `packaging/`, `scripts/release/` | Homebrew formulas and casks, plus the per-app release pipeline | `docs/RELEASING.md` |
 
 ## How work flows

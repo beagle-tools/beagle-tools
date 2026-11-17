@@ -9,8 +9,9 @@ with you in control.
 
 <a href="https://github.com/beagle-tools/beagle-tools/actions/workflows/ci.yml"><img src="https://github.com/beagle-tools/beagle-tools/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI status"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
+<a href="https://github.com/beagle-tools/beagle-tools/releases?q=beagle-cli-v"><img src="https://img.shields.io/github/v/release/beagle-tools/beagle-tools?filter=beagle-cli-v*&label=beagle" alt="Latest beagle CLI release"></a>
 <a href="https://github.com/beagle-tools/beagle-tools/releases?q=beagle-tandem-v"><img src="https://img.shields.io/github/v/release/beagle-tools/beagle-tools?filter=beagle-tandem-v*&label=tandem" alt="Latest Tandem release"></a>
-<a href="https://github.com/beagle-tools/beagle-tools/releases?q=beagle-rca-v"><img src="https://img.shields.io/github/v/release/beagle-tools/beagle-tools?filter=beagle-rca-v*&label=beagle" alt="Latest Beagle release"></a>
+<a href="https://github.com/beagle-tools/beagle-tools/releases?q=beagle-rca-v"><img src="https://img.shields.io/github/v/release/beagle-tools/beagle-tools?filter=beagle-rca-v*&label=rca" alt="Latest Beagle RCA release"></a>
 <a href="https://github.com/beagle-tools/beagle-tools/releases?q=beagle-workflows-v"><img src="https://img.shields.io/github/v/release/beagle-tools/beagle-tools?filter=beagle-workflows-v*&label=agentd" alt="Latest agentd release"></a>
 
 </div>
@@ -26,11 +27,29 @@ with you in control.
 Underneath them, [`utils/`](utils/README.md) (`beagle-utils`) holds the Rust helpers two or more
 apps share.
 
-> **Coming soon:** a unified `beagle` base CLI with extensions — see [#2](https://github.com/beagle-tools/beagle-tools/issues/2).
+The terminal tools ship as **one binary, `beagle`** ([`cli/`](cli/README.md)): `beagle rca`,
+`beagle recap`, `beagle scout`, `beagle standup` and `beagle tandem` (Tandem's data from a script).
 
 ## Install
 
 <details open>
+<summary><b>beagle</b> — the one CLI: rca, recap, scout, standup, tandem</summary>
+
+```sh
+brew install beagle-tools/tap/beagle
+beagle help                   # every tool it holds
+beagle rca skill install      # the /beagle skills for Claude Code and Codex
+beagle update                 # later: update every tool at once
+```
+
+Tarballs and `cargo install`: [`cli/README.md`](cli/README.md). Coming from the standalone rca
+CLI (`brew install beagle-tools/tap/beagle-rca`)? Both install a `beagle`, so switch with
+`brew uninstall beagle-rca && brew install beagle-tools/tap/beagle`; every old `beagle <cmd>` is
+now `beagle rca <cmd>`. `beagle doctor` lists old standalone binaries still on your `PATH`.
+
+</details>
+
+<details>
 <summary><b>Tandem</b> — desktop app</summary>
 
 ```sh
@@ -50,15 +69,13 @@ Direct downloads for every platform: [`tandem/README.md`](tandem/README.md#insta
 </details>
 
 <details>
-<summary><b>Beagle</b> — CLI/TUI, daemon and desktop app</summary>
+<summary><b>Beagle RCA</b> — desktop app and agent daemon (the CLI/TUI is <code>beagle rca</code>)</summary>
 
 ```sh
-brew install beagle-tools/tap/beagle-rca                  # CLI: beagle + beagle-agentd
 brew install --cask beagle-tools/tap/beagle-rca-desktop   # the desktop app (macOS)
-beagle skill install      # install the /beagle skill for Claude Code and Codex
 ```
 
-Tarballs and `cargo install`: [`rca/README.md`](rca/README.md#install--run).
+The `beagle-agentd` daemon and other routes: [`rca/README.md`](rca/README.md#install--run).
 
 </details>
 
@@ -75,8 +92,9 @@ Direct downloads and the tmux/notifier setup: [`workflows/README.md`](workflows/
 
 </details>
 
-**How updates work:** the desktop apps update themselves in-app; the CLIs update with
-`brew upgrade` (or `beagle update` for the Beagle CLI).
+**How updates work:** the desktop apps update themselves in-app; `beagle update` updates the
+`beagle` CLI (running `brew upgrade` when Homebrew installed it); the other CLIs update with
+`brew upgrade`.
 
 ## Quick start
 
@@ -85,8 +103,8 @@ Direct downloads and the tmux/notifier setup: [`workflows/README.md`](workflows/
 **Beagle** — scaffold an RCA (`--title` is required), then watch it render live:
 
 ```sh
-beagle new <slug> --title "..."
-beagle                    # open the TUI against ./rcas
+beagle rca new <slug> --title "..."
+beagle rca                # open the TUI against ./rcas
 ```
 
 **agentd** — with the [demo manifests](workflows/manifests/) in `~/.config/agentd/manifests/`:
@@ -105,7 +123,7 @@ flowchart LR
     agentd["agentd<br/>scheduled agent runs"]
     agent["Agent<br/>claude · codex + /beagle skill"]
     rca[("Beagle RCA workspace<br/>plain files on disk")]
-    viewer["beagle TUI · Beagle desktop<br/>live render"]
+    viewer["beagle rca TUI · Beagle desktop<br/>live render"]
     bagentd["beagle-agentd<br/>implements remediation.md"]
     pr["Pull request"]
     tandem["Tandem<br/>review with agents"]
@@ -135,17 +153,18 @@ before anything reaches GitHub.
 
 ## Repo layout
 
-| Path                                | Purpose                                                                                     |
-| ----------------------------------- | ------------------------------------------------------------------------------------------- |
-| [`tandem/`](tandem/README.md)       | Tandem desktop app (Tauri 2 + Rust + React)                                                 |
-| [`rca/`](rca/README.md)             | Beagle: `beagle` CLI/TUI, `beagle-agentd`, desktop app and postmortem site                  |
-| [`workflows/`](workflows/README.md) | agentd, agentctl, agenttop and the Agentdesk desktop app                                    |
-| [`utils/`](utils/README.md)         | `beagle-utils`, Rust helpers shared by two or more apps                                     |
-| [`skills/`](skills/README.md)       | Agent skills: `/beagle`, `/beagle-review`, `/beagle-create-issue`, `/beagle-complete-issue` |
-| [`standards/`](standards/)          | Shared lint and compiler config every app uses unchanged                                    |
-| [`scripts/`](scripts/)              | CI gate, dev, release and GitHub scripts                                                    |
-| [`packaging/`](packaging/)          | Homebrew formula templates and casks for `beagle-tools/tap`                                 |
-| [`docs/`](docs/)                    | Monorepo docs: development, testing, standards, SDLC, releasing                             |
+| Path                                | Purpose                                                                                      |
+| ----------------------------------- | -------------------------------------------------------------------------------------------- |
+| [`tandem/`](tandem/README.md)       | Tandem desktop app (Tauri 2 + Rust + React)                                                  |
+| [`cli/`](cli/README.md)             | The one `beagle` command: every terminal tool linked into a single binary                    |
+| [`rca/`](rca/README.md)             | Beagle RCA: the `beagle rca` CLI/TUI crate, `beagle-agentd`, desktop app and postmortem site |
+| [`workflows/`](workflows/README.md) | agentd, agentctl, agenttop and the Agentdesk desktop app                                     |
+| [`utils/`](utils/README.md)         | `beagle-utils`, Rust helpers shared by two or more apps                                      |
+| [`skills/`](skills/README.md)       | Agent skills: `/beagle`, `/beagle-review`, `/beagle-create-issue`, `/beagle-complete-issue`  |
+| [`standards/`](standards/)          | Shared lint and compiler config every app uses unchanged                                     |
+| [`scripts/`](scripts/)              | CI gate, dev, release and GitHub scripts                                                     |
+| [`packaging/`](packaging/)          | Homebrew formula templates and casks for `beagle-tools/tap`                                  |
+| [`docs/`](docs/)                    | Monorepo docs: development, testing, standards, SDLC, releasing                              |
 
 ## Develop
 
