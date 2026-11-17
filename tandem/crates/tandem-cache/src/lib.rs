@@ -9,6 +9,7 @@
 //! while the domain types are still moving.
 
 mod archive;
+mod queue;
 mod review_store;
 #[cfg(test)]
 mod review_store_tests;
@@ -19,6 +20,7 @@ mod store;
 mod summaries;
 
 pub use archive::{purge_deadline, ArchiveStore, PurgedRuns};
+pub use queue::{ReviewJob, ReviewQueue};
 pub use review_store::ReviewStore;
 pub use reviewed::ReviewedPrs;
 pub use revisions::CommentRevisions;
