@@ -20,6 +20,7 @@ const RUST_WORKSPACES = [
   "rca/desktop/src-tauri",
   "workflows",
   "workflows/desktop",
+  "cli",
 ];
 const FRONTENDS = ["tandem", "rca/desktop", "rca/web", "workflows/desktop"];
 const REQUIRED_SCRIPTS = ["format:check", "lint", "typecheck", "test", "build", "e2e"];
