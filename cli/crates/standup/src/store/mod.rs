@@ -78,7 +78,7 @@ const SUMMARY_TEMPLATE: &str = "\
 ## What we need to do
 ";
 
-/// One row of `standup list`.
+/// One row of `beagle standup list`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ReportSummary {
     /// The report date (`YYYY-MM-DD`).

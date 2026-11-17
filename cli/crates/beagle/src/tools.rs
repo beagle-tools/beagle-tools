@@ -22,6 +22,11 @@ pub struct Tool {
 /// Every registered tool, in the order `beagle help` lists them.
 pub const TOOLS: &[Tool] = &[
     Tool {
+        name: "recap",
+        about: recap::ABOUT,
+        run: recap::run,
+    },
+    Tool {
         name: "scout",
         about: beagle_scout::ABOUT,
         run: beagle_scout::run,
