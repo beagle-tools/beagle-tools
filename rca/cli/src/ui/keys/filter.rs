@@ -42,6 +42,7 @@ impl App {
             KeyCode::Enter => self.filter_input = crate::ui::FilterInput::Off,
             KeyCode::Char('/') => self.filter_input = crate::ui::FilterInput::Typing,
             KeyCode::Char('i') => self.toggle_status_facet(Status::Investigating),
+            KeyCode::Char('x') => self.toggle_status_facet(Status::Fixing),
             KeyCode::Char('r') => self.toggle_status_facet(Status::Review),
             KeyCode::Char('a') => self.toggle_status_facet(Status::Agent),
             KeyCode::Char('v') => self.toggle_status_facet(Status::FinalReview),

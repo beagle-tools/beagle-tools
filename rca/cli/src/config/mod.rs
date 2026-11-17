@@ -45,6 +45,16 @@ pub const TEMPLATE: &str = "\
 # Falls back to $VISUAL, then $EDITOR, then vim.
 # editor = \"vim\"
 
+# Time zone for timestamps shown in the TUI (e.g. when an RCA was opened).
+# Files on disk stay UTC. An IANA name (America/New_York, America/Chicago,
+# America/Denver, America/Los_Angeles, Europe/London, Europe/Berlin), an
+# abbreviation (EST, PST, ... — DST-aware), UTC, or a POSIX rule
+# (EST5EDT,M3.2.0,M11.1.0). Default: UTC.
+# timezone = \"America/New_York\"
+# 12- or 24-hour clock for those timestamps: \"12h\" (3:08 PM) or \"24h\"
+# (15:08, the default).
+# clock = \"12h\"
+
 # Desktop notifications while the TUI runs: new incidents and status
 # changes (osascript on macOS, notify-send on Linux). Off by default.
 # notify = true
@@ -54,6 +64,7 @@ pub const TEMPLATE: &str = "\
 # [notify_events]
 # new_incident = true
 # investigating = true
+# fixing = true
 # review = false
 # agent = false
 # final_review = true
@@ -102,6 +113,13 @@ pub struct Config {
     /// Editor command for `beagle config`, possibly with arguments.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub editor: Option<String>,
+    /// Display time zone for TUI timestamps (see [`crate::tz::TimeZone::parse`]).
+    /// Absent means UTC; files on disk are always UTC.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timezone: Option<String>,
+    /// 12- or 24-hour clock for TUI timestamps. Absent means 24-hour.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clock: Option<crate::tz::Clock>,
     /// Desktop notifications from the TUI (new incidents, status changes).
     /// Off unless explicitly enabled. The master switch — see
     /// `notify_events` to pick which events fire.
@@ -180,6 +198,9 @@ pub struct NotifyEvents {
     /// A workspace moved to `investigating`.
     #[serde(default)]
     pub investigating: bool,
+    /// A workspace moved to `fixing`.
+    #[serde(default)]
+    pub fixing: bool,
     /// A workspace moved to `review`.
     #[serde(default)]
     pub review: bool,
@@ -202,6 +223,7 @@ impl NotifyEvents {
         Self {
             new_incident: true,
             investigating: true,
+            fixing: true,
             review: true,
             agent: true,
             final_review: true,

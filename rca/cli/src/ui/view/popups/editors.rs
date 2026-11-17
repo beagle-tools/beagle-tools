@@ -33,6 +33,7 @@ pub(in crate::ui::view) fn draw_status_picker(frame: &mut Frame, app: &App, area
             let (symbol, symbol_style) = crate::ui::view::style::status_symbol(status, 0);
             let hint = match status {
                 Status::Investigating => "actively debugging",
+                Status::Fixing => "root cause found; writing the fix",
                 Status::Review => "write-up done; fix PR out for review",
                 Status::Agent => "handed off to an automated agent",
                 Status::FinalReview => "fix merged — work the checklist, V signs off",

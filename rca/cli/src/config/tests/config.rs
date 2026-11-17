@@ -79,6 +79,8 @@ fn config_editor_wins_over_fallback() {
     let config = Config {
         root: None,
         editor: Some("hx".to_owned()),
+        timezone: None,
+        clock: None,
         notify: None,
         notify_events: None,
         handoff: None,
@@ -94,7 +96,13 @@ fn notify_events_parses_a_partial_table() {
         .expect("parses");
     let events = cfg.notify_events.expect("table present");
     assert!(events.final_review && events.finished);
-    assert!(!events.investigating && !events.review && !events.agent && !events.new_incident);
+    assert!(
+        !events.investigating
+            && !events.fixing
+            && !events.review
+            && !events.agent
+            && !events.new_incident
+    );
 }
 
 #[test]
@@ -104,6 +112,7 @@ fn notify_events_all_enables_every_event() {
     assert!(
         all.new_incident
             && all.investigating
+            && all.fixing
             && all.review
             && all.agent
             && all.final_review

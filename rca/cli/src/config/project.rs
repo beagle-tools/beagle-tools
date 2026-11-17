@@ -91,6 +91,8 @@ pub(super) fn resolve_project(
     });
     if let Some(global) = global {
         project.editor = project.editor.or(global.editor);
+        project.timezone = project.timezone.or(global.timezone);
+        project.clock = project.clock.or(global.clock);
         project.notify = project.notify.or(global.notify);
         project.notify_events = project.notify_events.or(global.notify_events);
         project.handoff = project.handoff.or(global.handoff);

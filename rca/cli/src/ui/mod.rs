@@ -20,6 +20,7 @@ mod event_loop;
 mod filter;
 mod finder;
 mod keys;
+mod launch;
 mod mouse;
 mod overlays;
 mod pane;
@@ -29,6 +30,7 @@ mod settings;
 mod tabs;
 mod view;
 
+pub use launch::{run, Settings};
 pub use pane::Pane;
 pub use tabs::{Focus, Screen, Tab};
 
@@ -103,7 +105,7 @@ pub struct App {
     /// Content cache for the current (workspace, tab, diagram) triple.
     pane: Option<(PaneKey, Pane)>,
     /// Animation counter, advanced once per event-loop turn (the loop wakes
-    /// at least every 250 ms). Drives the `investigating` spinner.
+    /// at least every 250 ms). Drives the `investigating` / `fixing` spinner.
     tick: usize,
     /// Follow mode: filesystem reloads keep the current tab scrolled to the
     /// bottom, tail-f style.
@@ -121,6 +123,10 @@ pub struct App {
     /// Which lifecycle events fire a notification when `notify_enabled`
     /// (config `[notify_events]`; all events by default).
     notify_events: crate::config::NotifyEvents,
+    /// Display zone for timestamps (config `timezone`; UTC by default).
+    timezone: crate::tz::TimeZone,
+    /// 12- or 24-hour clock for timestamps (config `clock`; 24h by default).
+    clock: crate::tz::Clock,
     /// Last-seen modification time per section file, for change detection.
     mtimes: HashMap<(RcaId, SectionKind), std::time::SystemTime>,
     /// Checkbox counts per section, `(checked, total)`, re-scanned only
@@ -252,6 +258,8 @@ impl App {
             show_archived: false,
             notify_enabled: false,
             notify_events: crate::config::NotifyEvents::all(),
+            timezone: crate::tz::TimeZone::utc(),
+            clock: crate::tz::Clock::default(),
             mtimes: HashMap::new(),
             checklists: HashMap::new(),
             unread: HashSet::new(),
@@ -351,34 +359,6 @@ impl App {
     pub(crate) fn archived_count(&self) -> usize {
         self.rcas.iter().filter(|rca| rca.archived).count()
     }
-}
-
-/// Sets up the terminal, runs the app, and unconditionally restores the
-/// terminal — including on error paths.
-///
-/// # Errors
-/// Propagates any [`Error`](crate::Error) from app construction or the
-/// event loop.
-pub fn run(store: Store, notify: bool, notify_events: crate::config::NotifyEvents) -> Result<()> {
-    let mut terminal = ratatui::init();
-    // Mouse capture must be torn down on every exit path — left on, it
-    // garbles the user's shell (scrolling emits escape codes). The panic
-    // hook wraps the one `ratatui::init` installed, so capture is released
-    // before the terminal is restored even when we panic.
-    let _ = crossterm::execute!(std::io::stdout(), crossterm::event::EnableMouseCapture);
-    let previous_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(move |info| {
-        let _ = crossterm::execute!(std::io::stdout(), crossterm::event::DisableMouseCapture);
-        previous_hook(info);
-    }));
-    let result = App::new(store).and_then(|mut app| {
-        app.notify_enabled = notify;
-        app.notify_events = notify_events;
-        app.run(&mut terminal)
-    });
-    let _ = crossterm::execute!(std::io::stdout(), crossterm::event::DisableMouseCapture);
-    ratatui::restore();
-    result
 }
 
 #[cfg(test)]
