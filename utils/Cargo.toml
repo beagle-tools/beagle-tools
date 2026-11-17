@@ -26,7 +26,7 @@ tempfile = "3"
 workspace = true
 
 [workspace]
-members = ["."]
+members = [".", "tui"]
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
