@@ -36,7 +36,7 @@ pub(super) fn draw_agents(frame: &mut Frame, app: &App, area: Rect) {
             ));
             lines.push(Line::from(""));
             lines.push(Line::styled(
-                "  start it with `beagle agent start`",
+                "  start it with `beagle rca agent start`",
                 Style::default().fg(Color::DarkGray),
             ));
         }

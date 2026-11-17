@@ -5,14 +5,15 @@ use std::env;
 use std::io::IsTerminal as _;
 use std::path::{Path, PathBuf};
 
-use beagle::model::{RcaId, RcaSummary, Severity, Status};
-use beagle::store::{BrokenWorkspace, Store};
-use beagle::{config, Error};
+use crate::model::{RcaId, RcaSummary, Severity, Status};
+use crate::store::{BrokenWorkspace, Store};
+use crate::{config, Error};
 use beagle_utils::paths::expand_tilde;
 
-use crate::{cli, effective_root};
+use crate::cli;
+use crate::run::effective_root;
 
-/// `beagle list`: workspaces to stdout, warnings to stderr. With `json`,
+/// `beagle rca list`: workspaces to stdout, warnings to stderr. With `json`,
 /// stdout is a JSON array of the matching workspaces and nothing else, so it
 /// pipes straight into `jq`.
 pub(crate) fn run_list(
@@ -51,7 +52,7 @@ pub(crate) fn run_list(
     Ok(())
 }
 
-/// The human-readable `beagle list` table: one fixed-width row per
+/// The human-readable `beagle rca list` table: one fixed-width row per
 /// workspace, then a row per directory that failed to load.
 fn print_list_table(matched: &[&RcaSummary], broken: &[BrokenWorkspace]) {
     for rca in matched {
@@ -66,7 +67,7 @@ fn print_list_table(matched: &[&RcaSummary], broken: &[BrokenWorkspace]) {
     }
 }
 
-/// `beagle init`: scaffold toolbox.md + systems/ agent context templates.
+/// `beagle rca init`: scaffold toolbox.md + systems/ agent context templates.
 pub(crate) fn run_init(root: Option<PathBuf>) -> Result<(), Error> {
     let store_root = match root {
         Some(explicit) => explicit,
@@ -87,7 +88,7 @@ pub(crate) fn run_init(root: Option<PathBuf>) -> Result<(), Error> {
     Ok(())
 }
 
-/// The root for a bare `beagle init`. An existing `.beagle` up-tree wins
+/// The root for a bare `beagle rca init`. An existing `.beagle` up-tree wins
 /// (init stays idempotent — no prompt). Interactively, asks where the
 /// store root should live (default: the working directory) and writes a
 /// `.beagle` in the cwd pinning it, so `beagle` run anywhere under here
@@ -139,7 +140,7 @@ fn init_project_root() -> Result<PathBuf, Error> {
     Ok(root)
 }
 
-/// `beagle archive`: move a finished workspace to `rcas/archive/`.
+/// `beagle rca archive`: move a finished workspace to `rcas/archive/`.
 pub(crate) fn run_archive(root: Option<PathBuf>, id: &RcaId, force: bool) -> Result<(), Error> {
     let store = Store::open(&effective_root(root)?)?;
     let dest = store.archive(id, force)?;
@@ -147,7 +148,7 @@ pub(crate) fn run_archive(root: Option<PathBuf>, id: &RcaId, force: bool) -> Res
     Ok(())
 }
 
-/// `beagle unarchive`: move an archived workspace back to the active list.
+/// `beagle rca unarchive`: move an archived workspace back to the active list.
 pub(crate) fn run_unarchive(root: Option<PathBuf>, id: &RcaId) -> Result<(), Error> {
     let store = Store::open(&effective_root(root)?)?;
     let dest = store.unarchive(id)?;
@@ -155,7 +156,7 @@ pub(crate) fn run_unarchive(root: Option<PathBuf>, id: &RcaId) -> Result<(), Err
     Ok(())
 }
 
-/// `beagle publish` / `beagle unpublish`: toggle an RCA's public flag.
+/// `beagle rca publish` / `beagle rca unpublish`: toggle an RCA's public flag.
 pub(crate) fn run_set_published(
     root: Option<PathBuf>,
     id: &RcaId,
@@ -171,7 +172,7 @@ pub(crate) fn run_set_published(
     Ok(())
 }
 
-/// `beagle status <id> <status>`: move an RCA through its lifecycle,
+/// `beagle rca status <id> <status>`: move an RCA through its lifecycle,
 /// stamping `updated`.
 pub(crate) fn run_set_status(
     root: Option<PathBuf>,
@@ -184,7 +185,7 @@ pub(crate) fn run_set_status(
     Ok(())
 }
 
-/// `beagle context <id>`: print the review bundle (writeup + toolbox +
+/// `beagle rca context <id>`: print the review bundle (writeup + toolbox +
 /// relevant systems) to stdout, for a reviewer or the `/beagle-review`
 /// skill to capture.
 pub(crate) fn run_context(root: Option<PathBuf>, id: &RcaId) -> Result<(), Error> {
@@ -193,7 +194,7 @@ pub(crate) fn run_context(root: Option<PathBuf>, id: &RcaId) -> Result<(), Error
     Ok(())
 }
 
-/// `beagle similar`: related workspaces, highest score first. Archived
+/// `beagle rca similar`: related workspaces, highest score first. Archived
 /// incidents stay in the candidate set — the archive *is* the knowledge
 /// base this command exists to mine.
 pub(crate) fn run_similar(root: Option<PathBuf>, id: &RcaId) -> Result<(), Error> {
@@ -206,7 +207,7 @@ pub(crate) fn run_similar(root: Option<PathBuf>, id: &RcaId) -> Result<(), Error
             tool: "similar",
             message: format!("no workspace `{id}` under this root"),
         })?;
-    let related = beagle::similar::rank(target, &summaries);
+    let related = crate::similar::rank(target, &summaries);
     if related.is_empty() {
         println!("no related incidents (nothing shares systems or tags with {id})");
         return Ok(());
@@ -218,7 +219,7 @@ pub(crate) fn run_similar(root: Option<PathBuf>, id: &RcaId) -> Result<(), Error
             entry.rca.meta.severity,
             entry.rca.meta.status,
             entry.rca.id,
-            beagle::similar::shared_label(entry),
+            crate::similar::shared_label(entry),
         );
     }
     Ok(())

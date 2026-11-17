@@ -3,8 +3,8 @@
 
 use std::path::PathBuf;
 
-use beagle::model::{RcaId, Severity, Status};
-use beagle::update;
+use crate::model::{RcaId, Severity, Status};
+use crate::update;
 
 use super::{take_value, AgentAction, Command, SkillAction};
 

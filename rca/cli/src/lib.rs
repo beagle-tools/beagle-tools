@@ -17,11 +17,19 @@
 //! `config` (the user config file) and `update` (self-update against GitHub
 //! releases) sit beside `ui` at the top of the stack; both depend only on
 //! `error`.
+//!
+//! The command line is part of the library too: [`run`] is the entry point
+//! the unified `beagle` command links as `beagle rca` (the tool contract:
+//! [`ABOUT`] + `run(args) -> ExitCode`), and [`run_standalone`] backs the
+//! standalone rca binary (`src/main.rs`). Parsing (`cli`) is pure; `run`
+//! and `commands` do the I/O.
 
 pub mod agentd;
 pub mod ansi;
 pub mod banner;
+mod cli;
 pub mod clipboard;
+mod commands;
 pub mod config;
 pub mod error;
 pub mod fuzzy;
@@ -31,6 +39,7 @@ pub mod markdown;
 pub mod model;
 pub mod notify;
 pub mod prs;
+mod run;
 pub mod similar;
 pub mod skill;
 pub mod store;
@@ -40,3 +49,4 @@ pub mod ui;
 pub mod update;
 
 pub use error::Error;
+pub use run::{run, run_standalone, ABOUT};

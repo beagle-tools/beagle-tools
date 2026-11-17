@@ -64,7 +64,7 @@ pub const ARCHIVE_DIR: &str = "archive";
 pub const EXPORTS_DIR: &str = "exports";
 
 /// Name of the toolbox file at the store root: what an investigating agent
-/// has to work with (dashboards, CLIs, runbooks). See `beagle init`.
+/// has to work with (dashboards, CLIs, runbooks). See `beagle rca init`.
 pub const TOOLBOX_FILE: &str = "toolbox.md";
 
 /// Name of the per-system context directory at the store root. File names

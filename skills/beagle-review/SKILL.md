@@ -14,7 +14,7 @@ to edit the workspace. This is the read-only companion to `/beagle`.
 
 The user pastes a slug (e.g. `2026-07-16-users-migration-blocked-by-failed-deploy`).
 In the TUI they copy it by selecting the incident and pressing `y` (yank id).
-If they didn't give one, ask for it — or run `beagle list` to show the
+If they didn't give one, ask for it — or run `beagle rca list` to show the
 choices and let them pick.
 
 ## 2. Load the context
@@ -22,7 +22,7 @@ choices and let them pick.
 Run one command — it prints everything you need to stdout:
 
 ```sh
-beagle context <id>
+beagle rca context <id>
 ```
 
 That bundle is:
@@ -36,9 +36,9 @@ That bundle is:
 - The **`systems/*.md`** docs for the systems this incident touches —
   per-system architecture and quirks.
 
-`beagle` finds the store git-style (walking up for a `.beagle` or `rcas/`),
+`beagle rca` finds the store git-style (walking up for a `.beagle` or `rcas/`),
 so run it from the user's checkout. If it errors with no such workspace,
-run `beagle list` to confirm the id, or ask the user to pass `--root`.
+run `beagle rca list` to confirm the id, or ask the user to pass `--root`.
 
 Read the whole bundle before answering. The toolbox and systems docs are
 there so your questions are grounded in how this stack actually works —

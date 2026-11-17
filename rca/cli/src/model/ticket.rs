@@ -11,7 +11,7 @@ pub enum TicketPlatform {
 
 impl TicketPlatform {
     /// Classifies a ticket URL/id by platform. `None` when it matches
-    /// neither — the shape a `beagle ticket add` should reject.
+    /// neither — the shape a `beagle rca ticket add` should reject.
     #[must_use]
     pub fn of(reference: &str) -> Option<Self> {
         let r = reference.trim();

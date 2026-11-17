@@ -160,7 +160,7 @@ fn dispatch(
         linux()
     } else {
         Err(format!(
-            "`beagle agent {action}` is only supported on macOS and Linux"
+            "`beagle rca agent {action}` is only supported on macOS and Linux"
         ))
     }
 }
@@ -206,7 +206,7 @@ fn launchd_uninstall() -> Result<String, String> {
 fn launchd_start() -> Result<String, String> {
     let path = plist_path()?;
     if !path.is_file() {
-        return Err("agent is not installed; run `beagle agent install` first".to_string());
+        return Err("agent is not installed; run `beagle rca agent install` first".to_string());
     }
     launchctl(&["bootstrap", &gui_domain()?, &path.to_string_lossy()])?;
     Ok(format!("started {LABEL}"))
@@ -276,7 +276,7 @@ fn systemd_uninstall() -> Result<String, String> {
 fn systemd_start() -> Result<String, String> {
     let path = unit_path()?;
     if !path.is_file() {
-        return Err("agent is not installed; run `beagle agent install` first".to_string());
+        return Err("agent is not installed; run `beagle rca agent install` first".to_string());
     }
     systemctl(&["start", UNIT])?;
     Ok(format!("started {UNIT}"))

@@ -55,7 +55,7 @@ impl App {
     }
 
     /// Copies the selected workspace's id (its slug) to the clipboard —
-    /// the handle to paste into `beagle context <id>` or the
+    /// the handle to paste into `beagle rca context <id>` or the
     /// `/beagle-review` skill.
     pub(crate) fn copy_id(&mut self) {
         let Some(rca) = self.selected_rca() else {

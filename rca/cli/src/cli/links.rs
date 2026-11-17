@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use beagle::model::RcaId;
+use crate::model::RcaId;
 
 use super::{take_value, Command};
 

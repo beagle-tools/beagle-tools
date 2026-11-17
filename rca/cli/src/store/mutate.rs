@@ -91,7 +91,7 @@ impl Store {
             // The manifest may be unreadable *because* the status is
             // invalid — the exact thing this command should be able to
             // repair. Retry with the bad status overwritten before giving
-            // up (otherwise `beagle status` can never fix what broke it).
+            // up (otherwise `beagle rca status` can never fix what broke it).
             Err(original) => match self.repair_status(id, status) {
                 Some(meta) => meta,
                 None => return Err(original),
@@ -358,7 +358,7 @@ fn section_template(kind: SectionKind, title: &str) -> String {
         SectionKind::Notes => "Raw evidence: queries, log excerpts, links, and open questions.",
         SectionKind::Log => {
             "What the investigation did, when — appended live, one \
-             `- **HH:MM UTC** — step` bullet at a time (`beagle log <slug> \"...\"`)."
+             `- **HH:MM UTC** — step` bullet at a time (`beagle rca log <slug> \"...\"`)."
         }
     };
     format!("# {heading} — {title}\n\n> _{hint}_\n")

@@ -1,86 +1,21 @@
-//! Argument parsing for the `beagle` binary, plus the machine-readable
+//! Argument parsing for `beagle rca`, plus the machine-readable
 //! rendering of what it prints ([`json`]).
 //!
-//! Everything here is pure (no filesystem, no network); `main.rs` does the
-//! I/O. Arguments are parsed into the typed [`Command`] at this boundary, so
+//! Everything here is pure (no filesystem, no network); `crate::run` does
+//! the I/O. Arguments are parsed into the typed [`Command`] at this boundary, so
 //! the rest of the binary never re-inspects raw strings.
 
 pub mod json;
 mod links;
 mod subcommands;
+mod usage;
+
+pub use usage::USAGE;
 
 use std::path::PathBuf;
 
-use beagle::model::{RcaId, Severity, Status};
-use beagle::update;
-
-/// The `--help` text.
-pub const USAGE: &str = "\
-beagle — a TUI for root-cause analysis workspaces
-
-USAGE:
-    beagle [--root <dir>]                 open the TUI (default)
-    beagle new <id> --title <title>       scaffold a new RCA workspace
-                  [--severity <sev>]           critical|high|medium|low|info (default: medium)
-                  [--system <name>]...         systems involved (repeatable)
-                  [--root <dir>]
-    beagle list [--status <status>]       print workspaces to stdout,
-                  [--severity <sev>]           optionally filtered
-                  [--archived]                 include archived workspaces
-                  [--json]                     emit a JSON array instead of
-                                                 the text table (for scripts)
-                  [--root <dir>]
-    beagle archive <id> [--force]         move a finished RCA to
-                  [--root <dir>]            rcas/archive/ (kept, but out of
-                                            the sidebar; --force skips the
-                                            finished-status check)
-    beagle unarchive <id> [--root <dir>]  move an archived RCA back to the
-                                            active list
-    beagle publish <id> [--root <dir>]    mark an RCA public (the web app
-                                            builds only published RCAs)
-    beagle unpublish <id> [--root <dir>]  make an RCA private again
-    beagle handoff <id> [--root <dir>]    launch the configured agent on a
-                                            reviewed RCA ([handoff] in config)
-    beagle status <id> <status>           set a workspace's status; a running
-                  [--root <dir>]            TUI picks the change up live
-                                            (investigating|fixing|review|agent|final-review|finished)
-    beagle log <id> <message...>          append a timestamped bullet to the
-                  [--root <dir>]            workspace's log.md (the Log tab)
-    beagle pr add <id> <url>              attach a remediation PR to the RCA;
-                  [--root <dir>]            the TUI tracks merge status via gh
-    beagle ticket add <id> <ref>          attach a Linear/GitHub issue
-                  [--root <dir>]            (URL or ABC-123 id)
-    beagle ticket list <id> [--root ..]   print attached tickets
-    beagle ticket sync [<id>] [--root ..] poll tickets, attach their PRs
-                                            (omit <id> to sync all)
-    beagle pr list <id> [--root <dir>]    print attached PRs (live state
-                                            included when gh is available)
-    beagle similar <id> [--root <dir>]    print past RCAs related to this one
-                                            (shared systems and tags, ranked)
-    beagle export <id> [--out <file>]     export one RCA as a single markdown
-                  [--root <dir>]            document (default: exports/<id>.md)
-    beagle context <id> [--root <dir>]    print the review bundle (writeup +
-                                            toolbox) to stdout (/beagle-review)
-    beagle init [--root <dir>]            set up a store: interactively asks
-                                            for the root and writes a .beagle
-                                            pinning it (skipped with --root or
-                                            when piped), then scaffolds
-                                            toolbox.md + systems/ templates
-    beagle config                         edit the config file and validate it
-    beagle skill [status|install]         show or install the /beagle skill
-    beagle agent <install|uninstall|start|stop|status>
-                                          manage the beagle-agentd daemon
-                                            for Claude Code and Codex
-    beagle update [--version <ver>]       install the latest release, or move
-                                            to <ver> (upgrade or downgrade)
-    beagle version                        print the installed version
-    beagle version list                   browse releases; enter installs one
-    beagle banner                         print the BEAGLE banner
-    beagle --help | --version
-
-The <id> is a lowercase slug ([a-z0-9-], max 64 chars) and becomes the
-directory name under <root>/rcas/. Without --root, the config file's `root`
-is used, then the current directory.";
+use crate::model::{RcaId, Severity, Status};
+use crate::update;
 
 /// What `beagle skill` should do.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

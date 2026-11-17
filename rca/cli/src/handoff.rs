@@ -1,4 +1,4 @@
-//! The agent hand-off: composing what `beagle handoff` feeds the agent.
+//! The agent hand-off: composing what `beagle rca handoff` feeds the agent.
 //!
 //! The process launch itself lives in the binary (it needs the terminal
 //! and the config); this module owns the pure, testable part — building

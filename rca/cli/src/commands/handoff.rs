@@ -1,16 +1,16 @@
-//! `beagle handoff`: pipe a reviewed RCA to the configured external agent.
+//! `beagle rca handoff`: pipe a reviewed RCA to the configured external agent.
 
 use std::fs;
 use std::path::PathBuf;
 
-use beagle::model::RcaId;
-use beagle::store::Store;
-use beagle::Error;
+use crate::model::RcaId;
+use crate::store::Store;
+use crate::Error;
 use beagle_utils::paths::expand_tilde;
 
-use crate::{effective_config, effective_root};
+use crate::run::{effective_config, effective_root};
 
-/// `beagle handoff <slug>`: launch the configured agent on a reviewed RCA.
+/// `beagle rca handoff <slug>`: launch the configured agent on a reviewed RCA.
 /// The composed prompt (config prompt file + the RCA write-up) is piped to
 /// the agent's stdin; it runs in the store root with the RCA's identity in
 /// the environment, and its output streams to the terminal. Book-ended in
@@ -22,7 +22,7 @@ pub(crate) fn run_handoff(root: Option<PathBuf>, id: &RcaId) -> Result<(), Error
         .ok_or_else(|| Error::Tool {
             tool: "handoff",
             message: "no agent configured — add a [handoff] section with a \
-                      `command` to your config (`beagle config`)"
+                      `command` to your config (`beagle rca config`)"
                 .to_owned(),
         })?;
 
@@ -37,7 +37,7 @@ pub(crate) fn run_handoff(root: Option<PathBuf>, id: &RcaId) -> Result<(), Error
         None => None,
     };
     let write_up = store.export_markdown(id)?;
-    let input = beagle::handoff::compose_input(id.as_str(), prompt.as_deref(), &write_up);
+    let input = crate::handoff::compose_input(id.as_str(), prompt.as_deref(), &write_up);
 
     let workspace = store.workspace_dir(id);
     // `command` is non-empty (filtered above), so `split_first` is `Some`.

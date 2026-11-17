@@ -153,7 +153,7 @@ pub enum Status {
     #[serde(alias = "identified")]
     Review,
     /// Review is done — handed off to an automated agent, which polls for
-    /// this state (`beagle list --status agent`) and does the remediation
+    /// this state (`beagle rca list --status agent`) and does the remediation
     /// work (opens PRs, applies fixes) from its configured prompt.
     Agent,
     /// The fix has merged — verify it actually worked via the Final
@@ -253,25 +253,25 @@ pub struct RcaMeta {
     #[serde(default)]
     pub tags: Vec<String>,
     /// Pull requests remediating this incident, as URLs. Attach with
-    /// `beagle pr add`; the TUI shows live merge status when `gh` is
+    /// `beagle rca pr add`; the TUI shows live merge status when `gh` is
     /// available. Omitted from the manifest while empty.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub prs: Vec<String>,
     /// Tracking tickets for this incident, as URLs (Linear issues or
-    /// GitHub issues). Attach with `beagle ticket add`; `beagle ticket
+    /// GitHub issues). Attach with `beagle rca ticket add`; `beagle rca ticket
     /// sync` polls them and auto-attaches their linked PRs to `prs`.
     /// Omitted from the manifest while empty.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tickets: Vec<String>,
     /// Whether this incident is published to the public web app. Opt-in
-    /// per incident (`beagle publish`); the static site only includes
+    /// per incident (`beagle rca publish`); the static site only includes
     /// flagged RCAs, and only their client-safe sections. Defaults to
     /// `false` and is omitted from the manifest while unset, so existing
     /// workspaces and internal-only incidents stay private.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub published: bool,
     /// When the incident was published, if it is. Stamped by
-    /// `beagle publish`; shown as the "published" date on the public page.
+    /// `beagle rca publish`; shown as the "published" date on the public page.
     #[serde(
         default,
         with = "time::serde::rfc3339::option",

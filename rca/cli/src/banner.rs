@@ -1,5 +1,5 @@
 //! The BEAGLE ASCII-art banner, shared by the TUI (top-right strip) and the
-//! `beagle banner` CLI command.
+//! `beagle rca banner` CLI command.
 //!
 //! Kept as a plain string constant so both call sites render the exact same
 //! art and a test can assert its dimensions stay terminal-friendly.

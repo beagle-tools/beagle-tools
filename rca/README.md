@@ -25,17 +25,17 @@ the TUI is how it explains itself.
 ## How it works
 
 1. Claude (or you) investigates an incident and scaffolds a workspace:
-   `beagle new 2026-06-30-sendgrid-webhooks --title "..." --severity high`
+   `beagle rca new 2026-06-30-sendgrid-webhooks --title "..." --severity high`
 2. The investigation is written into that workspace as markdown sections and
    ASCII diagrams — see the data format below and
    [`../skills/beagle/SKILL.md`](../skills/beagle/SKILL.md)
    for the authoring guide Claude follows.
-3. You keep `beagle` open in a terminal. It **watches the filesystem** and
+3. You keep `beagle rca` open in a terminal. It **watches the filesystem** and
    re-renders live as the investigation is written — no refresh needed.
 
 Every RCA gets nine tabs: **Summary · Timeline · Root Cause · Impact · Fix ·
 Final Review · Diagrams · Notes · Log**. The Log tab is the live investigation stream — the
-agent appends a timestamped line at every step (`beagle log <slug> "..."`),
+agent appends a timestamped line at every step (`beagle rca log <slug> "..."`),
 and `f` (follow mode) keeps the tab pinned to the newest line, tail-f style.
 Tabs whose files changed since you last looked get a `●` marker, workspaces
 in `investigating` status show a live spinner (red; `fixing` shows the same
@@ -63,68 +63,61 @@ release always holds the newest installers under stable names.
 
 ## Install & run
 
-With Homebrew (macOS / Linux):
+rca ships inside the single `beagle` command (`../cli/`), as `beagle rca`:
 
 ```sh
-brew install beagle-tools/tap/beagle-rca                  # CLI: beagle + beagle-agentd
-brew install --cask beagle-tools/tap/beagle-rca-desktop   # the desktop app (macOS)
+brew install beagle-tools/tap/beagle                       # the beagle command (rca, scout, tandem, …)
+brew install --cask beagle-tools/tap/beagle-rca-desktop    # the desktop app (macOS)
 ```
 
-From a release tarball (macOS arm64/x86_64, Linux x86_64 — static musl);
-the archive holds `beagle` and `beagle-agentd` at its root:
+or a `beagle-cli-<target>.tar.gz` from the
+[`beagle-cli-latest`](https://github.com/beagle-tools/beagle-tools/releases/tag/beagle-cli-latest)
+release, or `cargo install --locked --path cli/crates/beagle` from a checkout
+(see [`../cli/README.md`](../cli/README.md)). `beagle update` keeps it current.
 
-```sh
-curl -fsSL https://github.com/beagle-tools/beagle-tools/releases/download/beagle-rca-latest/beagle-rca-aarch64-apple-darwin.tar.gz \
-  | tar xz -C /usr/local/bin beagle beagle-agentd
-```
+The agent daemon is a separate binary, `beagle-agentd`
+(`cargo install --locked --git https://github.com/beagle-tools/beagle-tools beagle-agentd`,
+or the `beagle-rca-<target>.tar.gz` release tarball, which holds it beside
+the standalone CLI).
 
-Swap the target for `x86_64-apple-darwin` or `x86_64-unknown-linux-musl`;
-each tarball has a `.sha256` beside it. The desktop app is
-`Beagle-macos-arm64.dmg` / `Beagle-macos-x64.dmg` /
-`Beagle-linux-x86_64.AppImage` / `Beagle-linux-amd64.deb` in the same
-release, and it updates itself in-app afterwards.
-
-Or with cargo (the repo is a monorepo, so name the packages):
-
-```sh
-cargo install --locked --git https://github.com/beagle-tools/beagle-tools beagle beagle-agentd
-cargo install --locked --path cli                          # from a checkout of rca/
-```
+**The standalone rca `beagle` binary** (`brew install beagle-tools/tap/beagle-rca`,
+v0.x) still ships while it is retired. It installs a `beagle` too, so the two
+formulas conflict: `brew uninstall beagle-rca && brew install beagle-tools/tap/beagle`
+switches. The standalone binary accepts the `beagle rca …` spelling below
+as well as its old `beagle …` one.
 
 Then:
 
 ```sh
-beagle                    # open the TUI against ./rcas
-beagle --root ~/oncall    # or point it anywhere
-beagle list               # print workspaces to stdout
-beagle list --status investigating --severity high       # filtered
-beagle list --json        # the same listing as a JSON array, for scripts/jq
-beagle new <slug> --title "..." [--severity high] [--system payments-api]...
-beagle status <slug> investigating   # flip status; a running TUI updates live
-beagle handoff <slug>     # launch the configured agent on a reviewed RCA
-beagle log <slug> "checking redis pool"  # append to the live Log tab
-beagle similar <slug>     # past RCAs sharing systems/tags, ranked (R in the TUI)
-beagle archive <slug>     # move a finished RCA to rcas/archive/ (a shows them)
-beagle list --archived    # include archived workspaces in the listing
-beagle pr add <slug> https://github.com/org/repo/pull/123  # attach a fix PR
-beagle pr list <slug>     # attached PRs, with live state when gh is available
-beagle export <slug>      # one markdown file → exports/<slug>.md
-beagle export <slug> --out ~/vault/incidents/<slug>.md   # e.g. an Obsidian vault
-beagle banner             # print the BEAGLE banner
-beagle init               # scaffold toolbox.md + systems/ agent context
-beagle config             # edit + validate ~/.config/beagle/config.toml
-beagle skill status       # is the /beagle skill installed for Claude Code / Codex?
-beagle skill install      # install (or refresh) the /beagle skill for both
-beagle version            # print the installed version
-beagle version list       # browse releases; enter installs the selection
-beagle update             # self-update to the latest release
-beagle update --version 0.1.0    # or move to any release, up or down
+beagle rca                    # open the TUI against ./rcas
+beagle rca --root ~/oncall    # or point it anywhere
+beagle rca list               # print workspaces to stdout
+beagle rca list --status investigating --severity high       # filtered
+beagle rca list --json        # the same listing as a JSON array, for scripts/jq
+beagle rca new <slug> --title "..." [--severity high] [--system payments-api]...
+beagle rca status <slug> investigating   # flip status; a running TUI updates live
+beagle rca handoff <slug>     # launch the configured agent on a reviewed RCA
+beagle rca log <slug> "checking redis pool"  # append to the live Log tab
+beagle rca similar <slug>     # past RCAs sharing systems/tags, ranked (R in the TUI)
+beagle rca archive <slug>     # move a finished RCA to rcas/archive/ (a shows them)
+beagle rca list --archived    # include archived workspaces in the listing
+beagle rca pr add <slug> https://github.com/org/repo/pull/123  # attach a fix PR
+beagle rca pr list <slug>     # attached PRs, with live state when gh is available
+beagle rca export <slug>      # one markdown file → exports/<slug>.md
+beagle rca export <slug> --out ~/vault/incidents/<slug>.md   # e.g. an Obsidian vault
+beagle rca banner             # print the BEAGLE banner
+beagle rca init               # scaffold toolbox.md + systems/ agent context
+beagle rca config             # edit + validate ~/.config/beagle/config.toml
+beagle rca skill status       # is the /beagle rca skill installed for Claude Code / Codex?
+beagle rca skill install      # install (or refresh) the /beagle rca skill for both
+beagle rca version            # print rca's version
+beagle update                 # update beagle (and with it rca) to the latest release
 ```
 
 ## Give agents context: the toolbox
 
 An investigating agent works much faster when it knows what telemetry exists
-before it starts. `beagle init` scaffolds two things at the store root:
+before it starts. `beagle rca init` scaffolds two things at the store root:
 
 - `toolbox.md` — the tools available here: Grafana dashboards, Loki/Sentry,
   CLIs the agent may shell out to, runbooks, escalation paths.
@@ -138,45 +131,45 @@ agent share the same source of truth.
 
 ## Config & updates
 
-`beagle config` opens `~/.config/beagle/config.toml` in your editor (config
+`beagle rca config` opens `~/.config/beagle/config.toml` in your editor (config
 `editor`, then `$VISUAL`/`$EDITOR`, then vim) and **validates it when the
 editor closes** — typos and unknown keys are reported immediately. Every
 setting is optional and overridden by flags:
 
 ```toml
-root = "/path/to/oncall"   # default --root, so `beagle` works from anywhere
+root = "/path/to/oncall"   # default --root, so `beagle rca` works from anywhere
 notify = true              # desktop pings: new incidents, status changes
 
 [notify_events]            # optional: only fire these (omit = all events)
 final_review = true        # e.g. only ping me when a fix merges to verify
 investigating = true
-editor = "code -w"         # editor for `beagle config`
+editor = "code -w"         # editor for `beagle rca config`
 timezone = "America/New_York"  # TUI timestamps (DST-aware; EST, PST, UTC,
                                # Europe/London, or a POSIX rule). Files stay UTC.
 clock = "12h"              # 3:08 PM instead of 15:08 (default "24h")
 
-[handoff]                   # `beagle handoff <slug>`: the agent to launch
+[handoff]                   # `beagle rca handoff <slug>`: the agent to launch
 command = ["codex", "exec"] # argv; the prompt + write-up go to its stdin
 prompt = "~/.config/beagle/handoff-prompt.md"
 ```
 
-`beagle update` downloads `beagle-rca-<target>.tar.gz` from the
-`beagle-rca-vX.Y.Z` release for your platform, **verifies its sha256** against the published checksum, and atomically swaps the
-installed binary (and a `beagle-agentd` installed beside it) — never a
-half-written executable. `--version <ver>` moves
-to any released version, older or newer, so a bad release is one command to
-back out of. `beagle version list` shows every release (latest and current
-marked); pick one with `j`/`k` + enter to install it. On platforms without
-prebuilt binaries, update via `cargo install` instead.
+Updating is `beagle update` (see [`../cli/README.md`](../cli/README.md)):
+it replaces the whole `beagle` binary, so `beagle rca update` and
+`beagle rca version list` only point you there. The standalone rca binary
+still updates itself: its `beagle update` downloads
+`beagle-rca-<target>.tar.gz` from the `beagle-rca-vX.Y.Z` release,
+**verifies its sha256**, and atomically swaps the installed binary (and a
+`beagle-agentd` installed beside it); `beagle version list` picks any
+release, older or newer.
 
 Every beagle binary bundles the `/beagle` skill (the authoring guide agents
 follow — [`../skills/beagle/SKILL.md`](../skills/beagle/SKILL.md)).
-After an update, beagle checks whether the copy installed for **Claude Code**
+After a standalone update, beagle checks whether the copy installed for **Claude Code**
 (`~/.claude/skills/beagle/SKILL.md`) and **Codex**
 (`~/.codex/prompts/beagle.md`) is stale and offers to refresh it — so the
 skill tracks the binary. A skill that is a symlink (e.g. into a checkout
-of this repo's `skills/`) is left alone. Run it anytime with `beagle skill install`, or check
-with `beagle skill status`.
+of this repo's `skills/`) is left alone. Run it anytime with `beagle rca skill install`, or check
+with `beagle rca skill status`.
 
 Keys: `j/k` navigate · `enter` open · `b` back to the list · `←/→` / `tab` /
 `1`–`9` switch tabs · `/` search the incident (all tabs, `n`/`N` between
@@ -206,19 +199,19 @@ investigating ──▶ fixing ──▶ review ──▶ agent ──▶ final-
 ```
 
 `agent` is an optional hand-off: an automated agent polls
-`beagle list --status agent`, does the remediation work (opens PRs,
+`beagle rca list --status agent`, does the remediation work (opens PRs,
 applies fixes) from its configured prompt, and its merged PRs
 auto-advance the RCA to `final-review`. Skip it entirely and go
 straight `review → final-review` if you don't run an agent.
 
-`beagle pr add <slug> <url>` attaches a PR to the manifest; the workspace
+`beagle rca pr add <slug> <url>` attaches a PR to the manifest; the workspace
 header shows `fixes: ○ #123 open · ✓ #124 merged`, refreshed by a background
 `gh` poll every 30 minutes (plus whenever the set changes). **When every
 attached PR has merged, beagle automatically moves the RCA from `review` to
 `final-review`** — time to work the Final Review tab, the checklist of
 checkable predictions the agent wrote *during* the investigation ("p99 back
 under 200ms for 24h"). Confirmed it held? Press **`V`** to sign off →
-`finished`. Viewing never changes state; only `V` (or `beagle status <slug>
+`finished`. Viewing never changes state; only `V` (or `beagle rca status <slug>
 finished`) does.
 
 No `gh` installed? PR links still show — just without live state or the
@@ -231,7 +224,7 @@ remediation PR: move an RCA to `status = "agent"` and it implements
 `remediation.md` in an isolated git worktree via a headless `claude` session,
 opens a PR, attaches it, and advances the RCA — deterministic Rust owns
 git/GitHub, `claude` only edits code. Configure it in `~/.config/beagle/agents.toml`,
-autostart it with `beagle agent install` (launchd on macOS, `systemd --user` on
+autostart it with `beagle rca agent install` (launchd on macOS, `systemd --user` on
 Linux), and watch it from the **Agents screen** (`A` in the TUI, or the
 sidebar's **Agents** button in the desktop app).
 
@@ -241,7 +234,7 @@ coexists with the Go `ai-pipelines/beagle` pipeline — in
 
 ## Export
 
-`e` (or `beagle export`) renders a workspace to a **single markdown file**:
+`e` (or `beagle rca export`) renders a workspace to a **single markdown file**:
 YAML frontmatter (title, severity, status, dates, systems, tags) followed by
 every section and the diagrams in code fences (ANSI colors stripped). It is
 **deterministic** — same files in, same document out, no LLM involved — so
@@ -265,7 +258,7 @@ rcas/
     notes.md          # raw evidence, queries, links
     diagrams/
       01-topology.txt # ASCII diagrams, rendered unwrapped; ANSI colors supported
-  archive/            # finished RCAs moved aside by `beagle archive` — hidden
+  archive/            # finished RCAs moved aside by `beagle rca archive` — hidden
     <slug>/           # by default in the TUI (`a` shows them, dimmed), still
                       # exportable and still mined by `similar`
 ```
@@ -279,7 +272,7 @@ status = "review"          # investigating | fixing | review | agent | final-rev
 created = "2026-07-05T14:32:00Z"   # RFC 3339, quoted
 systems = ["payments-api", "redis-sessions"]
 tags = ["latency"]
-prs = ["https://github.com/org/repo/pull/123"]   # optional; `beagle pr add`
+prs = ["https://github.com/org/repo/pull/123"]   # optional; `beagle rca pr add`
 ```
 
 Any section may be absent (the tab shows a hint instead); a corrupt manifest

@@ -221,7 +221,7 @@ impl App {
         if self.visible.is_empty() {
             self.status = Some(if self.rcas.is_empty() {
                 "no incidents yet — tabs appear once a workspace exists \
-                 (beagle new <slug> --title \"...\")"
+                 (beagle rca new <slug> --title \"...\")"
                     .to_owned()
             } else {
                 "no incident matches the filter — esc clears it".to_owned()

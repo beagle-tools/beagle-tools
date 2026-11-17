@@ -1,7 +1,7 @@
 //! Tests for the machine-readable rendering (`cli::json`).
 #![allow(clippy::expect_used, clippy::panic)] // panicking is the correct failure mode in tests
 
-use beagle::model::{RcaId, RcaMeta, RcaSummary, Severity, Status};
+use crate::model::{RcaId, RcaMeta, RcaSummary, Severity, Status};
 use time::macros::datetime;
 
 use super::list;

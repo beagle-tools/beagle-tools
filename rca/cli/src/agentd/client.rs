@@ -14,7 +14,7 @@ use super::{socket_path, AgentsStatus, DaemonSnapshot};
 /// How often the TUI status poller re-queries the daemon.
 const POLL_INTERVAL: Duration = Duration::from_secs(2);
 
-/// Queries the running daemon and formats its status for `beagle agent status`.
+/// Queries the running daemon and formats its status for `beagle rca agent status`.
 ///
 /// # Errors
 /// Returns a message if the daemon is not reachable or its response is
@@ -89,7 +89,7 @@ fn send_line(payload: &serde_json::Value) -> Result<String, String> {
     let path = socket_path();
     let stream = UnixStream::connect(&path).map_err(|err| {
         format!(
-            "daemon not reachable at {} ({err}); is it running? try `beagle agent start`",
+            "daemon not reachable at {} ({err}); is it running? try `beagle rca agent start`",
             path.display()
         )
     })?;

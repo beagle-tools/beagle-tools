@@ -75,7 +75,7 @@ export function AgentsView({ onBack }: { onBack: () => void }): JSX.Element {
         {!connected ? (
           <p className="agents-offline">
             {event?.error ?? "connecting to beagle-agentd…"} — start it with{" "}
-            <code>beagle agent start</code>.
+            <code>beagle rca agent start</code>.
           </p>
         ) : null}
 

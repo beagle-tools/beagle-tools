@@ -1,7 +1,7 @@
 //! The user config file: `~/.config/beagle/config.toml`.
 //!
 //! Optional and tiny by design — every setting has a flag or a sensible
-//! default, so beagle works with no config at all. `beagle config` opens the
+//! default, so beagle works with no config at all. `beagle rca config` opens the
 //! file in an editor and validates it on close; unknown fields are rejected
 //! at parse time so typos surface immediately instead of being silently
 //! ignored.
@@ -29,7 +29,7 @@ use project::resolve_project;
 /// and by anyone who wants per-project configs.
 pub const CONFIG_ENV: &str = "BEAGLE_CONFIG";
 
-/// The template written when `beagle config` runs for the first time.
+/// The template written when `beagle rca config` runs for the first time.
 /// Everything is commented out: the empty config is the default config.
 pub const TEMPLATE: &str = "\
 # beagle configuration.
@@ -41,7 +41,7 @@ pub const TEMPLATE: &str = "\
 # Overridden by --root. Without either, beagle uses the current directory.
 # root = \"/path/to/oncall\"
 
-# Editor for `beagle config` (may include arguments, e.g. \"code -w\").
+# Editor for `beagle rca config` (may include arguments, e.g. \"code -w\").
 # Falls back to $VISUAL, then $EDITOR, then vim.
 # editor = \"vim\"
 
@@ -70,7 +70,7 @@ pub const TEMPLATE: &str = "\
 # final_review = true
 # finished = true
 
-# Agent hand-off (`beagle handoff <slug>`): the agent beagle launches on a
+# Agent hand-off (`beagle rca handoff <slug>`): the agent beagle launches on a
 # reviewed RCA. The composed prompt (the prompt file below, then the RCA
 # write-up) is piped to the command's stdin; it runs in the store root with
 # BEAGLE_RCA_SLUG / BEAGLE_RCA_DIR set.
@@ -78,7 +78,7 @@ pub const TEMPLATE: &str = "\
 # command = [\"codex\", \"exec\"]      # or [\"claude\", \"-p\"], or any argv
 # prompt = \"~/.config/beagle/handoff-prompt.md\"
 
-# Ticket platforms (`beagle ticket sync`): how beagle finds the PRs
+# Ticket platforms (`beagle rca ticket sync`): how beagle finds the PRs
 # linked to an attached Linear / GitHub issue. Per platform, mode is
 # \"cli\" (shell out to `gh` / `linear`, no key) or \"api\" (HTTP with a
 # token). Omit a platform to default it to cli.
@@ -110,7 +110,7 @@ pub struct Config {
     /// `--root` is not given.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub root: Option<PathBuf>,
-    /// Editor command for `beagle config`, possibly with arguments.
+    /// Editor command for `beagle rca config`, possibly with arguments.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub editor: Option<String>,
     /// Display time zone for TUI timestamps (see [`crate::tz::TimeZone::parse`]).
@@ -130,11 +130,11 @@ pub struct Config {
     /// events set to `true`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notify_events: Option<NotifyEvents>,
-    /// The agent hand-off (`beagle handoff <slug>`): what to launch.
+    /// The agent hand-off (`beagle rca handoff <slug>`): what to launch.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub handoff: Option<HandoffConfig>,
     /// How beagle reaches GitHub / Linear to discover a ticket's linked
-    /// PRs (`beagle ticket sync`). Absent means "cli" for both.
+    /// PRs (`beagle rca ticket sync`). Absent means "cli" for both.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tickets: Option<TicketsConfig>,
 }
@@ -232,7 +232,7 @@ impl NotifyEvents {
     }
 }
 
-/// Configures `beagle handoff`: the agent beagle launches on a reviewed
+/// Configures `beagle rca handoff`: the agent beagle launches on a reviewed
 /// RCA, and the prompt that drives it.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -358,7 +358,7 @@ pub fn upsert(path: &Path, key: &str, raw_value: &str) -> Result<Config> {
     Ok(config)
 }
 
-/// The editor command for `beagle config`, resolved as: config `editor` (if
+/// The editor command for `beagle rca config`, resolved as: config `editor` (if
 /// the config currently parses) → `$VISUAL` → `$EDITOR` → `vim`. A broken
 /// config falls through to the environment — that is exactly the situation
 /// where the user needs the editor to open.

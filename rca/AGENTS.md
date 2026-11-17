@@ -17,13 +17,30 @@ writing one up, use the `/beagle` skill
 to answer questions about an existing RCA, `/beagle-review`
 ([`../skills/beagle-review/SKILL.md`](../skills/beagle-review/SKILL.md)).
 Both skills are embedded into the `beagle` binary (`cli/src/skill.rs`,
-`include_str!`), so editing them changes what `beagle skill install` ships.
+`include_str!`), so editing them changes what `beagle rca skill install` ships
+(and releases the unified `beagle` command, `beagle-cli`, too).
+
+## Where rca runs
+
+rca's CLI is a **library entry point**: `cli/src/run.rs` exposes `ABOUT` +
+`run(args) -> ExitCode`, the tool contract of the unified `beagle` command
+([`../cli/AGENTS.md`](../cli/AGENTS.md)), which links this crate as
+`beagle rca …`. That is how users run it. `cli/src/main.rs` is a thin
+wrapper (`run_standalone`) for the standalone rca `beagle` binary, still
+released as `beagle-rca` until it is retired.
+
+- Help, hints and the skills always say `beagle rca <cmd>`. The standalone
+  binary drops a leading `rca`, so that spelling works there too.
+- Self-update belongs to the unified command (`beagle update`). Under
+  `beagle rca`, `update` and `version list` refuse and point there: an
+  rca-only download would replace every other tool. Only the standalone
+  binary updates itself (`cli/src/update/`, over `beagle_utils::update`).
 
 ## Components
 
 | Path | What it is | Notes |
 |---|---|---|
-| `cli/` | Crate `beagle`: the domain layer (`model`, `store`, `markdown`, `similar`, `config`, …) **and** the TUI (`ui/`) + CLI (`main.rs`, `cli/`, `commands/`) | The only implementation of the data format. Everything else depends on it. |
+| `cli/` | Crate `beagle`: the domain layer (`model`, `store`, `markdown`, `similar`, `config`, …) **and** the TUI (`ui/`) + CLI (`run.rs`, `cli/`, `commands/`; `main.rs` is the standalone wrapper) | The only implementation of the data format. Everything else depends on it. |
 | `crates/beagle-agent` | Agent-runtime engine: config, SQLite job store, RCA poller, worktree manager, headless `claude` runner, orchestrator, control protocol | Depends on `beagle`. |
 | `crates/beagle-agentd` | The always-on daemon binary hosting the engine | See [`docs/agent-runtime.md`](docs/agent-runtime.md). |
 | `desktop/` | Tauri 2 + React viewer. `src-tauri/` is its **own cargo workspace** (own `Cargo.lock`), path-depending on `cli/` | [`desktop/AGENTS.md`](desktop/AGENTS.md) |
@@ -89,7 +106,7 @@ rcas/<slug>/          slug: [a-z0-9-], 1..=64 chars (RcaId)
   commands.md? final-review.md notes.md log.md
   diagrams/NN-name.txt   ASCII, rendered unwrapped, ANSI SGR allowed
 rcas/archive/<slug>/  archived workspaces (hidden by default, still mined)
-toolbox.md, systems/*.md   agent context at the store root (`beagle init`)
+toolbox.md, systems/*.md   agent context at the store root (`beagle rca init`)
 ```
 
 - Lifecycle: `investigating → fixing → review → agent → final-review → finished`.
@@ -152,7 +169,7 @@ doesn't bundle SQLite.
 Setting an RCA to `status = "agent"` hands it to `beagle-agentd`, which
 implements `remediation.md` in an isolated worktree via headless `claude`,
 opens a PR, attaches it and advances the RCA to `final-review`. Contracts,
-config (`agents.toml`), service install (`beagle agent install`) and the
+config (`agents.toml`), service install (`beagle rca agent install`) and the
 control socket are in [`docs/agent-runtime.md`](docs/agent-runtime.md).
 
 ## Commands
@@ -184,17 +201,19 @@ What ships, per release (and mirrored with stable names to the rolling
 
 | Asset | Consumer |
 |---|---|
-| `beagle-rca-<target>.tar.gz` + `.sha256` (`beagle`, `beagle-agentd` at the root; aarch64/x86_64-apple-darwin, x86_64-unknown-linux-musl) | `beagle update`, `brew install beagle-tools/tap/beagle-rca` |
+| `beagle-rca-<target>.tar.gz` + `.sha256` (standalone `beagle`, `beagle-agentd` at the root; aarch64/x86_64-apple-darwin, x86_64-unknown-linux-musl) | the standalone binary's `beagle update`, `brew install beagle-tools/tap/beagle-rca` |
 | `Beagle-macos-{arm64,x64}.dmg`, `Beagle-linux-x86_64.AppImage`, `Beagle-linux-amd64.deb` + `latest.json` | the desktop updater, `brew install --cask beagle-tools/tap/beagle-rca-desktop` |
 | `ghcr.io/beagle-tools/beagle-rca-web:X.Y.Z` / `:latest` | `web/DEPLOY.md` |
 
-The self-updater (`cli/src/update/`) only considers `beagle-rca-v*` tags and
-downloads exactly those asset names, so don't rename them. The desktop
+The standalone self-updater (`cli/src/update/`) only considers
+`beagle-rca-v*` tags and downloads exactly those asset names, so don't
+rename them. A change under `cli/` also releases the unified `beagle`
+command (`beagle-cli-v*`, `docs/RELEASING.md`), which compiles this crate in. The desktop
 updater checks `beagle-rca-latest/latest.json`; its rollback list filters by
 the same tag prefix (`desktop/src-tauri/src/updates.rs`).
 
 Bug reports should include:
 - OS and terminal
-- `beagle --version`
+- `beagle --version` (and `beagle rca --version`)
 - the triggering workspace (or a minimized copy)
 - for a panic, the message with `RUST_BACKTRACE=1`
