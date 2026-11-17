@@ -20,11 +20,18 @@ pub struct Tool {
 }
 
 /// Every registered tool, in the order `beagle help` lists them.
-pub const TOOLS: &[Tool] = &[Tool {
-    name: "scout",
-    about: beagle_scout::ABOUT,
-    run: beagle_scout::run,
-}];
+pub const TOOLS: &[Tool] = &[
+    Tool {
+        name: "scout",
+        about: beagle_scout::ABOUT,
+        run: beagle_scout::run,
+    },
+    Tool {
+        name: "standup",
+        about: standup::ABOUT,
+        run: standup::run,
+    },
+];
 
 /// The tool called `name`, if there is one.
 pub fn find(name: &str) -> Option<&'static Tool> {

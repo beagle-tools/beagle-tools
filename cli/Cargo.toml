@@ -25,6 +25,9 @@ tempfile = "3"
 thiserror = "2"
 time = { version = "0.3", features = ["formatting", "macros", "parsing", "serde-well-known"] }
 toml = "0.8"
+beagle-tui = { path = "../utils/tui" }
+beagle-standup = { path = "crates/standup" }
+unicode-width = "0.2"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
