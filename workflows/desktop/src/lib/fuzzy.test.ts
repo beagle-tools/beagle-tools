@@ -13,9 +13,9 @@ describe("fuzzyMatch", () => {
   });
 
   it("prefers word starts and tight spans", () => {
-    const tight = fuzzyMatch("ch", "cluster-health");
-    expect(tight?.positions).toEqual([0, 8]);
-    const exact = fuzzyMatch("scan", "cluster-health-scan")?.score ?? 0;
+    const tight = fuzzyMatch("ch", "code-health");
+    expect(tight?.positions).toEqual([0, 5]);
+    const exact = fuzzyMatch("scan", "code-health-scan")?.score ?? 0;
     const scattered = fuzzyMatch("scan", "s-c-a-n-something")?.score ?? 0;
     expect(exact).toBeGreaterThan(scattered);
   });

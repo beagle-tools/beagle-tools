@@ -55,7 +55,7 @@ mod tests {
         let out = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(". '{}'; {call}", script.display()))
-            .env("AGENTD_AGENT", "pr-watch")
+            .env("AGENTD_AGENT", "inbox-sweep")
             .env_remove("AGENTD_LOG_SOURCE")
             .output()
             .unwrap();
@@ -76,7 +76,7 @@ mod tests {
         ] {
             let line = parse_script_line(&logged(call));
             assert_eq!(line.level, level, "{call}");
-            assert_eq!(line.source.as_deref(), Some("pr-watch"), "{call}");
+            assert_eq!(line.source.as_deref(), Some("inbox-sweep"), "{call}");
             assert_eq!(line.message, "hello", "{call}");
         }
     }

@@ -1,6 +1,6 @@
 // fzf-style fuzzy matching for the jobs page: the query's characters must
-// appear in order, not necessarily together. `chop` finds
-// cluster-health-opa; `trp` finds ticket-report.
+// appear in order, not necessarily together. `ncl` finds
+// nightly-checks-lint; `trp` finds ticket-report.
 //
 // Scored so the match a person meant ranks first: consecutive characters
 // and characters at the start of a word (after `-`, `_`, `/`, a space, or
@@ -21,8 +21,8 @@ export function fuzzyMatch(query: string, target: string): FuzzyMatch | null {
   const t = target.toLowerCase();
 
   // Greedy left-to-right, then a pass from the right to tighten the span:
-  // `ch` in "cluster-health" should take the `h` of "health", not of
-  // "cluster" — the tighter span reads as the intended match.
+  // `ch` in "code-health" should take the `h` of "health", not of
+  // "code" — the tighter span reads as the intended match.
   const positions: number[] = [];
   let ti = 0;
   for (const ch of q) {
@@ -50,7 +50,7 @@ export function fuzzyMatch(query: string, target: string): FuzzyMatch | null {
   });
   // An exact substring beats the same letters scattered.
   if (t.includes(q)) score += 10;
-  // Shorter targets win ties: `scan` should prefer cluster-health-scan over
+  // Shorter targets win ties: `scan` should prefer code-health-scan over
   // a long name that happens to contain the letters.
   score -= target.length / 100;
   return { score, positions };

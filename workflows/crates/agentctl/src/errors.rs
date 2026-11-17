@@ -188,14 +188,7 @@ mod tests {
 
         // An earlier successful run: from its start.
         let prev = store
-            .create_pending_run(
-                "agentd",
-                "job-doctor",
-                Trigger::Cron,
-                None,
-                None,
-                None,
-            )
+            .create_pending_run("agentd", "job-doctor", Trigger::Cron, None, None, None)
             .unwrap();
         store
             .mark_running(&prev.id, "s", Path::new("/x.log"), Path::new("/"))

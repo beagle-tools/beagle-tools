@@ -97,7 +97,7 @@ pub fn run_links(state: State<'_, AppState>, id: String) -> Result<Vec<Link>, Ap
             target: ticket,
         });
     }
-    // The PR. Recovered the same way retention and pr-watch recover it —
+    // The PR. Recovered the same way retention and inbox-sweep recover it —
     // through agent_core, so all three agree about what a run's PR is.
     //
     // Searched across the WHOLE chain, not just this run. Only

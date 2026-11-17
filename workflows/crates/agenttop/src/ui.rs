@@ -74,7 +74,7 @@ fn draw_help(frame: &mut Frame<'_>) {
     let lines = [
         "jobs         j/k select a job · enter its runs · / search",
         "             R run it (asks first) · r only running jobs · a all jobs",
-        "             e edit manifest · y copy its name (work/pr-watch)",
+        "             e edit manifest · y copy its name (work/inbox-sweep)",
         "             A every job's runs on one live page",
         "             H show the projects ui.yaml hides (demo) · H again hides",
         "runs         j/k select a step · enter its log · w its write-up",

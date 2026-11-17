@@ -14,7 +14,7 @@ use crate::error::{lock_failed, AppError};
 use crate::state::AppState;
 
 /// How far back the jobs screens read. The run list elsewhere is capped
-/// at 200 across every agent, which with pr-watch ticking every fifteen
+/// at 200 across every agent, which with inbox-sweep ticking every fifteen
 /// minutes is only the last few chains — not "every run of this job".
 const HISTORY_LIMIT: u32 = 600;
 
