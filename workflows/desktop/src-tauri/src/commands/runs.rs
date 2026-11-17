@@ -109,11 +109,11 @@ fn finish_killed(store: &Store, id: &str) -> Result<(), AppError> {
 /// Re-run one failed stage against the state its parent already produced.
 ///
 /// This is the cheap half of a retry: a chain that died in
-/// `linear-implement` has already paid for the research in
-/// `linear-context`, and that stage wrote its output to a data dir the
+/// `ticket-implement` has already paid for the research in
+/// `ticket-context`, and that stage wrote its output to a data dir the
 /// new run reads through `$AGENTD_PARENT_DATA_DIR`. Pointing a fresh run
-/// at the same parent resumes from there instead of re-deriving — on the
-/// ABC-123 chain that is $1.29 of context the retry does not repeat.
+/// at the same parent resumes from there instead of re-deriving, so the
+/// retry does not pay for that context twice.
 ///
 /// It is a NEW run, not a mutated one. Run rows are the record of what
 /// actually happened, and rewriting a failure into a success would lose

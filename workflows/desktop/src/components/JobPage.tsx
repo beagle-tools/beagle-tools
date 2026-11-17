@@ -131,7 +131,7 @@ export function JobPage({
 }
 
 // Every branch the job has ever taken. A step reachable two ways
-// (linear-report, under implement and under investigate) shows under each:
+// (ticket-report, under implement and under investigate) shows under each:
 // that is the shape, not duplication.
 function Shape({ detail }: { detail: PipelineDetail }) {
   const prefixes = treePrefixes(detail.flow.map((n) => n.depth));

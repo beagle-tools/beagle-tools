@@ -26,7 +26,7 @@ impl App {
     /// its job's runs screen.
     ///
     /// Walks up `parent_run_id` to the chain root first, because the root's
-    /// agent IS the job: a `linear-report` row belongs to `linear`.
+    /// agent IS the job: a `ticket-report` row belongs to `ticket`.
     pub fn focus_dag_on_selection(&mut self) {
         let Some(selected) = self.selected_run() else {
             return;
@@ -106,7 +106,7 @@ mod tests {
     #[test]
     fn focusing_walks_up_to_the_chain_root() {
         // Pressing D on a leaf must pin the ROOT, or the stages above it
-        // vanish — and on a linear-report row that is the whole ticket.
+        // vanish — and on a ticket-report row that is the whole ticket.
         let mut app = App::new();
         let mut root = run("root", RunState::Succeeded);
         root.parent_run_id = None;

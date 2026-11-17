@@ -241,13 +241,13 @@ mod tests {
     #[test]
     fn missing_required_params_explain_themselves() {
         let declared = vec![spec("url", true, None), spec("depth", false, Some("2"))];
-        let err = resolve("linear", &declared, BTreeMap::new()).unwrap_err();
+        let err = resolve("ticket", &declared, BTreeMap::new()).unwrap_err();
         let text = err.to_string();
         assert!(text.contains("missing required parameter"));
         assert!(text.contains("url"));
         assert!(text.contains("the url"));
         // The fix is spelled out, including the optional params.
-        assert!(text.contains("agentctl -j linear -p url=<value>"));
+        assert!(text.contains("agentctl -j ticket -p url=<value>"));
         assert!(text.contains("depth"));
     }
 
@@ -255,7 +255,7 @@ mod tests {
     fn defaults_fill_in_and_required_passes() {
         let declared = vec![spec("url", true, None), spec("depth", false, Some("2"))];
         let supplied = parse_pairs(&["url=u".to_owned()]).unwrap();
-        let got = resolve("linear", &declared, supplied).unwrap();
+        let got = resolve("ticket", &declared, supplied).unwrap();
         assert_eq!(got["url"], "u");
         assert_eq!(got["depth"], "2");
     }
@@ -264,7 +264,7 @@ mod tests {
     fn unknown_params_are_refused_with_the_declared_set() {
         let declared = vec![spec("url", true, None)];
         let supplied = parse_pairs(&["url=u".to_owned(), "typo=1".to_owned()]).unwrap();
-        let err = resolve("linear", &declared, supplied).unwrap_err();
+        let err = resolve("ticket", &declared, supplied).unwrap_err();
         let text = err.to_string();
         assert!(text.contains("does not declare"));
         assert!(text.contains("typo"));

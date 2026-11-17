@@ -67,14 +67,28 @@ jobs:
               - "workflows/**"
 
   standards:
-    name: standards (400-line rule, shared config)
+    name: standards (400-line rule, affiliation, shared config)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The affiliation guard checks commit emails since origin/main.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
       - run: ./scripts/check-file-length.sh
+      # Fork PRs get no secrets, so they skip this step rather than fail
+      # it. Run `make standards` locally before merging one; the push to
+      # main re-runs it with the secret either way.
+      - name: affiliation guard (patterns come from a secret, never the repo)
+        if: >-
+          github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository
+        run: ./scripts/check-affiliation.sh
+        env:
+          BEAGLE_AFFILIATION_PATTERNS: ${{ secrets.BEAGLE_AFFILIATION_PATTERNS }}
+          BEAGLE_AFFILIATION_REQUIRED: "1"
       - run: node scripts/check-standards.mjs
       - name: unit tests for the CI scripts (test selection)
         run: node --test scripts/ci/*.test.mjs

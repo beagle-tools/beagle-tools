@@ -1,7 +1,7 @@
 //! Preconditions checked before a job is queued.
 //!
-//! Right now that means MCP servers: a headless run that needs Linear can
-//! only fail slowly and confusingly when Linear is not authenticated — it
+//! Right now that means MCP servers: a headless run that needs an issue tracker can
+//! only fail slowly and confusingly when that server is not authenticated — it
 //! starts, gets no `mcp__` tools, and either stalls or invents an answer.
 //! Checking at submit time turns that into a refusal with a fix attached.
 
@@ -110,7 +110,7 @@ pub fn check_mcp(job: &str, servers: &[String]) -> Result<()> {
         message.push_str(
             "\nNote: the \"claude.ai <Name>\" account connectors are a different \
              mechanism.\nThey do NOT load in headless `claude -p` runs, so an \
-             interactive session\nhaving Linear or Datadog is not enough — the \
+             interactive session\nhaving an MCP connector is not enough — the \
              locally registered server\nis what a job uses.\n",
         );
     }
@@ -135,10 +135,10 @@ mod tests {
 
     #[test]
     fn statuses_parse_from_real_cli_output() {
-        let connected = "linear:\n  Scope: User config\n  Status: ✔ Connected\n  Type: http\n";
+        let connected = "tracker:\n  Scope: User config\n  Status: ✔ Connected\n  Type: http\n";
         assert_eq!(parse_status(connected), McpStatus::Connected);
 
-        let needs = "linear:\n  Scope: User config\n  Status: ! Needs authentication\n";
+        let needs = "tracker:\n  Scope: User config\n  Status: ! Needs authentication\n";
         assert_eq!(parse_status(needs), McpStatus::NeedsAuth);
 
         let failed = "x:\n  Status: ✘ Failed to connect — HTTP 406\n";
@@ -157,7 +157,7 @@ mod tests {
     fn the_refusal_explains_the_connector_trap() {
         // Built directly: check_mcp shells out, so assert on the message the
         // NeedsAuth branch produces.
-        let bad = [("linear".to_owned(), McpStatus::NeedsAuth)];
+        let bad = [("tracker".to_owned(), McpStatus::NeedsAuth)];
         assert_eq!(bad[0].1.label(), "needs authentication");
         assert_eq!(
             McpStatus::Failed("HTTP 406".to_owned()).label(),

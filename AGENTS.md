@@ -45,7 +45,14 @@ Read the doc for the stage you are in:
    create a `package-lock.json`.
 5. **Each cargo workspace has its own `Cargo.lock`.** CI builds with
    `--locked`, so commit lockfile changes along with the dependency change.
-6. **Every PR carries a `release:*` label** when it changes an app:
+6. **No employer or client affiliation, anywhere.** This repo is public and
+   personal: no company names, private org/repo names, internal hosts,
+   ticket keys or work emails, in code, tests, docs, fixtures or commit
+   metadata. Use neutral examples (`acme/widgets`, `ABC-123`,
+   `tracker.example.com`) and make integrations configurable instead of
+   hard-coding a destination. `scripts/check-affiliation.sh` enforces this
+   from patterns kept outside the repo.
+7. **Every PR carries a `release:*` label** when it changes an app:
    `release:patch` (the default), `release:minor` or `release:major`. Merging
    to `main` releases only the apps the PR changed, as
    `beagle-<app>-vX.Y.Z` (see `docs/RELEASING.md`).
@@ -55,7 +62,7 @@ Read the doc for the stage you are in:
 Run these from the repo root. Each runs exactly what CI runs:
 
 ```sh
-make standards          # 400-line rule, shared-config drift, CI-script tests
+make standards          # 400-line rule, affiliation guard, shared-config drift, CI-script tests
 make check-tandem       # or check-rca / check-workflows / check-utils
 make test-affected      # only the cargo tests your change affects (vs origin/main)
 make e2e-tandem         # Playwright for one frontend (see docs/TESTING.md)

@@ -215,7 +215,7 @@ mod tests {
         assert_eq!(parsed("ERROR gather: no ticket").0, Level::Error);
         assert_eq!(parsed("OK pr-watch: done").0, Level::Ok);
         assert_eq!(
-            parsed("STEP gather: triggering linear-context").0,
+            parsed("STEP gather: triggering ticket-context").0,
             Level::Step
         );
     }
@@ -248,7 +248,7 @@ mod tests {
 
     #[test]
     fn a_bare_line_is_plain_output_unless_it_says_otherwise() {
-        assert_eq!(parse_script_line("linear-context-2026").level, Level::Out);
+        assert_eq!(parse_script_line("ticket-context-2026").level, Level::Out);
         assert_eq!(parse_script_line("Error: no such file").level, Level::Error);
     }
 

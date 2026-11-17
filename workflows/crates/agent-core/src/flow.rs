@@ -10,10 +10,10 @@ use crate::types::Run;
 /// observed in any of its chains, unioned, then walked depth-first from
 /// the entry point. Rows are `(agent, depth)`; the entry is row 0.
 ///
-/// A union rather than one run's shape, because a job branches — linear
+/// A union rather than one run's shape, because a job branches — ticket
 /// goes context → implement on a code ticket and context → investigate on
 /// a question — and showing only the latest run would hide whichever
-/// branch it did not take. A step reachable two ways (linear-report,
+/// branch it did not take. A step reachable two ways (ticket-report,
 /// under both) appears under each: that is the shape, not duplication.
 ///
 /// Siblings sort by name, so the tree is stable from one refresh to the

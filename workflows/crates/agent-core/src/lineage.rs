@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     fn subtree_cost_sums_both_depth_and_fan_out() {
-        // root -> a -> b, plus root -> c: the shape the linear pipeline
+        // root -> a -> b, plus root -> c: the shape the ticket pipeline
         // makes. A sum that only walked the first child would pass a
         // straight-chain test and still be wrong here.
         let runs = vec![

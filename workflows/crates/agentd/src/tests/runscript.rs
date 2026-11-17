@@ -58,18 +58,18 @@ fn script_body_logs_and_marks_exit() {
 
 #[test]
 fn the_prompt_is_told_the_chain_root_as_a_literal() {
-    // The regression this exists for: linear-report was asked to
+    // The regression this exists for: ticket-report was asked to
     // DERIVE the root id from the context pack's path, produced
-    // `linear-<ts>-<suffix-of-a-different-run>`, and the write-up it
+    // `ticket-<ts>-<suffix-of-a-different-run>`, and the write-up it
     // keyed on that name was swept as an orphan because no such run
     // existed. The root now arrives as a value, not a puzzle.
     let run = Run {
-        id: "linear-report-3".to_owned(),
+        id: "ticket-report-3".to_owned(),
         project: "work".to_owned(),
-        agent: "linear-report".to_owned(),
+        agent: "ticket-report".to_owned(),
         state: agent_core::types::RunState::Pending,
         trigger: agent_core::types::Trigger::Manual,
-        parent_run_id: Some("linear-implement-2".to_owned()),
+        parent_run_id: Some("ticket-implement-2".to_owned()),
         params: None,
         tmux_session: None,
         log_path: None,
@@ -83,9 +83,9 @@ fn the_prompt_is_told_the_chain_root_as_a_literal() {
         num_turns: None,
         usage_json: None,
     };
-    let context = crate::runenv::run_context(&run, Path::new("/d"), "linear-1");
+    let context = crate::runenv::run_context(&run, Path::new("/d"), "ticket-1");
     assert!(
-        context.contains("- chain root run id: linear-1"),
+        context.contains("- chain root run id: ticket-1"),
         "root missing from the run context:\n{context}"
     );
 }

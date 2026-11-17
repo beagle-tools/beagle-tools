@@ -1,7 +1,7 @@
 //! The jobs view: pipelines, not agents.
 //!
 //! `list_jobs` returns every agent, which is what the store holds and
-//! not what a person picks from — nobody starts `linear-implement`. The
+//! not what a person picks from — nobody starts `ticket-implement`. The
 //! grouping lives in `agent_core::pipelines` so agenttop shows the same
 //! set, and so "is this a job or a step" is answered once.
 

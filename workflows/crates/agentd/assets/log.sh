@@ -10,7 +10,7 @@
 # Every line comes out as `LEVEL source: message`, the format the log views
 # read exactly: the level sets the colour, the source is shown apart from
 # the message. Source is the agent's name; set AGENTD_LOG_SOURCE to say
-# something narrower (gather.sh is the `gather` part of `linear`).
+# something narrower (gather.sh is the `gather` part of `ticket`).
 #
 # warn and error go to stderr, like any well-behaved tool; agentd captures
 # both streams into the same log, in order.
