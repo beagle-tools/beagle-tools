@@ -89,7 +89,9 @@ export interface AppStore {
   setCommentStatus: (id: string, status: CommentStatus) => Promise<void>;
   deleteComment: (id: string) => Promise<void>;
   deleteSummary: () => Promise<void>;
-  saveAgentSpec: (spec: AgentSpec) => Promise<void>;
+  /** `previousName` is the name the editor opened with, so a rename
+   * replaces the spec instead of adding a second one. */
+  saveAgentSpec: (spec: AgentSpec, previousName?: string | null) => Promise<void>;
   deleteAgentSpec: (name: string) => Promise<void>;
   startAgentReview: (agentName: string) => Promise<void>;
   quickStartReview: (repo: string, number: number, agentName: string) => Promise<void>;

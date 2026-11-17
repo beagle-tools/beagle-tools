@@ -33,11 +33,30 @@ function newSpec(): AgentSpec {
   };
 }
 
+/** One open editor. `original` is null for a spec being created. */
+interface OpenForm {
+  id: number;
+  original: string | null;
+  spec: AgentSpec;
+}
+
+/** Form identity, so two forms on the same agent can't collide and a
+ * rename doesn't remount the form you're typing in. */
+let nextFormId = 1;
+
 export function AgentEditor(): ReactElement {
   const specs = useAppStore((s) => s.agentSpecs);
   const saveAgentSpec = useAppStore((s) => s.saveAgentSpec);
   const deleteAgentSpec = useAppStore((s) => s.deleteAgentSpec);
-  const [editing, setEditing] = useState<AgentSpec | null>(null);
+  // Several forms can be open at once — comparing two agents' settings
+  // means seeing both. `original` is the name an existing spec was opened
+  // under, or null for a new one: a new spec starts named
+  // "claude-reviewer", so treating that as a previous name would delete
+  // a real agent of the same name.
+  const [editing, setEditing] = useState<OpenForm[]>([]);
+  const close = (id: number): void => {
+    setEditing((open) => open.filter((f) => f.id !== id));
+  };
 
   return (
     <section className="rounded-lg border border-edge bg-panel p-4">
@@ -51,7 +70,7 @@ export function AgentEditor(): ReactElement {
         <Button
           kind="primary"
           onClick={() => {
-            setEditing(newSpec());
+            setEditing((open) => [...open, { id: nextFormId++, original: null, spec: newSpec() }]);
           }}
         >
           <Plus size={12} /> new agent
@@ -72,7 +91,12 @@ export function AgentEditor(): ReactElement {
             <div className="ml-auto flex gap-1.5">
               <Button
                 onClick={() => {
-                  setEditing(spec);
+                  setEditing((open) =>
+                    // Already open: don't stack a second copy of it.
+                    open.some((f) => f.original === spec.name)
+                      ? open
+                      : [...open, { id: nextFormId++, original: spec.name, spec }],
+                  );
                 }}
               >
                 edit
@@ -90,19 +114,21 @@ export function AgentEditor(): ReactElement {
         ))}
       </div>
 
-      {editing ? (
+      {editing.map((form) => (
         <SpecForm
-          spec={editing}
+          key={form.id}
+          spec={form.spec}
           onSave={(spec) => {
-            void saveAgentSpec(spec).then(() => {
-              setEditing(null);
+            // Renaming an existing agent must move it, not clone it.
+            void saveAgentSpec(spec, form.original).then(() => {
+              close(form.id);
             });
           }}
           onCancel={() => {
-            setEditing(null);
+            close(form.id);
           }}
         />
-      ) : null}
+      ))}
     </section>
   );
 }

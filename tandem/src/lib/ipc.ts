@@ -88,7 +88,10 @@ export const ipc = {
   // agents
   listMcpServers: (): Promise<McpServer[]> => invoke<McpServer[]>("list_mcp_servers"),
   listAgentSpecs: (): Promise<AgentSpec[]> => invoke<AgentSpec[]>("list_agent_specs"),
-  saveAgentSpec: (spec: AgentSpec): Promise<null> => invoke<null>("save_agent_spec", { spec }),
+  /** `previousName` is the name the editor opened with (null for a new
+   * spec), so a rename moves the spec instead of cloning it. */
+  saveAgentSpec: (spec: AgentSpec, previousName: string | null): Promise<null> =>
+    invoke<null>("save_agent_spec", { spec, previousName }),
   deleteAgentSpec: (name: string): Promise<null> => invoke<null>("delete_agent_spec", { name }),
   listAgentRuns: (repo: string, number: number): Promise<AgentRun[]> =>
     invoke<AgentRun[]>("list_agent_runs", { repo, number }),
