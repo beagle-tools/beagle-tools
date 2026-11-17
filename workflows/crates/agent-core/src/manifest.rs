@@ -3,7 +3,9 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 
 use crate::paths::expand_tilde;
-use crate::types::{AgentSpec, ConcurrencyPolicy, Isolation, NotifyPolicy, ProjectSpec, Runner};
+use crate::types::{
+    AgentSpec, ConcurrencyPolicy, Isolation, NotifyPolicy, ProjectSpec, Runner, ScheduleTz,
+};
 use crate::CoreError;
 
 /// Raw YAML shape of an agent manifest, before resolution/validation.
@@ -17,6 +19,8 @@ struct RawAgentManifest {
     model: Option<String>,
     #[serde(default)]
     schedule: Option<String>,
+    #[serde(default)]
+    timezone: Option<ScheduleTz>,
     workdir: PathBuf,
     #[serde(default)]
     prompt: Option<PathBuf>,
@@ -61,6 +65,8 @@ struct RawAgentManifest {
     #[serde(default)]
     enabled: Option<bool>,
     entrypoint: Option<bool>,
+    #[serde(default)]
+    triggers: Option<Vec<String>>,
 }
 
 /// Raw YAML shape of an optional `project.yaml`.
@@ -168,6 +174,7 @@ fn load_project_dir(dir: &Path, out: &mut LoadOutcome) {
             }),
         }
     }
+    crate::purpose::enforce(dir, &project_name, out);
     out.projects.push(project);
 }
 
@@ -204,6 +211,9 @@ fn load_agent_file(path: &Path, project: &str) -> Result<AgentSpec, CoreError> {
     validate_slug(&raw.name).map_err(|m| CoreError::manifest(path, m))?;
     if let Some(expr) = &raw.schedule {
         parse_schedule(expr)?;
+    }
+    if raw.timezone.is_some() && raw.schedule.is_none() {
+        return Err(CoreError::manifest(path, "timezone needs a schedule"));
     }
 
     let workdir = expand_tilde(&raw.workdir)?;
@@ -258,9 +268,11 @@ fn load_agent_file(path: &Path, project: &str) -> Result<AgentSpec, CoreError> {
         project: project.to_owned(),
         name: raw.name,
         source: path.to_path_buf(),
+        purpose: None,
         runner: raw.runner,
         model: raw.model,
         schedule: raw.schedule,
+        timezone: raw.timezone.unwrap_or_default(),
         workdir,
         prompt,
         command: raw.command,
@@ -284,6 +296,7 @@ fn load_agent_file(path: &Path, project: &str) -> Result<AgentSpec, CoreError> {
         isolation: raw.isolation.unwrap_or_default(),
         enabled: raw.enabled.unwrap_or(true),
         entrypoint: raw.entrypoint,
+        triggers: raw.triggers.unwrap_or_default(),
     })
 }
 

@@ -5,6 +5,8 @@
 //! is always safe: runs keep going in their tmux sessions, and a startup
 //! recovery pass finalizes anything that finished while it was down.
 
+mod caps;
+mod gitguard;
 mod loglib;
 mod monitor;
 mod notify;
@@ -103,9 +105,16 @@ fn main() -> Result<()> {
     if let Err(e) = loglib::install() {
         tracing::warn!(error = %e, "could not install the script logger");
     }
+    // The no-push-to-main guard. Runs still start without it, so say so
+    // as an error: the GitHub branch protection is then the only guard.
+    if let Err(e) = gitguard::install() {
+        tracing::error!(error = %e, "could not install the git push guard");
+    }
     let mut store = Store::open_default().context("failed to open state store")?;
     let mut monitor = monitor::Monitor::new(notify_cfg.clone());
     info!(manifests = %manifests.display(), "agentd starting");
+    // Best-effort first beat; a failure is warned about on every tick below.
+    let _ = agent_core::daemon::beat(cli.tick_seconds);
 
     // Recovery: finalize runs whose tmux session died while the daemon was down.
     if let Err(e) = monitor.tick(&store) {
@@ -126,6 +135,11 @@ fn main() -> Result<()> {
         if let Err(e) = result {
             error!(error = %format!("{e:#}"), "tick failed");
         }
+        // The heartbeat is how agenttop and agentctl tell a stopped daemon
+        // from an idle one (see agent_core::daemon).
+        if let Err(e) = agent_core::daemon::beat(cli.tick_seconds) {
+            tracing::warn!(error = %e, "could not write the heartbeat");
+        }
         std::thread::sleep(std::time::Duration::from_secs(cli.tick_seconds));
     }
 }
@@ -143,7 +157,13 @@ fn run_tick(
     scheduler::tick(store, &specs, Utc::now())?;
     spawner::spawn_pending(store, notify_cfg)?;
     monitor.tick(store)?;
-    retention::tick(store, &specs, Utc::now(), log_retention_hours)?;
+    retention::tick(
+        store,
+        &specs,
+        Utc::now(),
+        log_retention_hours,
+        &retention::Dirs::real()?,
+    )?;
     Ok(())
 }
 
@@ -168,6 +188,7 @@ fn stock_icon(manifests: &Path, state_dir: Option<&Path>, name: &str) -> Option<
 }
 
 #[cfg(test)]
+// Tests should fail loudly on a broken fixture; unwrapping is the clearest way.
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::stock_icon;

@@ -3,9 +3,9 @@
 
 use agent_core::manifest::parse_schedule;
 use agent_core::state::Store;
-use agent_core::types::{AgentSpec, ConcurrencyPolicy, Trigger};
+use agent_core::types::{AgentSpec, ConcurrencyPolicy, ScheduleTz, Trigger};
 use anyhow::Result;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local, TimeZone, Utc};
 use cron::Schedule;
 use tracing::{info, warn};
 
@@ -36,6 +36,20 @@ fn is_due(schedule: &Schedule, last: DateTime<Utc>, now: DateTime<Utc>) -> bool 
     schedule.after(&last).next().is_some_and(|t| t <= now)
 }
 
+/// [`is_due`] with the cron fields read on `tz`'s wall clock: `0 12 * * *`
+/// in `Local` is noon there all year, across daylight-saving changes.
+fn is_due_in<Tz: TimeZone>(
+    schedule: &Schedule,
+    tz: &Tz,
+    last: DateTime<Utc>,
+    now: DateTime<Utc>,
+) -> bool {
+    schedule
+        .after(&last.with_timezone(tz))
+        .next()
+        .is_some_and(|t| t.with_timezone(&Utc) <= now)
+}
+
 fn schedule_agent(
     store: &Store,
     spec: &AgentSpec,
@@ -55,7 +69,11 @@ fn schedule_agent(
             return Ok(());
         }
     };
-    if !is_due(&schedule, last, now) {
+    let due = match spec.timezone {
+        ScheduleTz::Utc => is_due(&schedule, last, now),
+        ScheduleTz::Local => is_due_in(&schedule, &Local, last, now),
+    };
+    if !due {
         return Ok(());
     }
     if spec.concurrency == ConcurrencyPolicy::Forbid
@@ -133,6 +151,34 @@ mod tests {
             &daily_7am,
             ts("2026-08-12T06:59:55Z"),
             ts("2026-08-12T07:00:00Z")
+        ));
+    }
+
+    #[test]
+    fn a_wall_clock_schedule_follows_daylight_saving() {
+        use chrono::FixedOffset;
+        let noon = parse_schedule("0 12 * * *").unwrap();
+        // New York in summer (UTC-4): noon there is 16:00Z, not 12:00Z.
+        let edt = FixedOffset::west_opt(4 * 3600).unwrap();
+        assert!(is_due_in(
+            &noon,
+            &edt,
+            ts("2026-10-27T15:59:58Z"),
+            ts("2026-10-27T16:00:03Z")
+        ));
+        assert!(!is_due_in(
+            &noon,
+            &edt,
+            ts("2026-10-27T11:59:58Z"),
+            ts("2026-10-27T12:00:03Z")
+        ));
+        // ...and in winter (UTC-5), 17:00Z.
+        let est = FixedOffset::west_opt(5 * 3600).unwrap();
+        assert!(is_due_in(
+            &noon,
+            &est,
+            ts("2026-12-01T16:59:58Z"),
+            ts("2026-12-01T17:00:03Z")
         ));
     }
 

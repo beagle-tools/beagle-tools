@@ -8,9 +8,11 @@ fn spec(name: &str, schedule: Option<&str>, entrypoint: Option<bool>) -> AgentSp
         project: "p".to_owned(),
         name: name.to_owned(),
         source: std::path::PathBuf::new(),
+        purpose: None,
         runner: Runner::Script,
         model: None,
         schedule: schedule.map(ToOwned::to_owned),
+        timezone: crate::types::ScheduleTz::Utc,
         workdir: "/tmp".into(),
         prompt: None,
         command: Some("true".to_owned()),
@@ -34,6 +36,7 @@ fn spec(name: &str, schedule: Option<&str>, entrypoint: Option<bool>) -> AgentSp
         isolation: Isolation::None,
         enabled: true,
         entrypoint,
+        triggers: Vec::new(),
     }
 }
 
@@ -164,6 +167,21 @@ fn display_order_nests_steps_under_their_job_and_loses_nobody() {
     // Job first, its step under it, and the step nothing claims
     // still present rather than dropped.
     assert_eq!(order, vec!["root", "stage", "orphan-step"]);
+}
+
+#[test]
+fn display_order_lists_a_job_that_is_also_a_step_once() {
+    let specs = vec![spec("a-job", None, None), spec("shared", None, Some(true))];
+    let runs = vec![
+        run("r1", "a-job", None, 0, RunState::Succeeded),
+        run("r2", "shared", Some("r1"), 1, RunState::Succeeded),
+        run("r3", "shared", None, 2, RunState::Succeeded),
+    ];
+    let order: Vec<String> = display_order(&specs, &runs)
+        .into_iter()
+        .map(|s| s.name)
+        .collect();
+    assert_eq!(order, vec!["a-job", "shared"]);
 }
 
 #[test]

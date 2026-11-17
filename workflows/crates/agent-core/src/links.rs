@@ -48,6 +48,86 @@ pub fn pr_url_in_file(path: &Path) -> Option<String> {
     first_url(&body, "/pull/").filter(|u| u.starts_with("https://github.com/"))
 }
 
+/// The PR a run OPENED — not one it mentions.
+///
+/// The run's own events decide: the `gh pr create` call and, in its
+/// result, the URL gh printed, paired by tool-use id. When the events
+/// exist and hold no such call, the run opened no PR, full stop — so a
+/// stage that merely writes the chain's PR into its notes (docs, report)
+/// is never taken for the one that opened it. Only when the events are
+/// gone does `result.md` stand in, since the implement stage records its
+/// PR there. Works mid-run too: the call is in the events the moment it
+/// happens, long before result.md is written.
+pub fn run_pr(store: &crate::state::Store, run_id: &str) -> Option<String> {
+    if let Ok(events) = store.events_after(run_id, 0, 5000) {
+        if !events.is_empty() {
+            return pr_created_in(&events);
+        }
+    }
+    let data = crate::paths::data_dir().ok()?;
+    pr_url_in_file(&data.join(run_id).join("result.md"))
+}
+
+/// The URL `gh pr create` printed, found by pairing the tool call with its
+/// result. Pure, so it is tested without a store.
+pub fn pr_created_in(events: &[crate::types::Event]) -> Option<String> {
+    use serde_json::Value;
+    let blocks = |payload: &str| -> Vec<Value> {
+        serde_json::from_str::<Value>(payload)
+            .ok()
+            .and_then(|v| {
+                v.pointer("/message/content")
+                    .and_then(Value::as_array)
+                    .cloned()
+            })
+            .unwrap_or_default()
+    };
+    let mut creates: Vec<String> = Vec::new();
+    for event in events {
+        let Some(payload) = event.payload.as_deref() else {
+            continue;
+        };
+        for block in blocks(payload) {
+            match block.get("type").and_then(Value::as_str) {
+                Some("tool_use") => {
+                    let command = block
+                        .pointer("/input/command")
+                        .and_then(Value::as_str)
+                        .unwrap_or_default();
+                    if command.contains("gh pr create") {
+                        if let Some(id) = block.get("id").and_then(Value::as_str) {
+                            creates.push(id.to_owned());
+                        }
+                    }
+                }
+                Some("tool_result") => {
+                    let id = block
+                        .get("tool_use_id")
+                        .and_then(Value::as_str)
+                        .unwrap_or("");
+                    if !creates.iter().any(|c| c == id) {
+                        continue;
+                    }
+                    let text = match block.get("content") {
+                        Some(Value::String(s)) => s.clone(),
+                        Some(Value::Array(parts)) => parts
+                            .iter()
+                            .filter_map(|p| p.get("text").and_then(Value::as_str))
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                        _ => String::new(),
+                    };
+                    if let Some(url) = first_url(&text, "/pull/") {
+                        return Some(url);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -100,5 +180,45 @@ mod tests {
     #[test]
     fn no_url_is_none_rather_than_empty() {
         assert_eq!(first_url("no links here at all\n", "/pull/"), None);
+    }
+
+    fn event(payload: &str) -> crate::types::Event {
+        crate::types::Event {
+            id: 1,
+            run_id: "r".to_owned(),
+            ts: chrono::Utc::now(),
+            kind: "assistant".to_owned(),
+            payload: Some(payload.to_owned()),
+        }
+    }
+
+    #[test]
+    fn the_pr_a_run_opened_is_found_from_its_own_gh_call() {
+        let events = vec![
+            event(
+                r#"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t9","name":"Bash","input":{"command":"gh pr create --draft --title x"}}]}}"#,
+            ),
+            event(
+                r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t9","content":"https://github.com/acme/widgets/pull/764\n"}]}}"#,
+            ),
+        ];
+        assert_eq!(
+            pr_created_in(&events).as_deref(),
+            Some("https://github.com/acme/widgets/pull/764")
+        );
+    }
+
+    #[test]
+    fn a_pr_the_run_only_read_about_is_not_one_it_opened() {
+        // `gh pr view` of someone else's PR prints a PR URL too.
+        let events = vec![
+            event(
+                r#"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"gh pr view 12 --repo a/b"}}]}}"#,
+            ),
+            event(
+                r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"https://github.com/a/b/pull/12"}]}}"#,
+            ),
+        ];
+        assert_eq!(pr_created_in(&events), None);
     }
 }

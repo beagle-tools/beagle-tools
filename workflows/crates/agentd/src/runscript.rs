@@ -15,14 +15,23 @@ use agent_core::types::Isolation;
 use agent_core::types::{AgentSpec, Run, Runner};
 use anyhow::{bail, Context, Result};
 
-use crate::runenv::{env_exports, run_context};
+use crate::runenv::{env_exports, purpose_brief, run_context, JobPurpose};
 use beagle_utils::shell::quote as shell_quote;
+
+/// Prepended to every run: hold the Mac awake until the run's own shell
+/// exits. A sleeping Mac freezes a run while its timeout clock keeps
+/// going, so a long review is killed at its timeout having done nothing.
+/// `caffeinate -i` blocks IDLE sleep only (closing the lid still sleeps, as
+/// it should), and `-w $$` ties it to this script, so nothing outlives the
+/// run. Guarded, so a machine without caffeinate just runs as before.
+const KEEP_AWAKE: &str = "command -v caffeinate >/dev/null 2>&1 && caffeinate -i -w $$ & ";
 
 pub(crate) fn build_run_script(
     spec: &AgentSpec,
     run: &Run,
     log: &Path,
     root: &str,
+    purpose: Option<&JobPurpose>,
 ) -> Result<String> {
     let data_dir = paths::data_dir()?.join(&run.id);
     std::fs::create_dir_all(&data_dir)
@@ -39,6 +48,13 @@ pub(crate) fn build_run_script(
         Runner::Claude | Runner::Codex => {
             let prompt = spec.prompt.as_deref().context("agent has no prompt")?;
             let mut sources = prompt_sources(prompt)?;
+            // The job's purpose goes FIRST: the big picture before the
+            // step's own instructions.
+            if let Some(brief) = purpose.and_then(|p| purpose_brief(run, p)) {
+                let file = data_dir.join("00-job-purpose.md");
+                std::fs::write(&file, brief).context("write job purpose")?;
+                sources.insert(0, file);
+            }
             // LLM runs get their params INSIDE the prompt as literal values:
             // scoped tool rules (e.g. `Bash(notes:*)`) deny commands that
             // contain `$VAR` expansions, so env-var params are unreadable to
@@ -53,8 +69,8 @@ pub(crate) fn build_run_script(
         }
     };
     Ok(format!(
-        "{}{body}",
-        env_exports(spec, run, &data_dir, root)?
+        "{KEEP_AWAKE}{}{body}",
+        env_exports(spec, run, &data_dir, root, purpose)?
     ))
 }
 

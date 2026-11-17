@@ -88,6 +88,7 @@ pub fn parse_pid(print_output: &str) -> Option<u32> {
 }
 
 #[cfg(test)]
+// Tests should fail loudly on a broken fixture; unwrapping is the clearest way.
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;

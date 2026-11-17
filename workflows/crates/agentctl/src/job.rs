@@ -66,6 +66,7 @@ pub fn run(store: &Store, job: &str, entries: &[String], model: Option<&str>) ->
     )?;
     println!("{}", created.id);
     println!("watch with: agentctl logs {} -f", created.id);
+    crate::fmt::warn_if_daemon_down();
     Ok(())
 }
 
@@ -110,9 +111,11 @@ mod tests {
             project: project.to_owned(),
             name: name.to_owned(),
             source: std::path::PathBuf::new(),
+            purpose: None,
             runner: Runner::Claude,
             model: None,
             schedule: None,
+            timezone: agent_core::types::ScheduleTz::Utc,
             workdir: "/tmp".into(),
             prompt: Some("/tmp/prompt.md".into()),
             command: None,
@@ -136,6 +139,7 @@ mod tests {
             isolation: Isolation::None,
             enabled: true,
             entrypoint: None,
+            triggers: Vec::new(),
         }
     }
 

@@ -46,16 +46,67 @@ pub(crate) fn run_context(run: &Run, data_dir: &Path, root: &str) -> String {
     out
 }
 
+/// The job a run belongs to, for its prompt and environment: the chain
+/// root's `project/agent` and that job's `job-purpose.md`.
+#[derive(Debug, Clone)]
+pub(crate) struct JobPurpose {
+    pub job: String,
+    pub path: PathBuf,
+}
+
+/// Lines of a purpose file put in the prompt, at most.
+const PURPOSE_BRIEF_LINES: usize = 150;
+
+/// The top of every model run's prompt: what the whole job is for and
+/// where this step fits, before the step's own instructions. The purpose
+/// file's opening sections — up to "Where things live", which with the
+/// failure modes and repair rules is for whoever fixes the job — plus the
+/// path to the whole file. `None` when the file cannot be read.
+pub(crate) fn purpose_brief(run: &Run, purpose: &JobPurpose) -> Option<String> {
+    let text = std::fs::read_to_string(&purpose.path).ok()?;
+    let mut brief = Vec::new();
+    for line in text.lines().take(PURPOSE_BRIEF_LINES) {
+        if line.starts_with("## Where things live") || line.starts_with("## Known failure modes") {
+            break;
+        }
+        brief.push(line);
+    }
+    let mut out = String::from(
+        "# The job you are part of — read this first
+
+",
+    );
+    let _ = writeln!(
+        out,
+        "You are the `{}/{}` step of the job `{}`. Below is what the whole job \
+         is for and how its steps fit together, so you know where your part \
+         sits before you read your own instructions. Do your step, not the \
+         job's other steps. The full purpose file (where things live, known \
+         failure modes, the rules the job keeps) is `{}`; read it when you \
+         need more.\n\n---\n",
+        run.project,
+        run.agent,
+        purpose.job,
+        purpose.path.display()
+    );
+    out.push_str(&brief.join("\n"));
+    out.push_str("\n\n---\n");
+    Some(out)
+}
+
 /// `export` prefix exposing the run's identity and context to the process:
 /// `AGENTD_RUN_ID`/`PROJECT`/`AGENT`/`DATA_DIR`; for triggered runs
 /// `AGENTD_PARENT_RUN_ID`/`PARENT_DATA_DIR`; `AGENTD_PARAM_<K>` for each
 /// `--param`; `AGENTD_DB` when `database: true`; plus the manifest's `env:`
-/// map. `~/.cargo/bin` is prepended to PATH so scripts can call `agentctl`.
+/// map. `~/.cargo/bin` and `~/.local/bin` are prepended to PATH: the daemon
+/// runs under launchd, whose PATH has neither, so without them a run cannot
+/// call `agentctl` or a user-installed CLI like `beagle`.
 pub(crate) fn env_exports(
     spec: &AgentSpec,
     run: &Run,
     data_dir: &Path,
     root: &str,
+    purpose: Option<&JobPurpose>,
 ) -> Result<String> {
     let mut vars = vec![
         format!("AGENTD_RUN_ID={}", shell_quote(&run.id)),
@@ -67,6 +118,13 @@ pub(crate) fn env_exports(
         ),
     ];
     vars.push(format!("AGENTD_ROOT_RUN_ID={}", shell_quote(root)));
+    // The job's job-purpose.md, for a script that wants to point at it.
+    if let Some(purpose) = purpose {
+        vars.push(format!(
+            "AGENTD_JOB_PURPOSE={}",
+            shell_quote(&purpose.path.to_string_lossy())
+        ));
+    }
     // The standard logger, for script stages: `. "$AGENTD_LOG_SH"`, then
     // log_info / log_step / log_ok / log_warn / log_error.
     if let Ok(log_sh) = crate::loglib::path() {
@@ -101,13 +159,39 @@ pub(crate) fn env_exports(
     for (key, value) in &spec.env {
         vars.push(format!("{key}={}", shell_quote(value)));
     }
+    // The git guard (see gitguard.rs): the orgs its pre-push hook protects
+    // (always set, so a run never inherits a stale list), and hooksPath for
+    // every git call, even one that bypasses the shim on PATH.
+    vars.push(format!(
+        "AGENTD_PROTECTED_ORGS={}",
+        shell_quote(&agent_core::guard::protected_orgs().join(" "))
+    ));
+    if let Ok(hooks) = crate::gitguard::hooks_dir() {
+        vars.push("GIT_CONFIG_COUNT=1".to_owned());
+        vars.push("GIT_CONFIG_KEY_0=core.hooksPath".to_owned());
+        vars.push(format!(
+            "GIT_CONFIG_VALUE_0={}",
+            shell_quote(&hooks.to_string_lossy())
+        ));
+    }
     let mut out = String::new();
     if let Some(home) = std::env::var_os("HOME") {
-        let cargo_bin = PathBuf::from(home).join(".cargo/bin");
+        let home = PathBuf::from(home);
+        let cargo_bin = home.join(".cargo/bin");
+        let local_bin = home.join(".local/bin");
+        let _ = write!(
+            out,
+            "export PATH={}:{}:\"$PATH\"; ",
+            shell_quote(&cargo_bin.to_string_lossy()),
+            shell_quote(&local_bin.to_string_lossy())
+        );
+    }
+    // The git shim goes in front of everything (see gitguard.rs).
+    if let Ok(bin) = crate::gitguard::bin_dir() {
         let _ = write!(
             out,
             "export PATH={}:\"$PATH\"; ",
-            shell_quote(&cargo_bin.to_string_lossy())
+            shell_quote(&bin.to_string_lossy())
         );
     }
     // Secrets file first, so the manifest's explicit `env:` wins on clashes.
@@ -155,4 +239,48 @@ pub(crate) fn param_pairs(params: Option<&str>) -> Vec<(String, String)> {
             (key, v)
         })
         .collect()
+}
+
+#[cfg(test)]
+// Tests should fail loudly on a broken fixture; unwrapping is the clearest way.
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_brief_is_the_big_picture_not_the_repair_notes() {
+        let dir = std::env::temp_dir().join(format!("agentd-purpose-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("job-purpose.md");
+        std::fs::write(
+            &path,
+            "# p/job\n\nTurns tickets into PRs.\n\n## Steps\n\n| gate | ... |\n\n\
+             ## Where things live\n\n- secrets of the trade\n\n## Known failure modes\n\n- oops\n",
+        )
+        .unwrap();
+        let run: Run = serde_json::from_str(
+            r#"{"id":"step-1","project":"p","agent":"step","state":"pending","trigger":"manual",
+               "parent_run_id":null,"params":null,"tmux_session":null,"log_path":null,"workdir":null,
+               "model":null,"created_at":"2026-10-27T00:00:00Z","started_at":null,"finished_at":null,
+               "exit_code":null,"cost_usd":null,"num_turns":null,"usage_json":null}"#,
+        )
+        .unwrap();
+        let brief = purpose_brief(
+            &run,
+            &JobPurpose {
+                job: "p/job".to_owned(),
+                path: path.clone(),
+            },
+        )
+        .unwrap();
+        assert!(brief.contains(
+            "You are the `p/step` step of the job `p/job`. Below is what the whole job is for"
+        ));
+        assert!(brief.contains("Turns tickets into PRs."));
+        assert!(brief.contains("| gate | ... |"));
+        assert!(!brief.contains("secrets of the trade"));
+        assert!(!brief.contains("oops"));
+        assert!(brief.contains(&path.display().to_string()));
+        let _ = std::fs::remove_dir_all(dir);
+    }
 }

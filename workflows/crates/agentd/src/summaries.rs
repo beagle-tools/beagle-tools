@@ -124,11 +124,10 @@ fn pr_outcome(url: &str, now: chrono::DateTime<Utc>) -> (PrOutcome, Option<Strin
 
 /// Sweep `summaries/` on its own, longer clock, and drop any whose run has
 /// left the store. Best-effort: a failure here must never stop a tick.
-pub fn prune_summaries(store: &Store, now: chrono::DateTime<Utc>) {
-    let Ok(dir) = agent_core::paths::state_dir().map(|d| d.join("summaries")) else {
-        return;
-    };
-    let Ok(entries) = std::fs::read_dir(&dir) else {
+/// Sweep the write-ups in `dir` — the one it is handed, never one it looks
+/// up; see `retention::Dirs` for why.
+pub fn prune_summaries(store: &Store, dir: &std::path::Path, now: chrono::DateTime<Utc>) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
         return; // nothing written yet
     };
     for entry in entries.filter_map(Result::ok) {

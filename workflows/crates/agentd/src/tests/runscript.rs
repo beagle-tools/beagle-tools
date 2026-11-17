@@ -8,9 +8,11 @@ fn spec(runner: Runner, model: Option<&str>) -> AgentSpec {
         project: "personal".to_owned(),
         name: "digest".to_owned(),
         source: std::path::PathBuf::new(),
+        purpose: None,
         runner,
         model: model.map(str::to_owned),
         schedule: None,
+        timezone: agent_core::types::ScheduleTz::Utc,
         workdir: "/tmp/repo".into(),
         prompt: Some("/tmp/prompts/digest.md".into()),
         command: None,
@@ -34,6 +36,7 @@ fn spec(runner: Runner, model: Option<&str>) -> AgentSpec {
         isolation: Isolation::None,
         enabled: true,
         entrypoint: None,
+        triggers: Vec::new(),
     }
 }
 
@@ -45,6 +48,15 @@ fn claude_allowed_tools_flag() {
         runner_command(&with_tools, None),
         "claude -p --output-format stream-json --verbose --allowedTools 'Bash,Read'"
     );
+}
+
+#[test]
+fn keep_awake_backgrounds_and_ties_itself_to_the_run() {
+    // Backgrounded, or the run would wait on it forever; tied to $$,
+    // or it would outlive the run and keep the Mac awake for nothing.
+    assert!(KEEP_AWAKE.contains("caffeinate -i -w $$"));
+    assert!(KEEP_AWAKE.trim_end().ends_with('&'));
+    assert!(KEEP_AWAKE.starts_with("command -v caffeinate"));
 }
 
 #[test]
@@ -116,7 +128,14 @@ fn env_exports_carry_identity_and_parent_links() {
     with_env
         .env
         .insert("NOTES_ROOT".to_owned(), "/stores/notes".to_owned());
-    let exports = env_exports(&with_env, &run, Path::new("/state/data/child-1"), "root-1").unwrap();
+    let exports = env_exports(
+        &with_env,
+        &run,
+        Path::new("/state/data/child-1"),
+        "root-1",
+        None,
+    )
+    .unwrap();
     assert!(exports.contains("AGENTD_RUN_ID='child-1'"));
     assert!(exports.contains("AGENTD_PROJECT='demo'"));
     assert!(exports.contains("AGENTD_DATA_DIR='/state/data/child-1'"));
@@ -124,6 +143,8 @@ fn env_exports_carry_identity_and_parent_links() {
     assert!(exports.contains("AGENTD_PARENT_DATA_DIR='/state/data/root-9'"));
     assert!(exports.contains("NOTES_ROOT='/stores/notes'"));
     assert!(exports.contains(".cargo/bin"));
+    // User-installed CLIs live here; a run without it could not find them.
+    assert!(exports.contains(".local/bin"));
 }
 
 #[test]

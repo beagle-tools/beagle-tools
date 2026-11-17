@@ -1,8 +1,15 @@
 use super::*;
 
+/// Writes a file; an agent manifest also gets its job-purpose.md, so
+/// these tests stay about what they test (see purpose.rs for that rule).
 fn write(path: &Path, text: &str) {
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(path, text).unwrap();
+    if let (Some(name), true) = (path.file_stem(), text.starts_with("kind: Agent")) {
+        let purpose = crate::purpose::purpose_path(path.parent().unwrap(), &name.to_string_lossy());
+        std::fs::create_dir_all(purpose.parent().unwrap()).unwrap();
+        std::fs::write(purpose, "# purpose\n").unwrap();
+    }
 }
 
 fn temp_root(tag: &str) -> PathBuf {

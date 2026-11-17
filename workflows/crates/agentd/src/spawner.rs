@@ -10,22 +10,57 @@ use agent_core::{ids, paths};
 use anyhow::{bail, Context, Result};
 use tracing::{info, warn};
 
+use crate::caps::{Kind, Slots};
+use crate::runenv::JobPurpose;
 use crate::runscript::build_run_script;
 use crate::tmux;
 
-/// Spawn every pending run whose agent spec still exists. Per-run failures
-/// finalize that run as `Failed` (with an explanatory event) and never abort
-/// the pass.
+/// Spawn every pending run whose agent spec still exists, oldest first,
+/// within the fleet-wide caps (`caps`): a run over its kind's cap stays
+/// `Pending` for a later pass. Per-run failures finalize that run as
+/// `Failed` (with an explanatory event) and never abort the pass.
 pub fn spawn_pending(store: &Store, notify_cfg: &crate::notify::NotifyConfig) -> Result<()> {
+    let mut slots = live_slots(store)?;
     for run in store.pending_runs()? {
-        if let Err(e) = spawn_one(store, &run, notify_cfg) {
-            warn!(run = %run.id, error = %format!("{e:#}"), "spawn pass error for run");
+        // No spec: spawn_one fails the run without starting anything, so
+        // it needs no slot.
+        let kind = store
+            .get_agent(&run.project, &run.agent)?
+            .map(|spec| Kind::of(spec.runner));
+        if let Some(kind) = kind {
+            if !slots.has_room(kind) {
+                continue;
+            }
+        }
+        match spawn_one(store, &run, notify_cfg) {
+            Ok(true) => {
+                if let Some(kind) = kind {
+                    slots.take(kind);
+                }
+            }
+            Ok(false) => {}
+            Err(e) => warn!(run = %run.id, error = %format!("{e:#}"), "spawn pass error for run"),
         }
     }
     Ok(())
 }
 
-fn spawn_one(store: &Store, run: &Run, notify_cfg: &crate::notify::NotifyConfig) -> Result<()> {
+/// What is live right now, by kind. A running run whose spec has gone
+/// counts as a model run: unknown is treated as the expensive kind.
+fn live_slots(store: &Store) -> Result<Slots> {
+    let mut slots = Slots::default();
+    for run in store.running_runs()? {
+        let kind = store
+            .get_agent(&run.project, &run.agent)?
+            .map_or(Kind::Model, |spec| Kind::of(spec.runner));
+        slots.take(kind);
+    }
+    Ok(slots)
+}
+
+/// Start one pending run. `Ok(true)` when it is now running; `Ok(false)`
+/// when it was left queued or finalized without starting.
+fn spawn_one(store: &Store, run: &Run, notify_cfg: &crate::notify::NotifyConfig) -> Result<bool> {
     let Some(spec) = store.get_agent(&run.project, &run.agent)? else {
         return fail_run(
             store,
@@ -42,7 +77,7 @@ fn spawn_one(store: &Store, run: &Run, notify_cfg: &crate::notify::NotifyConfig)
     // its cap; a later pass drains the queue as runs finish.
     if let Some(cap) = spec.max_concurrent {
         if store.running_count(&run.project, &run.agent)? >= cap {
-            return Ok(());
+            return Ok(false);
         }
     }
 
@@ -60,7 +95,8 @@ fn spawn_one(store: &Store, run: &Run, notify_cfg: &crate::notify::NotifyConfig)
 
     let log_path = paths::logs_dir()?.join(format!("{}.jsonl", run.id));
     let root = chain_root(store, run);
-    let script = match build_run_script(&spec, run, &log_path, &root) {
+    let purpose = job_purpose(store, &spec, &root);
+    let script = match build_run_script(&spec, run, &log_path, &root, purpose.as_ref()) {
         Ok(script) => script,
         Err(e) => return fail_run(store, run, &format!("run setup failed: {e:#}"), notify_cfg),
     };
@@ -72,7 +108,7 @@ fn spawn_one(store: &Store, run: &Run, notify_cfg: &crate::notify::NotifyConfig)
     store.mark_running(&run.id, &session, &log_path, &workdir)?;
     store.insert_event(&run.id, "state", Some("running"))?;
     info!(run = %run.id, agent = %spec.qualified_name(), session = %session, "spawned run");
-    Ok(())
+    Ok(true)
 }
 
 /// The directory the run executes in: the declared workdir, or a fresh
@@ -125,16 +161,38 @@ fn chain_root(store: &Store, run: &Run) -> String {
     current
 }
 
+/// The job this run belongs to — its chain root's agent — and that job's
+/// `job-purpose.md`. Falls back to the agent's own purpose file when the
+/// root is gone or undeclared.
+fn job_purpose(store: &Store, spec: &AgentSpec, root: &str) -> Option<JobPurpose> {
+    let root_spec = store
+        .get_run(root)
+        .ok()
+        .flatten()
+        .and_then(|r| store.get_agent(&r.project, &r.agent).ok().flatten());
+    root_spec
+        .filter(|s| s.purpose.is_some())
+        .as_ref()
+        .or(Some(spec))
+        .and_then(|s| {
+            s.purpose.clone().map(|path| JobPurpose {
+                job: s.qualified_name(),
+                path,
+            })
+        })
+}
+
 fn fail_run(
     store: &Store,
     run: &Run,
     reason: &str,
     notify_cfg: &crate::notify::NotifyConfig,
-) -> Result<()> {
+) -> Result<bool> {
     store.insert_event(&run.id, "note", Some(reason))?;
     store.finish_run(&run.id, RunState::Failed, None)?;
     store.insert_event(&run.id, "state", Some("failed"))?;
     info!(run = %run.id, reason = %reason, "run finished: failed (never spawned)");
     crate::notify::run_finished(None, run, RunState::Failed, notify_cfg);
-    Ok(())
+    // Finalized, not started: it took no slot.
+    Ok(false)
 }

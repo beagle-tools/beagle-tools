@@ -73,6 +73,7 @@ impl Monitor {
             store.finish_run(&run.id, RunState::TimedOut, None)?;
             store.insert_event(&run.id, "state", Some("timedout"))?;
             record_announcement(store, run);
+            record_repos(store, run);
             info!(run = %run.id, agent = %run.agent, "run finished: timedout");
             notify::run_finished(spec.as_ref(), run, RunState::TimedOut, &self.notify);
             cleanup_worktree(store, run, spec.as_ref())?;
@@ -87,6 +88,7 @@ impl Monitor {
             store.finish_run(&run.id, state, exit_code)?;
             store.insert_event(&run.id, "state", Some(state.as_str()))?;
             record_announcement(store, run);
+            record_repos(store, run);
             info!(run = %run.id, agent = %run.agent, exit_code, "run finished: {state}");
             notify::run_finished(spec.as_ref(), run, state, &self.notify);
             cleanup_worktree(store, run, spec.as_ref())?;
@@ -152,17 +154,121 @@ fn record_announcement(store: &Store, run: &Run) {
     }
 }
 
-/// Where ingestion should start for a run first seen by this daemon process:
-/// byte 0 for fresh runs, end-of-file when the log was already ingested by a
-/// previous daemon (the run has log-derived events, not just daemon ones).
-fn initial_offset(store: &Store, run_id: &str, path: &Path) -> Result<u64> {
-    let events = store.events_after(run_id, 0, 100)?;
-    let has_log_events = events.iter().any(|e| e.kind != "state" && e.kind != "note");
-    if has_log_events {
-        Ok(std::fs::metadata(path).map_or(0, |m| m.len()))
-    } else {
-        Ok(0)
+/// Records which repos a model run wrote to — commits, pushes, worktree
+/// changes, PR and API writes — as one `note`, so every run's log names the
+/// repos it touched (see `agent_core::repotrace`). Scripts log their own.
+fn record_repos(store: &Store, run: &Run) {
+    use agent_core::repotrace::{self, Target};
+    let Ok(events) = store.events_after(&run.id, 0, 20_000) else {
+        return;
+    };
+    let workdir = run.workdir.clone().unwrap_or_default();
+    let mut names: HashMap<std::path::PathBuf, String> = HashMap::new();
+    let mut current: HashMap<std::path::PathBuf, Option<String>> = HashMap::new();
+    let writes: Vec<(String, Option<String>, String)> = repotrace::bash_commands(&events)
+        .iter()
+        .flat_map(|c| repotrace::writes_in(c, &workdir))
+        .map(|w| match w.target {
+            Target::GitHub(name) => (name, w.branch, w.verb),
+            Target::Local(path) => {
+                let repo = names
+                    .entry(path.clone())
+                    .or_insert_with(|| local_repo_name(&path))
+                    .clone();
+                // The command named no branch: the checkout's branch now.
+                let branch = w.branch.or_else(|| {
+                    current
+                        .entry(path.clone())
+                        .or_insert_with(|| current_branch(&path))
+                        .clone()
+                });
+                (repo, branch, w.verb)
+            }
+        })
+        .collect();
+    let protected = agent_core::guard::protected_orgs();
+    if let Some(line) = repotrace::summary(&writes, &protected) {
+        if line.contains("PUSHED TO MAIN") {
+            tracing::error!(run = %run.id, "{line}");
+        }
+        info!(run = %run.id, "{line}");
+        let _ = store.insert_event(&run.id, "note", Some(&line));
     }
+}
+
+/// A checkout's current branch; `None` when detached or gone.
+fn current_branch(path: &Path) -> Option<String> {
+    Command::new("git")
+        .arg("-C")
+        .arg(path)
+        .args(["symbolic-ref", "--short", "-q", "HEAD"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_owned())
+        .filter(|s| !s.is_empty())
+}
+
+/// `owner/name` of a checkout from its origin remote; the path itself when
+/// it has none (or is gone — a removed worktree): its folder still says
+/// which repo it was.
+fn local_repo_name(path: &Path) -> String {
+    Command::new("git")
+        .arg("-C")
+        .arg(path)
+        .args(["remote", "get-url", "origin"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| {
+            String::from_utf8_lossy(&o.stdout)
+                .trim()
+                .trim_start_matches("git@github.com:")
+                .trim_start_matches("https://github.com/")
+                .trim_end_matches(".git")
+                .to_owned()
+        })
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| path.display().to_string())
+}
+
+/// Where ingestion should start for a run first seen by this daemon process:
+/// just past the lines a previous daemon already ingested.
+///
+/// It used to jump to end-of-file for any run with log events, which lost
+/// every line written while the daemon was restarting — including, for a
+/// run that finished in that gap, its `result` line, and with it the run's
+/// cost. Every ingested line is exactly one log event, so the count of those
+/// says how many lines to skip.
+fn initial_offset(store: &Store, run_id: &str, path: &Path) -> Result<u64> {
+    let ingested = store.log_event_count(run_id)?;
+    if ingested == 0 {
+        return Ok(0);
+    }
+    let Ok(bytes) = std::fs::read(path) else {
+        return Ok(0);
+    };
+    Ok(resume_offset(&bytes, ingested))
+}
+
+/// The byte offset just past the `ingested`-th line that ingestion turns into
+/// an event — the same lines `classify_line` accepts. Past the end of the
+/// complete lines if there are fewer (a log rewritten under us): never re-read.
+fn resume_offset(bytes: &[u8], ingested: u64) -> u64 {
+    let mut seen = 0u64;
+    let mut pos = 0usize;
+    while let Some(nl) = bytes[pos..].iter().position(|&b| b == b'\n') {
+        let end = pos + nl + 1;
+        let line = String::from_utf8_lossy(&bytes[pos..end - 1]);
+        if classify_line(&line).is_some() {
+            seen += 1;
+            if seen == ingested {
+                return end as u64;
+            }
+        }
+        pos = end;
+    }
+    pos as u64
 }
 
 fn run_timed_out(run: &Run, spec: Option<&AgentSpec>) -> bool {
@@ -265,77 +371,5 @@ fn cleanup_worktree(store: &Store, run: &Run, spec: Option<&AgentSpec>) -> Resul
 #[cfg(test)]
 // Tests should fail loudly on a broken fixture; unwrapping is the clearest way.
 #[allow(clippy::unwrap_used)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn exit_marker_parsing() {
-        assert_eq!(parse_exit_marker("__AGENTD_EXIT__:0\n"), Some(0));
-        assert_eq!(parse_exit_marker("noise\n__AGENTD_EXIT__:17\n"), Some(17));
-        // The last marker wins.
-        assert_eq!(
-            parse_exit_marker("__AGENTD_EXIT__:1\n__AGENTD_EXIT__:0\n"),
-            Some(0)
-        );
-        assert_eq!(parse_exit_marker("no marker here\n"), None);
-        assert_eq!(parse_exit_marker("__AGENTD_EXIT__:not-a-number\n"), None);
-        assert_eq!(parse_exit_marker(""), None);
-    }
-
-    #[test]
-    fn final_state_from_exit_code() {
-        assert_eq!(final_state(Some(0)), RunState::Succeeded);
-        assert_eq!(final_state(Some(2)), RunState::Failed);
-        assert_eq!(final_state(None), RunState::Failed);
-    }
-
-    #[test]
-    fn classify_json_lines_by_type_field() {
-        let (kind, payload) = classify_line(r#"{"type":"tool_use","name":"Bash"}"#).unwrap();
-        assert_eq!(kind, "tool_use");
-        assert_eq!(payload, r#"{"type":"tool_use","name":"Bash"}"#);
-    }
-
-    #[test]
-    fn classify_non_json_and_typeless_json_as_raw() {
-        assert_eq!(classify_line("plain text output").unwrap().0, "raw");
-        assert_eq!(classify_line(r#"{"no_type":true}"#).unwrap().0, "raw");
-        assert_eq!(classify_line(r#"["an","array"]"#).unwrap().0, "raw");
-        assert_eq!(classify_line(r#"{"type":42}"#).unwrap().0, "raw");
-    }
-
-    #[test]
-    fn classify_skips_marker_and_blank_lines() {
-        assert_eq!(classify_line("__AGENTD_EXIT__:0"), None);
-        assert_eq!(classify_line(""), None);
-        assert_eq!(classify_line("\r"), None);
-    }
-
-    #[test]
-    fn classify_keeps_long_json_payloads_valid() {
-        // This test used to assert the payload was cut to exactly the cap
-        // — i.e. that a long JSON line was stored as broken JSON. What the
-        // views need is the opposite: under the cap AND still parseable.
-        let long = format!(r#"{{"type":"message","body":"{}"}}"#, "x".repeat(8000));
-        let (kind, payload) = classify_line(&long).unwrap();
-        assert_eq!(kind, "message");
-        assert!(payload.len() <= crate::payload::MAX_PAYLOAD_BYTES);
-        let json: serde_json::Value = serde_json::from_str(&payload).unwrap();
-        assert_eq!(json["type"], "message");
-    }
-
-    #[test]
-    fn complete_lines_keeps_trailing_partial() {
-        let (lines, consumed) = complete_lines(b"one\ntwo\npart");
-        assert_eq!(lines, vec!["one".to_owned(), "two".to_owned()]);
-        assert_eq!(consumed, 8);
-
-        let (lines, consumed) = complete_lines(b"no newline");
-        assert_eq!(lines, [] as [std::string::String; 0]);
-        assert_eq!(consumed, 0);
-
-        let (lines, consumed) = complete_lines(b"done\n");
-        assert_eq!(lines, vec!["done".to_owned()]);
-        assert_eq!(consumed, 5);
-    }
-}
+#[path = "tests/monitor.rs"]
+mod tests;

@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 
 mod enums;
 
-pub use enums::{ConcurrencyPolicy, Isolation, NotifyPolicy, RunState, Runner, Trigger};
+pub use enums::{
+    ConcurrencyPolicy, Isolation, NotifyPolicy, RunState, Runner, ScheduleTz, Trigger,
+};
 
 /// A project groups related agents — the "namespace". One directory of
 /// manifests per project.
@@ -30,6 +32,10 @@ pub struct AgentSpec {
     /// (edit) action opens.
     #[serde(default)]
     pub source: PathBuf,
+    /// Its `jobs/<name>/job-purpose.md`, when it has one. Every job must;
+    /// see [`crate::purpose`].
+    #[serde(default)]
+    pub purpose: Option<PathBuf>,
     /// Which CLI executes runs of this agent.
     pub runner: Runner,
     #[serde(default)]
@@ -38,6 +44,9 @@ pub struct AgentSpec {
     /// Standard 5-field cron expression. `None` means manual-trigger only.
     #[serde(default)]
     pub schedule: Option<String>,
+    /// The clock `schedule` is read in.
+    #[serde(default)]
+    pub timezone: ScheduleTz,
     /// Absolute directory runs execute in (or branch a worktree from).
     pub workdir: PathBuf,
     /// Absolute path to the prompt handed to an LLM runner: a single file, or
@@ -128,6 +137,13 @@ pub struct AgentSpec {
     /// nothing has shown otherwise.
     #[serde(default)]
     pub entrypoint: Option<bool>,
+    /// Agents this one may trigger (`agentctl run <project>/<name>`), by
+    /// name within its project. Declared edges: the job views draw a job's
+    /// shape from these unioned with the edges its runs have shown, so a
+    /// job that has never run end to end still shows every step. Not
+    /// enforced — the run's own tool allowlist is what limits it.
+    #[serde(default)]
+    pub triggers: Vec<String>,
 }
 
 impl AgentSpec {

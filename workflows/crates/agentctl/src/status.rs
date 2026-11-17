@@ -25,6 +25,12 @@ pub fn status(store: &Store) -> Result<()> {
     let agents = store.list_agents()?;
     let runs = store.list_runs(&RunFilter::default())?;
 
+    match agent_core::daemon::status().banner(now) {
+        None => println!("DAEMON  agentd running"),
+        Some(banner) => println!("DAEMON  {banner}"),
+    }
+    println!();
+
     println!("AGENTS ({} total)", agents.len());
     let mut by_project: BTreeMap<&str, usize> = BTreeMap::new();
     for agent in &agents {

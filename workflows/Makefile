@@ -51,16 +51,10 @@ install-daemon:
 # left the daemon down and every later run sat Pending.
 #
 # Restarting mid-run does not kill the run (its tmux session is independent),
-# but the monitor keeps log offsets in memory and resumes from the current end
-# of file — so events written during the gap never reach the event feed, and
-# that run's log in agenttop has a silent hole. Warn rather than refuse: this
-# is sometimes exactly what you want (the running binary is the broken one).
+# and loses no log lines: on startup the monitor resumes each run's log just
+# past the lines a previous daemon already ingested (monitor.rs,
+# initial_offset), so events written during the gap still reach the feed.
 restart-daemon:
-	@active=$$(agentctl get runs --state running -n 50 2>/dev/null | grep -c running || true); \
-	if [ "$${active:-0}" -gt 0 ]; then \
-		echo "  WARNING: $$active run(s) still going — their agenttop logs will have a gap"; \
-		echo "           (the runs themselves survive; check with: agentctl get runs --state running)"; \
-	fi
 	@if launchctl list 2>/dev/null | grep -q com.agentd.daemon; then \
 		launchctl kill TERM gui/$$(id -u)/com.agentd.daemon 2>/dev/null || true; \
 		for i in 1 2 3 4 5 6 7 8 9 10; do \
