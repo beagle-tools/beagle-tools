@@ -92,7 +92,7 @@ rcas/archive/<slug>/  archived workspaces (hidden by default, still mined)
 toolbox.md, systems/*.md   agent context at the store root (`beagle init`)
 ```
 
-- Lifecycle: `investigating → review → agent → final-review → finished`.
+- Lifecycle: `investigating → fixing → review → agent → final-review → finished`.
   Special tags: `skip-final-review` and `security` (`model/mod.rs`).
 - Store root resolution: `--root` → nearest `.beagle` walking up (git-style)
   → global config `root` → nearest ancestor containing `rcas/` → cwd.

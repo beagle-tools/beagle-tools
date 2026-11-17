@@ -53,6 +53,19 @@ pub(crate) fn run_config() -> Result<(), Error> {
             if let Some(editor) = &config.editor {
                 println!("  editor = {editor}");
             }
+            if let Some(zone) = &config.timezone {
+                match beagle::tz::TimeZone::parse(zone) {
+                    Ok(tz) => {
+                        let clock = config.clock.unwrap_or_default();
+                        let (now, abbr) = tz.localize(time::OffsetDateTime::now_utc());
+                        println!(
+                            "  timezone = {zone} (now {} {abbr})",
+                            clock.time_of_day(now)
+                        );
+                    }
+                    Err(e) => eprintln!("⚠ {e}; the TUI will show UTC"),
+                }
+            }
             Ok(())
         }
         Ok(None) => {

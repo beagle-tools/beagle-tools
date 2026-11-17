@@ -21,6 +21,8 @@ describe("status", () => {
     expect(isResolved("finished")).toBe(true);
     expect(statusLabel("review")).toBe("Ongoing");
     expect(isResolved("investigating")).toBe(false);
+    expect(statusLabel("fixing")).toBe("Ongoing");
+    expect(isResolved("fixing")).toBe(false);
   });
 });
 

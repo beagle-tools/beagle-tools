@@ -129,3 +129,31 @@ fn elapsed_label_formats_minutes_hours_days() {
         "clock skew clamps to 0"
     );
 }
+
+#[test]
+fn opened_time_shows_in_the_configured_zone_and_clock() {
+    let meta: crate::model::RcaMeta = toml::from_str(
+        r#"
+        title = "t"
+        severity = "high"
+        status = "review"
+        created = "2026-10-22T13:05:00Z"
+        "#,
+    )
+    .expect("manifest");
+    let rca = RcaSummary {
+        id: crate::model::RcaId::new("2026-10-22-t").expect("id"),
+        meta,
+        archived: false,
+    };
+    let text = |zone: &str, clock: crate::tz::Clock| -> String {
+        let tz = crate::tz::TimeZone::parse(zone).expect("zone");
+        let para = header_paragraph(&rca, 0, &[], None, None, &tz, clock);
+        format!("{para:?}")
+    };
+    let (h24, h12) = (crate::tz::Clock::H24, crate::tz::Clock::H12);
+    assert!(text("UTC", h24).contains("2026-10-22 13:05 UTC"));
+    assert!(text("America/New_York", h24).contains("2026-10-22 09:05 EDT"));
+    assert!(text("UTC", h12).contains("2026-10-22 1:05 PM UTC"));
+    assert!(text("America/New_York", h12).contains("2026-10-22 9:05 AM EDT"));
+}

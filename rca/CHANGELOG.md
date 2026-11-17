@@ -18,6 +18,22 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`fixing` status** between `investigating` and `review`: root cause
+  found, fix being written. The TUI shows investigating's spinner in
+  orange (with the header's elapsed/liveness read), `x` toggles it in the
+  `f` filter, the `t` picker offers it, and `[notify_events] fixing`
+  controls its notification. The desktop sidebar pulses it in orange; the
+  desktop and web `Status` types include it.
+- **`timezone` config**: show TUI timestamps (the header's "opened" time)
+  in your zone instead of UTC — e.g. `timezone = "America/New_York"`
+  renders `2026-10-22 09:05 EDT`. DST-aware; accepts common IANA names,
+  abbreviations (`EST`, `PST`, ...), `UTC`, or any POSIX TZ rule. No new
+  dependency. Files on disk stay UTC. `beagle config` echoes the current
+  time in the configured zone, and an unknown zone falls back to UTC with
+  a status-line note.
+- **`clock` config**: `clock = "12h"` shows TUI timestamps as `3:08 PM`
+  instead of `15:08` (`"24h"`, the default), e.g.
+  `opened 2026-10-22 3:08 PM EDT`.
 - Desktop in-app updates: an update pill in the header (checked on launch,
   every 30 minutes and on focus) and a version list for installing any
   `beagle-rca-v*` release, including rollbacks.

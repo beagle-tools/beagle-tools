@@ -80,6 +80,11 @@
   color: var(--accent);
 }
 
+/* Same pulse as investigating, in orange: root cause found, fix underway. */
+.status-glyph.pulse.fixing {
+  color: var(--fixing);
+}
+
 @keyframes pulse {
   0%,
   100% {
