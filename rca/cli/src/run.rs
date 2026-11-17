@@ -25,7 +25,7 @@ use crate::store::{new_meta, Store};
 use crate::{config, ui, update, Error};
 
 /// One line for `beagle help`.
-pub const ABOUT: &str = "Root-cause analysis workspaces: a live TUI plus commands for agents";
+pub const ABOUT: &str = "root-cause analysis workspaces: a live TUI plus commands for agents";
 
 /// Which binary is running rca, which decides who owns updating it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

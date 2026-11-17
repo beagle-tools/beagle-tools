@@ -1,9 +1,13 @@
 //! `beagle`: one command for every beagle-tools tool.
 //!
-//! This binary only dispatches. `beagle <tool> …` hands everything after
-//! the tool's name to that tool's own `run`, so each tool keeps its own
-//! commands, flags and TUI exactly as it would standalone.
+//! This binary dispatches. `beagle <tool> …` hands everything after the
+//! tool's name to that tool's own `run`, so each tool keeps its own
+//! commands, flags and TUI exactly as it would standalone. The few
+//! commands about the binary itself — `update`, `version`, `doctor`,
+//! `help` — are answered here, before any tool.
 
+mod doctor;
+mod selfupdate;
 mod tools;
 
 use std::ffi::OsString;
@@ -27,9 +31,16 @@ fn main() -> ExitCode {
             print_help();
             ExitCode::SUCCESS
         }
-        Some("version" | "-V" | "--version") => {
-            println!("beagle {}", env!("CARGO_PKG_VERSION"));
+        Some("-V" | "--version") => {
+            selfupdate::print_version();
             ExitCode::SUCCESS
+        }
+        Some("version") => selfupdate::run_version(&rest),
+        Some("update") => selfupdate::run_update(&rest),
+        Some("doctor") if rest.is_empty() => doctor::run(),
+        Some("doctor") => {
+            eprintln!("beagle: `doctor` takes no arguments");
+            ExitCode::from(2)
         }
         Some(name) => match tools::find(name) {
             Some(tool) => (tool.run)(rest),
@@ -55,9 +66,9 @@ fn print_help() {
     for t in tools::TOOLS {
         println!("  {:width$}  {}", t.name, t.about);
     }
-    if tools::TOOLS.is_empty() {
-        println!("  (none yet)");
-    }
-    println!("\n  help [tool]  this list, or a tool's own help");
-    println!("  version      print the version");
+    println!("\nThis binary:");
+    println!("  help [tool]          this list, or a tool's own help");
+    println!("  version [list]       print the version, or browse releases to install one");
+    println!("  update [--check]     update to the latest release (--version X.Y.Z for any)");
+    println!("  doctor               find old standalone binaries this one replaces");
 }
