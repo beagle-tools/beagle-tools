@@ -18,8 +18,9 @@ path = "src/main.rs"
 
 [dependencies]
 tandem-core.workspace = true
+tandem-tui.workspace = true
 chrono.workspace = true
-clap = { version = "4", features = ["derive"] }
+clap.workspace = true
 dirs.workspace = true
 reqwest = { workspace = true, features = ["blocking"] }
 rusqlite.workspace = true

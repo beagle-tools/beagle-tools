@@ -1,4 +1,10 @@
-//! `tandem-cli` — read Tandem's local store from a script or an agent.
+//! `tandem-cli` — read Tandem's local store from a script or an agent,
+//! and the terminal review queue.
+//!
+//! With no subcommand it opens the review TUI (`tandem_tui`): PRs you
+//! queue with `add` are claimed and reviewed by an agent (`claim`,
+//! `ingest`, `fail`), and you triage the local comments in the terminal.
+//! That queue keeps its own store, separate from the desktop app's.
 //!
 //! Tandem keeps everything in one SQLite file with no server in front
 //! of it, which makes "just read the file" the integration path. This
@@ -30,17 +36,29 @@ mod run_tests;
 mod update;
 
 /// One line for `beagle help`.
-pub const ABOUT: &str = "Read Tandem's local review data as JSON, and queue reviews";
+pub const ABOUT: &str =
+    "Review PRs in a terminal queue, read Tandem's local review data as JSON, and queue reviews";
+
+/// `--help`'s description: [`ABOUT`], then what no command does.
+const LONG_ABOUT: &str = "\
+Review PRs in a terminal queue, read Tandem's local review data as JSON, \
+and queue reviews.
+
+With no command, opens the review TUI: a terminal queue where an agent \
+reviews the PRs you `add` into local comments, and you read the diff, \
+summary and comments, post the comments you pick and approve — both only \
+on a confirmed keypress. The other commands read the Tandem desktop app's \
+store as JSON, or drive the review queue from a script or an agent.";
 
 /// The standalone binary's name; any other program name is a host (the
 /// unified `beagle` command) that owns updating itself.
 const STANDALONE: &str = "tandem-cli";
 
 #[derive(Parser)]
-#[command(name = "tandem-cli", about = ABOUT, version)]
+#[command(name = "tandem-cli", about = ABOUT, long_about = LONG_ABOUT, version)]
 struct Cli {
-    /// Database to read. Defaults to `$TANDEM_DB`, else the installed
-    /// app's store.
+    /// The Tandem app database to read. Defaults to `$TANDEM_DB`, else the
+    /// installed app's store. The review queue keeps its own (see `paths`).
     #[arg(long, global = true)]
     db: Option<PathBuf>,
     /// Read the `make dev` store instead of the installed app's.
@@ -49,13 +67,15 @@ struct Cli {
     /// Indent the JSON.
     #[arg(long, global = true)]
     pretty: bool,
+    /// No command opens the review TUI.
     #[command(subcommand)]
-    command: Command,
+    command: Option<Command>,
 }
 
 #[derive(Subcommand)]
 enum Command {
-    /// Where the data lives: database, run logs, settings.
+    /// Where the data lives: database, run logs, settings, and the review
+    /// TUI's store and config.
     Paths,
     /// Cached pull requests, newest first.
     Prs {
@@ -128,6 +148,9 @@ enum Command {
         #[arg(long)]
         check: bool,
     },
+    /// The review TUI's queue: `add`, `claim`, `ingest`, `fail`, `list`.
+    #[command(flatten)]
+    ReviewQueue(tandem_tui::Command),
 }
 
 /// Run the standalone `tandem-cli` with the arguments AFTER the program
@@ -158,8 +181,18 @@ pub fn run_as(program: &'static str, args: Vec<OsString>) -> ExitCode {
             return ExitCode::from(u8::try_from(code).unwrap_or(2));
         }
     };
-    match dispatch(&cli, program) {
-        Ok(()) => ExitCode::SUCCESS,
+    let result = match cli.command {
+        // The review TUI and its queue use their own store, never `--db`.
+        None => tandem_tui::open()
+            .map(|()| ExitCode::SUCCESS)
+            .map_err(|e| e.to_string()),
+        Some(Command::ReviewQueue(command)) => {
+            tandem_tui::run(command, program).map_err(|e| e.to_string())
+        }
+        Some(ref command) => dispatch(&cli, command, program).map(|()| ExitCode::SUCCESS),
+    };
+    match result {
+        Ok(code) => code,
         Err(message) => {
             eprintln!("{program}: {message}");
             ExitCode::FAILURE
@@ -193,9 +226,9 @@ fn resolve_db(cli: &Cli) -> Result<PathBuf, String> {
     default_db(cli.dev).ok_or_else(|| "no data directory on this platform".to_owned())
 }
 
-fn dispatch(cli: &Cli, program: &str) -> Result<(), String> {
+fn dispatch(cli: &Cli, command: &Command, program: &str) -> Result<(), String> {
     // Updating touches the network and this binary, never the store.
-    if let Command::Update { check } = cli.command {
+    if let Command::Update { check } = *command {
         if program != STANDALONE {
             return Err(hosted_update_error(program));
         }
@@ -209,8 +242,10 @@ fn dispatch(cli: &Cli, program: &str) -> Result<(), String> {
     }
 
     let db = resolve_db(cli)?;
-    if matches!(cli.command, Command::Paths) {
-        query::print(&query::paths(&db), cli.pretty);
+    if matches!(command, Command::Paths) {
+        let mut value = query::paths(&db);
+        value["review_tui"] = tandem_tui::paths();
+        query::print(&value, cli.pretty);
         return Ok(());
     }
     if !db.exists() {
@@ -227,7 +262,7 @@ fn dispatch(cli: &Cli, program: &str) -> Result<(), String> {
         pr,
         agent,
         by,
-    } = &cli.command
+    } = command
     {
         let value = queue::request_review(&db, repo, *pr, agent.as_deref(), by)?;
         query::print(&value, cli.pretty);
@@ -238,13 +273,13 @@ fn dispatch(cli: &Cli, program: &str) -> Result<(), String> {
     // mode means the app can stay open.
     let conn = Connection::open_with_flags(&db, OpenFlags::SQLITE_OPEN_READ_ONLY)
         .map_err(|e| format!("can't open {}: {e}", db.display()))?;
-    let value = read(&conn, &cli.command)?;
+    let value = read(&conn, command)?;
     query::print(&value, cli.pretty);
     Ok(())
 }
 
-/// The read-only commands. Callers handle `paths`, `review` and `update`
-/// before opening the store; they answer `null` here.
+/// The read-only commands. Callers handle `paths`, `review`, `update` and
+/// the review queue before opening the store; they answer `null` here.
 fn read(conn: &Connection, command: &Command) -> Result<serde_json::Value, String> {
     match command {
         Command::Prs { repo, limit } => query::prs(conn, repo.as_deref(), *limit),
@@ -252,8 +287,9 @@ fn read(conn: &Connection, command: &Command) -> Result<serde_json::Value, Strin
         Command::Summary { repo, pr } => query::summary(conn, repo, *pr),
         Command::Runs { repo, pr, limit } => query::runs(conn, repo.as_deref(), *pr, *limit),
         Command::Queue { all } => queue::queue(conn, *all),
-        Command::Paths | Command::Review { .. } | Command::Update { .. } => {
-            Ok(serde_json::Value::Null)
-        }
+        Command::Paths
+        | Command::Review { .. }
+        | Command::Update { .. }
+        | Command::ReviewQueue(_) => Ok(serde_json::Value::Null),
     }
 }
