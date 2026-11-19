@@ -110,6 +110,17 @@ pub const MIGRATIONS: &[&str] = &[
     );
     CREATE INDEX idx_review_jobs_pending ON review_jobs (started_at);
     ",
+    // 006: the review TUI's triage marks — which PRs you have gone
+    // through, and which you approved from it.
+    "
+    CREATE TABLE pr_marks (
+        repo        TEXT NOT NULL,
+        number      INTEGER NOT NULL,
+        reviewed_at TEXT,
+        approved_at TEXT,
+        PRIMARY KEY (repo, number)
+    );
+    ",
 ];
 
 /// Run any migrations newer than the connection's `user_version`.
