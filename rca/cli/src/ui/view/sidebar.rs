@@ -11,7 +11,7 @@ use crate::model::{RcaSummary, Status};
 
 use crate::ui::{App, Focus};
 
-use super::style::{pane_block, severity_badge, status_symbol, truncate, SIDEBAR_WIDTH};
+use super::style::{pane_block, severity_badge, status_symbol, truncate};
 
 pub(super) fn draw_sidebar(frame: &mut Frame, app: &mut App, area: Rect) {
     let focused = app.focus() == Focus::List;
@@ -50,6 +50,7 @@ pub(super) fn draw_sidebar(frame: &mut Frame, app: &mut App, area: Rect) {
                 row == app.selected_index(),
                 app.checklist_progress(&rca.id),
                 pr_summary(app, rca),
+                area.width,
             ))
         })
         .collect();
@@ -59,7 +60,7 @@ pub(super) fn draw_sidebar(frame: &mut Frame, app: &mut App, area: Rect) {
     // lives in the `!` errors overlay, not crammed into this narrow pane.
     if !app.broken().is_empty() {
         for broken in app.broken() {
-            items.push(ListItem::new(broken_list_item(broken)));
+            items.push(ListItem::new(broken_list_item(broken, area.width)));
         }
         items.push(ListItem::new(Line::from(Span::styled(
             "   ! or click to view",
@@ -117,8 +118,9 @@ pub(super) fn pr_summary(app: &App, rca: &RcaSummary) -> Option<(String, Color)>
     Some((format!("PR {merged}/{total}"), Color::Yellow))
 }
 
-/// The two sidebar lines for one workspace. Returned as lines (not a
-/// [`ListItem`]) so tests can inspect the span styles.
+/// The two sidebar lines for one workspace in a `width`-column sidebar.
+/// Returned as lines (not a [`ListItem`]) so tests can inspect the span
+/// styles.
 pub(super) fn rca_list_item(
     rca: &RcaSummary,
     tick: usize,
@@ -126,6 +128,7 @@ pub(super) fn rca_list_item(
     selected: bool,
     progress: Option<(usize, usize)>,
     pr: Option<(String, Color)>,
+    width: u16,
 ) -> Vec<Line<'static>> {
     let (badge, mut badge_style) = severity_badge(rca.meta.severity);
     let (symbol, mut symbol_style) = status_symbol(rca.meta.status, tick);
@@ -154,7 +157,7 @@ pub(super) fn rca_list_item(
         }
     };
 
-    let title_text = truncate(&rca.meta.title, SIDEBAR_WIDTH as usize - 10);
+    let title_text = truncate(&rca.meta.title, usize::from(width).saturating_sub(10));
     let title = pad_line(
         vec![
             Span::styled(format!(" {badge} "), badge_style),
@@ -162,6 +165,7 @@ pub(super) fn rca_list_item(
             Span::styled(title_text, base),
         ],
         base,
+        width,
     );
     let mut detail_spans = vec![
         Span::styled(format!("  {symbol} "), tinted(symbol_style)),
@@ -196,14 +200,17 @@ pub(super) fn rca_list_item(
             tinted(Style::default().fg(Color::LightYellow)),
         ));
     }
-    vec![title, pad_line(detail_spans, base)]
+    vec![title, pad_line(detail_spans, base, width)]
 }
 
 /// One compact sidebar line for a workspace that failed to load: an
 /// unmissable marker and the directory name, never hidden. The reason is
 /// too long for this pane — it lives in the `!` errors overlay.
-pub(super) fn broken_list_item(broken: &crate::store::BrokenWorkspace) -> Line<'static> {
-    let width = usize::from(SIDEBAR_WIDTH).saturating_sub(2);
+pub(super) fn broken_list_item(
+    broken: &crate::store::BrokenWorkspace,
+    sidebar_width: u16,
+) -> Line<'static> {
+    let width = usize::from(sidebar_width).saturating_sub(2);
     Line::from(vec![
         Span::styled(
             " ⚠ ",
@@ -219,12 +226,16 @@ pub(super) fn broken_list_item(broken: &crate::store::BrokenWorkspace) -> Line<'
     ])
 }
 
-/// Pads a sidebar line with a filler span so a selection background covers
-/// the full row width, not just the text.
-pub(super) fn pad_line(spans: Vec<Span<'static>>, base: Style) -> Line<'static> {
+/// Pads a line of a `sidebar_width`-column sidebar with a filler span so a
+/// selection background covers the full row width, not just the text.
+pub(super) fn pad_line(
+    spans: Vec<Span<'static>>,
+    base: Style,
+    sidebar_width: u16,
+) -> Line<'static> {
     let used: usize = spans.iter().map(|s| s.content.chars().count()).sum();
     let mut spans = spans;
-    let width = usize::from(SIDEBAR_WIDTH).saturating_sub(2); // inside the borders
+    let width = usize::from(sidebar_width).saturating_sub(2); // inside the borders
     if used < width {
         spans.push(Span::styled(" ".repeat(width - used), base));
     }
