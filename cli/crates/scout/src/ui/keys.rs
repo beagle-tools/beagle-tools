@@ -1,9 +1,11 @@
 //! Keypress → state transition. Bindings follow beagle's: `j`/`k` move,
 //! `enter` opens, `b`/esc go back, `tab`/`1`–`3` switch tabs, `F` follows,
-//! `E` edits, `r` reloads, `?` helps, `Q`/ctrl-c quit.
+//! `E` edits, `r` reloads, `w` resizes the list, `?` helps, `Q`/ctrl-c
+//! quit.
 
 use std::path::PathBuf;
 
+use beagle_tui::pane_resize;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use super::{App, Focus, Screen, Tab};
@@ -42,6 +44,7 @@ pub(super) const HELP: &[(&str, &str)] = &[
     ),
     ("E", "open the shown file in $VISUAL / $EDITOR"),
     ("r", "reload from disk (it also reloads on its own)"),
+    pane_resize::HELP,
     ("?", "this help"),
     ("Q / ctrl-c", "quit"),
 ];
@@ -54,6 +57,11 @@ impl App {
             return Flow::Quit;
         }
         self.status = None;
+        if self.side.is_active() {
+            let total = self.side.last_total();
+            self.status = self.side.handle_key(key, total).status;
+            return Flow::Continue;
+        }
         if self.help {
             self.help = false;
             return if key.code == KeyCode::Char('Q') {
@@ -66,6 +74,7 @@ impl App {
         match key.code {
             KeyCode::Char('Q') => return Flow::Quit,
             KeyCode::Char('?') => self.help = true,
+            KeyCode::Char('w') => self.side.start(),
             KeyCode::Char('r') => {
                 self.status = Some(self.reload().unwrap_or_else(|| "reloaded".to_owned()));
             }

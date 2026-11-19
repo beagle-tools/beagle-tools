@@ -24,10 +24,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 pub const HINT: &str = "resize: ←/→ width · 0 default · Esc done";
 
 /// The key-help row for `w`, for an app's `?` overlay.
-pub const HELP: (&str, &str) = (
-    "w",
-    "resize the side pane: ←/→ (h/l) width · 0 default · Esc/Enter/w/q done",
-);
+pub const HELP: (&str, &str) = ("w", "resize the side pane: ←/→ h/l · 0 default · Esc done");
 
 /// How wide the side pane is before anyone resizes it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

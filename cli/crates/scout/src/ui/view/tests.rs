@@ -142,3 +142,38 @@ fn truncation_and_activity() {
         ("quiet 1h15m".to_owned(), true)
     );
 }
+
+#[test]
+fn w_resizes_the_list_within_its_limits() {
+    use super::super::keys::Flow;
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    let press = |app: &mut App, code| app.handle_key(KeyEvent::new(code, KeyModifiers::NONE));
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = App::new(Store::new(dir.path())).unwrap();
+    render(&mut app); // records the 120-column screen
+    let start = app.side.width(120);
+    assert_eq!(start, 40);
+    press(&mut app, KeyCode::Char('w'));
+    assert!(app.side.is_active());
+    assert!(render(&mut app).contains(beagle_tui::pane_resize::HINT));
+    press(&mut app, KeyCode::Right);
+    assert_eq!(app.side.width(120), start + app.side.limits().step);
+    for _ in 0..100 {
+        press(&mut app, KeyCode::Left);
+    }
+    assert_eq!(app.side.width(120), app.side.limits().min);
+    assert!(app.status.as_deref().unwrap().contains("narrowest"));
+    // Keys that would act elsewhere are swallowed while resizing.
+    press(&mut app, KeyCode::Char('?'));
+    assert!(!app.help);
+    press(&mut app, KeyCode::Char('0'));
+    assert_eq!(app.side.width(120), start);
+    // Q quits normally; while resizing, q and Q do not.
+    assert_eq!(press(&mut app, KeyCode::Char('Q')), Flow::Continue);
+    assert_eq!(press(&mut app, KeyCode::Char('q')), Flow::Continue);
+    assert!(!app.side.is_active());
+    press(&mut app, KeyCode::Char('w'));
+    press(&mut app, KeyCode::Esc);
+    assert!(!app.side.is_active());
+    assert_eq!(press(&mut app, KeyCode::Char('Q')), Flow::Quit);
+}

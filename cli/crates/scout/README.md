@@ -76,7 +76,8 @@ beagle scout task done rate-limit-the-api 2
 Beagle's bindings: `j`/`k` move · `g`/`G` first/last · `enter`/`l` open a
 project, then read a task · `b`/`esc` back · `tab`/`]`, `shift-tab`/`[`,
 `←`/`→` or `1`–`5` switch the Task · Outcome · Session · Project · Log tabs · `space`/`pgdn`,
-`pgup`, `ctrl-d`/`ctrl-u` page · `F` follow (tail the content) · `E` open the
+`pgup`, `ctrl-d`/`ctrl-u` page · `F` follow (tail the content) · `w` resize the left list (←/→, `0` default,
+`Esc` done) · `E` open the
 shown file in `$VISUAL`/`$EDITOR` · `r` reload · `?` help · `Q`/`ctrl-c` quit.
 
 The view reloads by itself whenever a file under the store changes. A task
