@@ -21,7 +21,8 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App) {
     if app.zoom {
         draw_content(frame, app, main);
     } else {
-        let list_width = (main.width / 3).clamp(30, 56);
+        app.main_width = main.width;
+        let list_width = super::resize::list_width(app.list_width, main.width);
         let [left, right] =
             Layout::horizontal([Constraint::Length(list_width), Constraint::Min(20)]).areas(main);
         draw_list(frame, app, left);
@@ -31,7 +32,7 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App) {
     match &app.mode {
         Mode::Help => draw_help(frame),
         Mode::Confirm(action) => draw_confirm(frame, app, action),
-        Mode::Normal | Mode::Input(_) => {}
+        Mode::Normal | Mode::Input(_) | Mode::Resize => {}
     }
 }
 
@@ -177,10 +178,18 @@ fn draw_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
             Span::raw(format!("{text}█")),
             Span::styled("   Enter queue · Esc cancel", Style::default().fg(Color::DarkGray)),
         ]),
+        (Mode::Resize, status) => Line::from(vec![
+            Span::styled(" resize list: ", Style::default().fg(Color::Cyan)),
+            Span::raw("← narrower · → wider · Esc done"),
+            Span::styled(
+                status.as_ref().map(|(m, _)| format!("   {m}")).unwrap_or_default(),
+                Style::default().fg(Color::Yellow),
+            ),
+        ]),
         (_, Some((msg, true))) => Line::styled(format!(" {msg}"), Style::default().fg(Color::Red)),
         (_, Some((msg, false))) => Line::styled(format!(" {msg}"), Style::default().fg(Color::Green)),
         (_, None) => Line::styled(
-            " a queue · Enter open · z zoom · p post · A approve · m gone-through · r re-review · ? help · q quit",
+            " a queue · Enter open · z zoom · w resize · p post · A approve · m gone-through · r re-review · ? help · q quit",
             Style::default().fg(Color::DarkGray),
         ),
     };

@@ -192,3 +192,36 @@ fn queueing_from_the_input_line() {
         .iter()
         .any(|r| r.pr.number == 9 && r.stage == Stage::Queued));
 }
+
+#[test]
+fn w_resizes_the_list_within_its_limits_and_esc_leaves() {
+    let mut a = app();
+    draw(&mut a); // records the screen width
+    let start = super::resize::list_width(a.list_width, a.main_width);
+    press(&mut a, KeyCode::Char('w'));
+    assert_eq!(a.mode, Mode::Resize);
+    press(&mut a, KeyCode::Right);
+    assert_eq!(a.list_width, Some(start + super::resize::STEP));
+    // q leaves resize mode rather than quitting.
+    press(&mut a, KeyCode::Char('q'));
+    assert_eq!(a.mode, Mode::Normal);
+    press(&mut a, KeyCode::Char('w'));
+    for _ in 0..200 {
+        press(&mut a, KeyCode::Left);
+    }
+    assert_eq!(a.list_width, Some(super::resize::MIN_LIST));
+    assert!(a
+        .status
+        .as_ref()
+        .is_some_and(|(m, _)| m.contains("narrowest")));
+    for _ in 0..200 {
+        press(&mut a, KeyCode::Char('l'));
+    }
+    let widest = a.list_width.unwrap();
+    assert!(a.main_width - widest >= super::resize::MIN_CONTENT);
+    press(&mut a, KeyCode::Esc);
+    assert_eq!(a.mode, Mode::Normal);
+    // The choice survives a redraw.
+    draw(&mut a);
+    assert_eq!(a.list_width, Some(widest));
+}

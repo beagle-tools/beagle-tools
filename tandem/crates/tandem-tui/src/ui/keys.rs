@@ -36,6 +36,7 @@ pub const HELP: &[(&str, &str)] = &[
     ("a", "queue a PR (URL or owner/repo#n)"),
     ("r", "review the PR again"),
     ("z", "zoom: hide the list (full-width diff)"),
+    ("w", "resize the list: ←/→ (h/l) narrow/widen, Esc done"),
     ("o", "open the PR in the browser"),
     ("R", "refresh from GitHub"),
     ("q  Ctrl-c", "quit"),
@@ -51,6 +52,7 @@ impl App {
             Mode::Help => {}
             Mode::Input(text) => self.input_key(key, text),
             Mode::Confirm(action) => self.confirm_key(key, action),
+            Mode::Resize => self.resize_key(key),
             Mode::Normal => return self.normal_key(key, ctrl),
         }
         Flow::Continue
@@ -67,6 +69,7 @@ impl App {
             KeyCode::Char('r') => self.re_review(),
             KeyCode::Char('o') => self.open_in_browser(),
             KeyCode::Char('z') => self.zoom = !self.zoom,
+            KeyCode::Char('w') => self.start_resize(),
             KeyCode::Char('R') => {
                 if let Some(pr) = self.selected().map(|r| r.pr.clone()) {
                     self.send(Cmd::Fetch(pr));

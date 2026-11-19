@@ -9,6 +9,7 @@
 mod diff;
 mod keys;
 mod markdown;
+mod resize;
 mod tabs;
 mod term;
 mod view;
@@ -78,6 +79,8 @@ pub enum Mode {
     /// Typing a PR to queue.
     Input(String),
     Confirm(Action),
+    /// ←/→ move the divider between the list and the detail pane.
+    Resize,
 }
 
 /// Everything shown for the selected PR.
@@ -115,6 +118,10 @@ pub struct App {
     pub tick: usize,
     /// The PR list hidden, so the diff gets the whole width.
     pub zoom: bool,
+    /// The list width the user chose with `w`; `None` is the default.
+    pub list_width: Option<u16>,
+    /// The width the list and detail pane share, from the last draw.
+    pub main_width: u16,
     pub diff: diff::DiffCache,
     worker: Option<Sender<worker::Cmd>>,
     done: Option<Receiver<worker::Done>>,
@@ -147,6 +154,8 @@ impl App {
             status: None,
             tick: 0,
             zoom: false,
+            list_width: None,
+            main_width: 0,
             diff: diff::DiffCache::default(),
             worker: None,
             done: None,
