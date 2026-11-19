@@ -197,31 +197,39 @@ fn queueing_from_the_input_line() {
 fn w_resizes_the_list_within_its_limits_and_esc_leaves() {
     let mut a = app();
     draw(&mut a); // records the screen width
-    let start = super::resize::list_width(a.list_width, a.main_width);
+    let total = a.pane.last_total();
+    let start = a.pane.width(total);
+    let limits = a.pane.limits();
     press(&mut a, KeyCode::Char('w'));
-    assert_eq!(a.mode, Mode::Resize);
+    assert!(a.pane.is_active());
+    assert!(draw(&mut a).contains(beagle_tui::pane_resize::HINT));
     press(&mut a, KeyCode::Right);
-    assert_eq!(a.list_width, Some(start + super::resize::STEP));
+    assert_eq!(a.pane.width(total), start + limits.step);
     // q leaves resize mode rather than quitting.
-    press(&mut a, KeyCode::Char('q'));
-    assert_eq!(a.mode, Mode::Normal);
+    assert_eq!(press(&mut a, KeyCode::Char('q')), Flow::Continue);
+    assert!(!a.pane.is_active());
     press(&mut a, KeyCode::Char('w'));
     for _ in 0..200 {
         press(&mut a, KeyCode::Left);
     }
-    assert_eq!(a.list_width, Some(super::resize::MIN_LIST));
+    assert_eq!(a.pane.width(total), limits.min);
     assert!(a
         .status
         .as_ref()
         .is_some_and(|(m, _)| m.contains("narrowest")));
+    // A stray key does nothing while resizing.
+    press(&mut a, KeyCode::Char('m'));
+    assert!(a.pane.is_active());
+    press(&mut a, KeyCode::Char('0'));
+    assert_eq!(a.pane.width(total), start);
     for _ in 0..200 {
         press(&mut a, KeyCode::Char('l'));
     }
-    let widest = a.list_width.unwrap();
-    assert!(a.main_width - widest >= super::resize::MIN_CONTENT);
+    let widest = a.pane.width(total);
+    assert!(total - widest >= limits.min_other);
     press(&mut a, KeyCode::Esc);
-    assert_eq!(a.mode, Mode::Normal);
+    assert!(!a.pane.is_active());
     // The choice survives a redraw.
     draw(&mut a);
-    assert_eq!(a.list_width, Some(widest));
+    assert_eq!(a.pane.width(total), widest);
 }

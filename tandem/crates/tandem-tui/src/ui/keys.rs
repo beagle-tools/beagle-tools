@@ -2,6 +2,7 @@
 //! Enter/l opens, Esc/h goes back, Tab and 1–3 switch tabs, ? for help.
 //! Both GitHub writes go through a y/n confirmation first.
 
+use beagle_tui::pane_resize;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use tandem_cache::{ReviewStore, ReviewTriage};
 use tandem_core::review::CommentStatus;
@@ -36,7 +37,7 @@ pub const HELP: &[(&str, &str)] = &[
     ("a", "queue a PR (URL or owner/repo#n)"),
     ("r", "review the PR again"),
     ("z", "zoom: hide the list (full-width diff)"),
-    ("w", "resize the list: ←/→ (h/l) narrow/widen, Esc done"),
+    pane_resize::HELP,
     ("o", "open the PR in the browser"),
     ("R", "refresh from GitHub"),
     ("q  Ctrl-c", "quit"),
@@ -48,11 +49,14 @@ impl App {
         if ctrl && key.code == KeyCode::Char('c') {
             return Flow::Quit;
         }
+        if self.pane.is_active() {
+            self.resize_key(key);
+            return Flow::Continue;
+        }
         match std::mem::replace(&mut self.mode, Mode::Normal) {
             Mode::Help => {}
             Mode::Input(text) => self.input_key(key, text),
             Mode::Confirm(action) => self.confirm_key(key, action),
-            Mode::Resize => self.resize_key(key),
             Mode::Normal => return self.normal_key(key, ctrl),
         }
         Flow::Continue
@@ -320,6 +324,25 @@ impl App {
         };
         if let Err(e) = std::process::Command::new("open").arg(&url).spawn() {
             self.error(format!("open {url}: {e}"));
+        }
+    }
+
+    /// `w`: start resizing the list, unless it is zoomed away.
+    fn start_resize(&mut self) {
+        if self.zoom {
+            self.info("unzoom (z) to resize the list");
+        } else {
+            self.pane.start();
+            self.status = None;
+        }
+    }
+
+    /// A key while resizing (see [`beagle_tui::pane_resize`]).
+    fn resize_key(&mut self, key: KeyEvent) {
+        let total = self.pane.last_total();
+        match self.pane.handle_key(key, total).status {
+            Some(msg) => self.info(msg),
+            None => self.status = None,
         }
     }
 }

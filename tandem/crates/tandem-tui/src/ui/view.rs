@@ -2,6 +2,7 @@
 //! bodies are in [`super::tabs`]. Pure apart from recording how far the
 //! current tab can scroll.
 
+use beagle_tui::pane_resize;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -21,8 +22,7 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App) {
     if app.zoom {
         draw_content(frame, app, main);
     } else {
-        app.main_width = main.width;
-        let list_width = super::resize::list_width(app.list_width, main.width);
+        let list_width = app.pane.width(main.width);
         let [left, right] =
             Layout::horizontal([Constraint::Length(list_width), Constraint::Min(20)]).areas(main);
         draw_list(frame, app, left);
@@ -32,7 +32,7 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App) {
     match &app.mode {
         Mode::Help => draw_help(frame),
         Mode::Confirm(action) => draw_confirm(frame, app, action),
-        Mode::Normal | Mode::Input(_) | Mode::Resize => {}
+        Mode::Normal | Mode::Input(_) => {}
     }
 }
 
@@ -172,19 +172,28 @@ fn draw_content(frame: &mut Frame<'_>, app: &mut App, area: Rect) {
 }
 
 fn draw_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
+    if app.pane.is_active() {
+        let line = Line::from(vec![
+            Span::styled(
+                format!(" {}", pane_resize::HINT),
+                Style::default().fg(Color::Cyan),
+            ),
+            Span::styled(
+                app.status
+                    .as_ref()
+                    .map(|(m, _)| format!("   {m}"))
+                    .unwrap_or_default(),
+                Style::default().fg(Color::Yellow),
+            ),
+        ]);
+        frame.render_widget(Paragraph::new(line), area);
+        return;
+    }
     let line = match (&app.mode, &app.status) {
         (Mode::Input(text), _) => Line::from(vec![
             Span::styled(" queue PR: ", Style::default().fg(Color::Cyan)),
             Span::raw(format!("{text}█")),
             Span::styled("   Enter queue · Esc cancel", Style::default().fg(Color::DarkGray)),
-        ]),
-        (Mode::Resize, status) => Line::from(vec![
-            Span::styled(" resize list: ", Style::default().fg(Color::Cyan)),
-            Span::raw("← narrower · → wider · Esc done"),
-            Span::styled(
-                status.as_ref().map(|(m, _)| format!("   {m}")).unwrap_or_default(),
-                Style::default().fg(Color::Yellow),
-            ),
         ]),
         (_, Some((msg, true))) => Line::styled(format!(" {msg}"), Style::default().fg(Color::Red)),
         (_, Some((msg, false))) => Line::styled(format!(" {msg}"), Style::default().fg(Color::Green)),
