@@ -58,7 +58,8 @@ switch focus · `esc` back · `J/K` `space` `ctrl-d/u` page · `g/G` top/bottom
 · `v` select lines · `y` copy the line/selection (list: the ticket URL) ·
 `Y` copy the ticket URL · `i` copy the id (the date, or `<date> <ticket>`) ·
 `h/l` pan wide diagrams · `d` pick a report by day · `[`/`]` older/newer
-report · `o` open the ticket · `p` open its PRs · `r` reload · `?` help ·
+report · `o` open the ticket · `p` open its PRs · `w` resize the list (←/→,
+`0` default, `Esc` done) · `r` reload · `?` help ·
 `q` quit.
 
 ## Develop

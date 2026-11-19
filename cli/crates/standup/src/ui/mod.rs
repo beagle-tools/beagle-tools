@@ -13,7 +13,7 @@ mod view;
 use std::time::Duration;
 
 use beagle_tui::watch;
-use beagle_tui::DocView;
+use beagle_tui::{DefaultWidth, DocView, SideResize};
 use crossterm::event::{self, Event, KeyEventKind};
 use ratatui::DefaultTerminal;
 
@@ -57,6 +57,8 @@ pub struct App {
     /// The report picker (`d`): its rows and the highlighted one.
     picker: Option<Picker>,
     quit: bool,
+    /// The list's width and `w`'s resize mode (not saved across runs).
+    side: SideResize,
 }
 
 impl App {
@@ -80,6 +82,7 @@ impl App {
             view: DocView::new(),
             status: None,
             help: false,
+            side: SideResize::new("list", DefaultWidth::Fixed(view::SIDEBAR_WIDTH)),
             picker: None,
             quit: false,
         };
