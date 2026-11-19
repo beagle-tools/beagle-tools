@@ -98,7 +98,7 @@ fn placeholder(stage: Stage) -> &'static str {
         Stage::Queued => "Queued — waiting for the agentd reviewer to pick it up.",
         Stage::Reviewing => "The agent is reviewing this PR.",
         Stage::Failed => "The review failed (see the error above). r to try again.",
-        Stage::Ready | Stage::Done => "No summary was written.",
+        Stage::Ready | Stage::Done | Stage::Merged | Stage::Closed => "No summary was written.",
     }
 }
 

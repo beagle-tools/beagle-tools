@@ -46,7 +46,9 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
   `tandem-cli review`. The queue is the one place an outside process
   writes; it records requests, never review data.
 - The review TUI (`tandem-tui`) is synchronous on its UI thread: it
-  polls keys every 250ms and re-reads its store every 2s. GitHub work
+  polls keys every 250ms, re-reads its store every 2s, and asks the
+  worker every 2 minutes (and once at startup) to re-check open PRs on
+  GitHub, so merged and closed PRs show as finished and sort last. GitHub work
   (fetch, post, approve) runs on one worker thread with its own store
   connection and a current-thread tokio runtime, fed over channels; the
   `claim` command uses the same kind of runtime. Never `block_on` from

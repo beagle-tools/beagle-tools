@@ -7,7 +7,7 @@ use std::collections::{HashMap, HashSet};
 use chrono::{DateTime, Utc};
 use tandem_cache::{Cache, ReviewStore, ReviewTriage, SummaryStore};
 use tandem_core::agent::{AgentRun, RunStatus};
-use tandem_core::github::RepoRef;
+use tandem_core::github::{PrState, RepoRef};
 use tandem_core::review::{CommentStatus, LocalComment};
 use tandem_core::Result;
 
@@ -24,6 +24,10 @@ pub enum Stage {
     Failed,
     /// You have gone through it.
     Done,
+    /// Merged on GitHub (seen by the background check or a fetch).
+    Merged,
+    /// Closed on GitHub without merging.
+    Closed,
 }
 
 impl Stage {
@@ -34,7 +38,14 @@ impl Stage {
             Self::Queued => "queued",
             Self::Failed => "failed",
             Self::Done => "done",
+            Self::Merged => "merged",
+            Self::Closed => "closed",
         }
+    }
+
+    /// GitHub can no longer change it, so the background check skips it.
+    pub fn is_finished(self) -> bool {
+        matches!(self, Self::Merged | Self::Closed)
     }
 }
 
@@ -95,6 +106,13 @@ pub fn rows(cache: &Cache) -> Result<Vec<Row>> {
             (Some(_), None, None) => Stage::Reviewing,
         };
         let detail = cache.get_pr_detail(&repo, job.number)?;
+        // GitHub's word beats the review flow: a merged PR is finished
+        // whatever its review stage was.
+        let stage = match detail.as_ref().map(|d| d.pull_request.state) {
+            Some(PrState::Merged) => Stage::Merged,
+            Some(PrState::Closed) => Stage::Closed,
+            _ => stage,
+        };
         let summary = cache.get_pr_summary(&repo, job.number)?;
         let comments = cache.list_comments(&repo, job.number)?;
         out.push(Row {
@@ -186,5 +204,46 @@ mod tests {
         let all = rows(&cache).unwrap();
         assert_eq!(all.len(), 1);
         assert_eq!(all[0].stage, Stage::Queued);
+    }
+
+    /// A stored PR in `state`, as the background check would leave it.
+    fn store_pr(cache: &Cache, number: u64, state: &str) {
+        let detail: tandem_core::github::PrDetail = serde_json::from_value(serde_json::json!({
+            "pull_request": {
+                "repo": {"owner": "o", "name": "r"}, "number": number, "title": "t",
+                "body": "", "state": state, "draft": false,
+                "author": {"login": "octocat", "avatar_url": null},
+                "head_ref": "f", "head_sha": "s", "base_ref": "main",
+                "additions": 0, "deletions": 0, "changed_files": 0,
+                "created_at": "2026-01-01T00:00:00Z", "updated_at": "2026-01-01T00:00:00Z",
+                "labels": [], "mergeable_state": null, "requested_reviewers": [],
+                "node_id": null, "review_decision": null, "checks_state": null,
+                "unresolved_threads": 0
+            },
+            "checks": [], "reviews": [], "comments": []
+        }))
+        .unwrap();
+        let repo = RepoRef::parse("o/r").unwrap();
+        cache.put_pr_detail(&repo, &detail).unwrap();
+    }
+
+    #[test]
+    fn merged_and_closed_prs_are_finished_and_sort_last() {
+        let cache = Cache::open_in_memory().unwrap();
+        for n in [1, 2, 3] {
+            cache.enqueue_review("o/r", n, None, "tui").unwrap();
+        }
+        store_pr(&cache, 1, "merged");
+        store_pr(&cache, 2, "closed");
+        store_pr(&cache, 3, "open");
+        let all = rows(&cache).unwrap();
+        let stage = |n: u64| all.iter().find(|r| r.pr.number == n).unwrap().stage;
+        assert_eq!(stage(1), Stage::Merged);
+        assert_eq!(stage(2), Stage::Closed);
+        assert_eq!(stage(3), Stage::Queued);
+        // The open one first; the background check only asks about it.
+        assert_eq!(all[0].pr.number, 3);
+        assert!(!Stage::Queued.is_finished());
+        assert!(Stage::Merged.is_finished() && Stage::Closed.is_finished());
     }
 }

@@ -181,9 +181,24 @@ impl App {
             match done {
                 worker::Done::Ok(msg) => self.info(msg),
                 worker::Done::Err(msg) => self.error(msg),
+                worker::Done::Quiet => {}
             }
         }
         !finished.is_empty()
+    }
+
+    /// Asks the worker to re-check every PR GitHub could still change:
+    /// anything not already merged or closed.
+    pub fn check_states(&mut self) {
+        let prs: Vec<PrRef> = self
+            .rows
+            .iter()
+            .filter(|r| !r.stage.is_finished())
+            .map(|r| r.pr.clone())
+            .collect();
+        if !prs.is_empty() {
+            self.send(worker::Cmd::CheckStates(prs));
+        }
     }
 
     pub fn info(&mut self, msg: impl Into<String>) {

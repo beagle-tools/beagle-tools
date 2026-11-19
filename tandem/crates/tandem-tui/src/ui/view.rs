@@ -61,6 +61,8 @@ fn stage_glyph(row: &Row, tick: usize) -> Span<'static> {
         Stage::Queued => ("◌", Color::DarkGray),
         Stage::Failed => ("✖", Color::Red),
         Stage::Done => ("✓", Color::DarkGray),
+        Stage::Merged => ("⇡", Color::Magenta),
+        Stage::Closed => ("⊘", Color::DarkGray),
     };
     Span::styled(glyph, Style::default().fg(color))
 }
@@ -71,7 +73,7 @@ fn draw_list(frame: &mut Frame<'_>, app: &App, area: Rect) {
         .rows
         .iter()
         .map(|row| {
-            let dim = row.stage == Stage::Done;
+            let dim = matches!(row.stage, Stage::Done | Stage::Merged | Stage::Closed);
             let mut head = vec![stage_glyph(row, app.tick), Span::raw(" ")];
             let label_style = if dim {
                 Style::default().fg(Color::DarkGray)

@@ -8,7 +8,7 @@
 
 use tandem_cache::Cache;
 use tandem_core::diff_parse::parse_unified_diff;
-use tandem_core::github::PrDetail;
+use tandem_core::github::{PrDetail, PrState};
 use tandem_core::review::{DiffSide, LocalComment};
 use tandem_core::{Result, TandemError};
 use tandem_github::{GithubAuth, GithubClient, GithubConfig, NewInlineComment};
@@ -59,6 +59,29 @@ pub async fn fetch(client: &GithubClient, cache: &Cache, pr: &PrRef) -> Result<P
     cache.put_diff(&pr.repo, pr.number, head, &raw, &files)?;
     cache.put_pr_detail(&pr.repo, &detail)?;
     Ok(detail)
+}
+
+/// Re-reads one PR's state from GitHub into the store. Returns the state
+/// the store had before (if it had the PR) and the state now.
+///
+/// One small request: the PR alone, without its comments or diff. A PR
+/// the store has never fetched gets the full detail instead, since there
+/// is no stored detail to update.
+pub async fn refresh_state(
+    client: &GithubClient,
+    cache: &Cache,
+    pr: &PrRef,
+) -> Result<(Option<PrState>, PrState)> {
+    if let Some(mut detail) = cache.get_pr_detail(&pr.repo, pr.number)? {
+        let before = detail.pull_request.state;
+        detail.pull_request = client.pull_request(&pr.repo, pr.number).await?;
+        cache.put_pr_detail(&pr.repo, &detail)?;
+        Ok((Some(before), detail.pull_request.state))
+    } else {
+        let detail = client.pull_request_detail(&pr.repo, pr.number).await?;
+        cache.put_pr_detail(&pr.repo, &detail)?;
+        Ok((None, detail.pull_request.state))
+    }
 }
 
 /// What gets posted for a local comment: its body, plus the fix when it
