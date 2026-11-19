@@ -148,3 +148,45 @@ fn diff_tab_uses_delta_side_by_side_when_installed() {
     app.layout(90); // resize re-renders at the new width
     assert_eq!(app.delta_width, 90);
 }
+
+#[test]
+fn w_resizes_the_sidebar_within_its_limits() {
+    use ratatui::backend::TestBackend;
+    use ratatui::Terminal;
+    let (_tmp, store) = fixture();
+    let mut app = App::new(store, None).unwrap();
+    let mut t = Terminal::new(TestBackend::new(140, 20)).unwrap();
+    let mut screen = |app: &mut App| -> String {
+        t.draw(|f| view::draw(f, app)).unwrap();
+        t.backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(ratatui::buffer::Cell::symbol)
+            .collect()
+    };
+    screen(&mut app);
+    let start = app.side.width(140);
+    assert_eq!(start, view::SIDEBAR_WIDTH);
+    key(&mut app, KeyCode::Char('w'));
+    assert!(app.side.is_active());
+    assert!(screen(&mut app).contains(beagle_tui::pane_resize::HINT));
+    key(&mut app, KeyCode::Right);
+    assert_eq!(app.side.width(140), start + app.side.limits().step);
+    for _ in 0..100 {
+        key(&mut app, KeyCode::Left);
+    }
+    assert_eq!(app.side.width(140), app.side.limits().min);
+    assert!(app.status.as_deref().unwrap().contains("narrowest"));
+    // Keys that act elsewhere (archive) do nothing while resizing.
+    key(&mut app, KeyCode::Char('a'));
+    assert!(app.side.is_active());
+    key(&mut app, KeyCode::Char('0'));
+    assert_eq!(app.side.width(140), start);
+    // q leaves resize mode instead of quitting.
+    key(&mut app, KeyCode::Char('q'));
+    assert!(!app.side.is_active() && !app.quit);
+    key(&mut app, KeyCode::Char('w'));
+    key(&mut app, KeyCode::Esc);
+    assert!(!app.side.is_active() && !app.quit);
+}

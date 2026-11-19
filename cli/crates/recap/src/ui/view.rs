@@ -16,7 +16,11 @@ use super::keys::HELP;
 use super::{App, Focus, Tab};
 use crate::store::Shelf;
 
+/// The PR list's default width (`w` resizes it).
 pub(super) const SIDEBAR_WIDTH: u16 = 38;
+/// The Comments tab puts the agent's review beside the thread only when the
+/// main pane has at least this many columns.
+const COMMENTS_SPLIT_MIN: u16 = SIDEBAR_WIDTH * 2;
 
 pub(super) fn draw(frame: &mut Frame<'_>, app: &mut App) {
     let [header, body, footer] = Layout::vertical([
@@ -25,8 +29,11 @@ pub(super) fn draw(frame: &mut Frame<'_>, app: &mut App) {
         Constraint::Length(1),
     ])
     .areas(frame.area());
-    let [side, main] =
-        Layout::horizontal([Constraint::Length(SIDEBAR_WIDTH), Constraint::Min(10)]).areas(body);
+    let [side, main] = Layout::horizontal([
+        Constraint::Length(app.side.width(body.width)),
+        Constraint::Min(10),
+    ])
+    .areas(body);
 
     draw_header(frame, app, header);
     draw_items(frame, app, side);
@@ -161,7 +168,7 @@ fn draw_items(frame: &mut Frame<'_>, app: &App, area: Rect) {
 fn draw_content(frame: &mut Frame<'_>, app: &mut App, area: Rect) {
     // Comments: the shown thread, and beside it — about as wide — the
     // agent's review of it.
-    let area = if app.tab == Tab::Comments && area.width > SIDEBAR_WIDTH * 2 {
+    let area = if app.tab == Tab::Comments && area.width > COMMENTS_SPLIT_MIN {
         let [thread, review] =
             Layout::horizontal([Constraint::Percentage(52), Constraint::Percentage(48)])
                 .areas(area);
@@ -257,7 +264,21 @@ fn empty_state(app: &App) -> Vec<Line<'static>> {
 }
 
 fn draw_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    let line = if let Some(busy) = &app.busy {
+    let line = if app.side.is_active() {
+        Line::from(vec![
+            Span::styled(
+                format!(" {}", beagle_tui::pane_resize::HINT),
+                Style::default().fg(Color::Cyan),
+            ),
+            Span::styled(
+                app.status
+                    .as_ref()
+                    .map(|s| format!("   {s}"))
+                    .unwrap_or_default(),
+                Style::default().fg(Color::Yellow),
+            ),
+        ])
+    } else if let Some(busy) = &app.busy {
         Line::styled(format!(" ⟳ {busy}…"), Style::default().fg(Color::Cyan))
     } else if let Some(status) = &app.status {
         Line::styled(format!(" {status}"), Style::default().fg(Color::Yellow))
@@ -268,8 +289,8 @@ fn draw_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
         )
     } else {
         let hints = match app.shelf {
-            Shelf::Active => " j/k move · tab focus · 1/2/3 summary/diff/comments · o PR · i copy id · R ready · M merge · X close · a archive · A archive view · ? help · q quit",
-            Shelf::Archived => " ARCHIVE · j/k move · 1/2 summary/diff · U restore · A back to PRs · ? help · q quit",
+            Shelf::Active => " j/k move · tab focus · 1/2/3 summary/diff/comments · o PR · i copy id · R ready · M merge · X close · a archive · A archive view · w resize · ? help · q quit",
+            Shelf::Archived => " ARCHIVE · j/k move · 1/2 summary/diff · U restore · A back to PRs · w resize · ? help · q quit",
         };
         Line::styled(hints, Style::default().fg(Color::DarkGray))
     };

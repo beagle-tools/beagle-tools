@@ -1,5 +1,6 @@
 //! Key handling: one state transition per key press.
 
+use beagle_tui::pane_resize;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use super::{App, Focus, Tab};
@@ -54,6 +55,7 @@ pub(super) const HELP: &[(&str, &str)] = &[
     ("U", "in the archive: restore this recap"),
     ("t", "open the ticket in the tracker"),
     ("r", "reload from disk"),
+    pane_resize::HELP,
     ("?", "toggle this help"),
     ("q  ctrl-c", "quit"),
 ];
@@ -64,6 +66,11 @@ impl App {
         let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
         if ctrl && key.code == KeyCode::Char('c') {
             self.quit = true;
+            return;
+        }
+        if self.side.is_active() {
+            let total = self.side.last_total();
+            self.status = self.side.handle_key(key, total).status;
             return;
         }
         if self.confirm.is_some() {
@@ -91,6 +98,7 @@ impl App {
         match key.code {
             KeyCode::Char('q') => self.quit = true,
             KeyCode::Char('?') => self.help = true,
+            KeyCode::Char('w') => self.side.start(),
             KeyCode::Tab | KeyCode::Enter | KeyCode::BackTab => self.toggle_focus(),
             KeyCode::Esc if self.view.anchor.is_some() => self.view.anchor = None,
             KeyCode::Esc => self.focus = Focus::List,

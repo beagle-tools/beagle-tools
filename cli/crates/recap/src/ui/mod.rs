@@ -23,7 +23,7 @@ mod view;
 use std::collections::HashMap;
 use std::sync::mpsc::{self, Receiver, Sender};
 
-use beagle_tui::DocView;
+use beagle_tui::{DefaultWidth, DocView, SideResize};
 
 pub(crate) use jobs::{Confirm, Job};
 pub(crate) use list::{list_entries, ListEntry};
@@ -129,6 +129,8 @@ pub struct App {
     requested: Vec<String>,
     help: bool,
     quit: bool,
+    /// The PR list's width and `w`'s resize mode (not saved across runs).
+    side: SideResize,
 }
 
 impl App {
@@ -174,6 +176,7 @@ impl App {
             actions_enabled: true,
             requested: Vec::new(),
             help: false,
+            side: SideResize::new("sidebar", DefaultWidth::Fixed(view::SIDEBAR_WIDTH)),
             quit: false,
         };
         if let Some(id) = id {
