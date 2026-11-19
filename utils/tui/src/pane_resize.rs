@@ -1,4 +1,5 @@
-//! The one "resize the side pane" interaction every beagle-tools TUI shares.
+//! The one "resize the side pane" interaction the beagle TUIs share (rca,
+//! scout, recap, standup and Tandem's review TUI).
 //!
 //! `w` (from the app's normal state) calls [`SideResize::start`]; while
 //! [`SideResize::is_active`], the app hands every key to

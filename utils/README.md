@@ -21,9 +21,9 @@ Small, dependency-free helpers shared by the apps in this monorepo
 
 ## `beagle-tui` (`tui/`)
 
-Terminal-UI pieces shared by the beagle-tools TUIs (`beagle recap`,
-`beagle standup`, `beagle scout`, rca, Tandem's review TUI, agenttop). Depends on `ratatui`, `crossterm`, `notify`, `serde` and
-`toml`, which is why it is a separate crate: `beagle-utils` stays std-only.
+Terminal-UI pieces shared by the beagle TUIs (`beagle rca`, `beagle scout`,
+`beagle recap`, `beagle standup`, `beagle tandem`). Depends on `ratatui`,
+`crossterm`, `notify`, `serde` and `toml`, which is why it is a separate crate: `beagle-utils` stays std-only.
 
 | Module      | What it holds                                                                  |
 |-------------|--------------------------------------------------------------------------------|
@@ -42,8 +42,8 @@ Terminal-UI pieces shared by the beagle-tools TUIs (`beagle recap`,
 
 ### The side-pane resize standard
 
-Every beagle-tools TUI with a side pane (a list or sidebar beside a main
-pane) binds **`w`** to resize mode through `beagle_tui::pane_resize`, and
+Every beagle TUI with a side pane (a list or sidebar beside a main pane):
+rca, scout, recap, standup and Tandem's review TUI, binds **`w`** to resize mode through `beagle_tui::pane_resize`, and
 binds `w` to nothing else. Keep a `SideResize` in the app, draw the side
 pane at `pane.width(total)`, call `pane.start()` on `w` (or say how to show
 the pane when it is hidden), and while `pane.is_active()` hand every key to
@@ -53,10 +53,15 @@ the pane when it is hidden), and while `pane.is_active()` hand every key to
   app's default; `Esc`, `Enter`, `w` and `q` leave (q never quits here);
   every other key is ignored.
 - The side pane stays within 20–100 columns and the main pane keeps 40; on
-  a terminal too narrow for both, the side pane keeps its minimum.
+  a terminal too narrow for both, the side pane keeps its minimum
+  (`PaneLimits::STANDARD`).
+- The default is the app's own: `DefaultWidth::Fixed` columns or a clamped
+  `Fraction` of the screen.
 - The width is not saved: a restart returns to the default. Show
   `pane_resize::HINT` in the footer while resizing and list
   `pane_resize::HELP` in the `?` overlay.
+- agenttop (`workflows/`) is out of scope for now: it keeps `w` for its
+  write-up viewer and does not depend on `beagle-tui`.
 
 ## Rules
 
