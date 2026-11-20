@@ -460,7 +460,7 @@ All notable changes to this project are documented here. The format follows
   manifest reads `no rca.toml — not a beagle workspace` and a corrupt one
   leads with the TOML error itself — previously both led with the
   manifest's absolute path, which is exactly what a narrow sidebar
-  truncates away (`i/o error at /Users/matthew…`).
+  truncates away (`i/o error at /Users/someone…`).
 
 ## [0.6.0] - 2026-07-17
 

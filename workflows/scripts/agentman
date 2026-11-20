@@ -10,11 +10,11 @@
 #   agentman add <dir>    register a root, link it, apply
 #   agentman rm <dir>     unregister a root, prune its projects, apply
 #   agentman sync         relink + apply (after adding/removing projects)
-#   agentman link         relink only, no apply (what install.sh calls)
+#   agentman link         relink only, no apply (for install scripts)
 #
 # agentd reads ONE manifests root, but the projects inside it can come from
-# several repos: this dotfiles repo for personal agents, a separate repo for
-# work agents that do not belong in dotfiles. So the root is a real directory
+# several repos (say, one per area of your life you keep agents for). So the
+# root is a real directory
 # of per-project symlinks rather than one symlink to $REPO/manifests.
 #
 # A "root" is a directory whose SUBDIRECTORIES are projects:
@@ -25,8 +25,8 @@
 #
 # Registered roots are machine-local state — they point at checkouts that only
 # exist on some machines — so they live one absolute path per line in
-# ~/.config/dotfiles/agentd_manifests, beside aws_profile and machine, not in
-# git. No file means this repo's manifests/ only.
+# ~/.config/dotfiles/agentd_manifests, with other machine-local settings, not
+# in git. No file means this repo's manifests/ only.
 #
 # install.sh sources this file to reuse link_manifest_projects (and with it the
 # installer's own link/warn, which feed its grouped problem report).

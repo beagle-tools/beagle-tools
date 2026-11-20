@@ -229,8 +229,7 @@ autostart it with `beagle rca agent install` (launchd on macOS, `systemd --user`
 Linux), and watch it from the **Agents screen** (`A` in the TUI, or the
 sidebar's **Agents** button in the desktop app).
 
-Full guide — config, custom prompts, commands, the control socket, and how it
-coexists with the Go `ai-pipelines/beagle` pipeline — in
+Full guide — config, custom prompts, commands and the control socket — in
 [docs/agent-runtime.md](docs/agent-runtime.md).
 
 ## Export
