@@ -15,6 +15,8 @@ pub type Source = Result<PathBuf, String>;
 pub struct Stores {
     /// `beagle scout`'s store root.
     pub scout: Source,
+    /// `beagle rca`'s store root (the directory holding `rcas/`).
+    pub rca: Source,
 }
 
 impl Stores {
@@ -23,13 +25,14 @@ impl Stores {
     pub fn resolve() -> Self {
         Self {
             scout: beagle_scout::default_root().map_err(|e| e.to_string()),
+            rca: beagle_rca::effective_root(None).map_err(|e| e.to_string()),
         }
     }
 
     /// One line per store, for the startup log.
     #[must_use]
     pub fn describe(&self) -> Vec<String> {
-        [("scout", &self.scout)]
+        [("scout", &self.scout), ("rca", &self.rca)]
             .into_iter()
             .map(|(tool, source)| match source {
                 Ok(path) => format!("{tool}: {}", path.display()),

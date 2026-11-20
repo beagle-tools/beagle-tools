@@ -1,6 +1,7 @@
 //! The endpoints, one module per tool. Each reads its store through the
 //! tool's own crate and returns JSON shaped as `docs/serve-api.md` says.
 
+pub mod rca;
 pub mod scout;
 
 use std::path::Path;
@@ -113,6 +114,13 @@ pub fn tail(text: &str, n: usize) -> (Vec<&str>, bool) {
     let all: Vec<&str> = text.lines().collect();
     let skip = all.len().saturating_sub(n);
     (all[skip..].to_vec(), skip > 0)
+}
+
+/// A diagram as the API serves it: `text` with ANSI escapes stripped (draw
+/// it monospaced, unwrapped), `ansi` the raw file with its colour codes.
+#[must_use]
+pub fn diagram(name: &str, raw: &str) -> Value {
+    json!({ "name": name, "text": beagle_rca::ansi::strip(raw), "ansi": raw })
 }
 
 /// Default log tail length.

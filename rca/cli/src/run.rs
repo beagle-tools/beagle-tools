@@ -211,8 +211,13 @@ fn execute(command: Command, mode: Mode) -> Result<(), Error> {
 /// the global config) → nearest ancestor of the working directory that
 /// already contains `rcas/` → the working directory. An invalid config
 /// surfaces here rather than being silently ignored — otherwise beagle
-/// would quietly open the wrong root.
-pub(crate) fn effective_root(explicit: Option<PathBuf>) -> Result<PathBuf, Error> {
+/// would quietly open the wrong root. `beagle serve` uses this too, so the
+/// phone reads the store `beagle rca` would.
+///
+/// # Errors
+/// [`Error::Io`] when the working directory is unreadable, or the config
+/// file's own load error.
+pub fn effective_root(explicit: Option<PathBuf>) -> Result<PathBuf, Error> {
     if let Some(root) = explicit {
         return Ok(root);
     }
