@@ -179,6 +179,31 @@ ignored while resizing. The width is not saved. The footer shows
 out of scope for now (its `w` opens a step's write-up). Details in
 [`utils/README.md`](../utils/README.md).
 
+**One keymap for every TUI.** rca, scout, recap, standup and Tandem's review
+TUI use the same key for the same job, so a key never refreshes in one tool
+and writes to GitHub in another:
+
+| Job | Keys |
+| --- | --- |
+| Move | `j`/`k` or `↑`/`↓`, `g`/`G` top/bottom, `ctrl-d`/`ctrl-u` page |
+| Open / back | `Enter`, `l` or `→` open; `Esc`, `b`, `h` or `←` back |
+| Tabs | `Tab`, `]` and `[` cycle tabs (and `1`–`9` jump) |
+| Help / quit | `?` help; `q` and `Q` quit; any key closes help |
+| Reload | `r` |
+| Search | `/` |
+| Open in browser | `o` |
+| Edit | `E` |
+| Copy | `y` line or selection, `Y` URL, `i` id |
+| Resize side pane | `w` (above) |
+
+- **GitHub writes** use an uppercase letter that means the same write in
+  every tool, **always ask to confirm (`y`/`n`)**, and are never reused for a
+  harmless action: `A` approve, `M` merge, `P` post/publish, `D` ready↔draft,
+  `X` close.
+- **Tab always cycles tabs.** Where a screen has two focusable panes, focus
+  moves with `Enter` (in) and `Esc` (out), not `Tab`.
+- agenttop is out of scope for now, as for `w`.
+
 ## 3. TypeScript / React
 
 ### Compiler and lint
