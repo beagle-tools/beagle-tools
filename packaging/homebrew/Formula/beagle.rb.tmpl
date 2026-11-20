@@ -32,7 +32,7 @@ class Beagle < Formula
   conflicts_with "beagle-rca", because: "both install a `beagle` binary"
 
   def install
-    bin.install "beagle"
+    bin.install "beagle", "beagle-agentd"
   end
 
   def caveats

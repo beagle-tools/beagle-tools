@@ -46,7 +46,8 @@ fn channel() -> Channel {
         tag_prefix: "beagle-cli-v",
         asset_prefix: "beagle-cli",
         binary: "beagle",
-        companions: &[],
+        // Swapped too when installed beside `beagle` (brew, tarball).
+        companions: &["beagle-agentd"],
     }
 }
 

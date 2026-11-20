@@ -37,6 +37,26 @@ on:
         description: 'JSON list of {"target": rust triple, "os": runner}'
         required: true
         type: string
+      extra-app-dir:
+        description: a second app whose binaries ride in this tarball (stamped with the same version)
+        required: false
+        type: string
+        default: ""
+      extra-cargo-dir:
+        description: the cargo workspace that builds extra-packages
+        required: false
+        type: string
+        default: ""
+      extra-packages:
+        description: space-separated cargo packages to build in extra-cargo-dir
+        required: false
+        type: string
+        default: ""
+      extra-bins:
+        description: space-separated binaries from extra-cargo-dir that go into the tarball
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -93,9 +113,28 @@ jobs:
           for p in $PACKAGES; do args+=(-p "$p"); done
           cargo build --release --locked --target "${{ matrix.target }}" "${args[@]}"
 
+      - name: build the companion binaries
+        if: inputs.extra-cargo-dir != ''
+        env:
+          PACKAGES: ${{ inputs.extra-packages }}
+          EXTRA_BINS: ${{ inputs.extra-bins }}
+          BEAGLE_RELEASE_TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          # Same version as the main binary, so `--version` agrees (never committed).
+          (cd "${{ inputs.extra-app-dir }}" && node scripts/set-version.mjs "${{ inputs.version }}")
+          args=()
+          for p in $PACKAGES; do args+=(-p "$p"); done
+          (cd "${{ inputs.extra-cargo-dir }}" && \
+            cargo build --release --locked --target "${{ matrix.target }}" "${args[@]}")
+          dest="${{ inputs.cargo-dir }}/target/${{ matrix.target }}/release"
+          for bin in $EXTRA_BINS; do
+            cp "${{ inputs.extra-cargo-dir }}/target/${{ matrix.target }}/release/$bin" "$dest/"
+          done
+
       - name: package
         env:
-          BINS: ${{ inputs.bins }}
+          BINS: ${{ inputs.bins }} ${{ inputs.extra-bins }}
         run: |
           set -euo pipefail
           # shellcheck disable=SC2086 # BINS is a space-separated list
@@ -107,7 +146,7 @@ jobs:
           (runner.os == 'Linux' && contains(matrix.target, 'linux')) ||
           (runner.os == 'macOS' && runner.arch == 'ARM64' && matrix.target == 'aarch64-apple-darwin')
         env:
-          BINS: ${{ inputs.bins }}
+          BINS: ${{ inputs.bins }} ${{ inputs.extra-bins }}
           VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
