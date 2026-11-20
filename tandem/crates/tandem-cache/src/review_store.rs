@@ -1,6 +1,8 @@
 //! Local-only review data: comments, agent specs, and agent runs.
 //! None of this ever leaves the machine.
 
+use std::collections::BTreeMap;
+
 use chrono::Utc;
 use rusqlite::{params, OptionalExtension};
 use tandem_core::agent::{AgentRun, AgentSpec, RunStatus};
@@ -200,10 +202,16 @@ impl ReviewStore for Cache {
     }
 
     fn put_agent_spec(&self, spec: &AgentSpec) -> Result<()> {
+        // The env (often API keys) goes to the 0600 env file, never the DB.
+        self.env_store.set(&spec.name, &spec.env)?;
+        let stripped = AgentSpec {
+            env: BTreeMap::new(),
+            ..spec.clone()
+        };
         self.conn
             .execute(
                 "INSERT OR REPLACE INTO agent_specs (name, json) VALUES (?1, ?2)",
-                params![spec.name, serde_json::to_string(spec)?],
+                params![spec.name, serde_json::to_string(&stripped)?],
             )
             .map_err(cache_err)?;
         Ok(())
@@ -217,9 +225,18 @@ impl ReviewStore for Cache {
         let rows = stmt
             .query_map([], |row| row.get::<_, String>(0))
             .map_err(cache_err)?;
-        let mut out = Vec::new();
+        let mut out: Vec<AgentSpec> = Vec::new();
         for row in rows {
             out.push(serde_json::from_str(&row.map_err(cache_err)?)?);
+        }
+        drop(stmt);
+        for spec in &mut out {
+            if spec.env.is_empty() {
+                spec.env = self.env_store.get(&spec.name)?;
+            } else {
+                // Saved by an older version with its env in the row: move it.
+                self.put_agent_spec(spec)?;
+            }
         }
         Ok(out)
     }
@@ -228,7 +245,7 @@ impl ReviewStore for Cache {
         self.conn
             .execute("DELETE FROM agent_specs WHERE name = ?1", params![name])
             .map_err(cache_err)?;
-        Ok(())
+        self.env_store.set(name, &BTreeMap::new())
     }
 
     fn put_agent_run(&self, run: &AgentRun) -> Result<()> {

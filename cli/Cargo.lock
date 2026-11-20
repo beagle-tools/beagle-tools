@@ -1783,6 +1783,7 @@ dependencies = [
 name = "tandem-cache"
 version = "0.0.1"
 dependencies = [
+ "beagle-utils",
  "chrono",
  "rusqlite",
  "serde",

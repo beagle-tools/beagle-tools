@@ -17,6 +17,8 @@ use crate::schema::{cache_err, migrate};
 #[derive(Debug)]
 pub struct Cache {
     pub(crate) conn: Connection,
+    /// Agent env values, kept out of the DB (see `agent_env`).
+    pub(crate) env_store: crate::agent_env::EnvStore,
 }
 
 impl Cache {
@@ -30,14 +32,20 @@ impl Cache {
         conn.pragma_update(None, "journal_mode", "WAL")
             .map_err(cache_err)?;
         migrate(&conn)?;
-        Ok(Self { conn })
+        Ok(Self {
+            conn,
+            env_store: crate::agent_env::EnvStore::beside(path),
+        })
     }
 
     /// In-memory cache for tests.
     pub fn open_in_memory() -> Result<Self> {
         let conn = Connection::open_in_memory().map_err(cache_err)?;
         migrate(&conn)?;
-        Ok(Self { conn })
+        Ok(Self {
+            conn,
+            env_store: crate::agent_env::EnvStore::memory(),
+        })
     }
 
     // ----- pull request lists -------------------------------------------

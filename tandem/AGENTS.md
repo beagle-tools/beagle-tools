@@ -101,7 +101,8 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
 ## Where state lives
 
 - Settings: `<config dir>/tandem/settings.json`.
-- Cache DB: `<data dir>/tandem/cache.sqlite3`.
+- Cache DB: `<data dir>/tandem/cache.sqlite3`. Agent env values (often API
+  keys) are kept out of it, in `agent-env.json` (0600) in the same dir.
 - Agent run dirs: `<data dir>/tandem/runs/<run id>/`, holding
   `events.jsonl` and `comments.jsonl`.
 - Clones: `<data dir>/tandem/worktrees/` (`agent-runs/<owner>/<repo>/<n>`
