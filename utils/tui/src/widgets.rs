@@ -16,6 +16,17 @@ const CURSOR_BG: Color = Color::Rgb(55, 60, 72);
 /// A visual selection's bar.
 const SELECTION_BG: Color = Color::Rgb(92, 64, 30);
 
+/// The braille spinner every TUI shows for work in progress ("an agent is
+/// on it right now"). Each frame is exactly one cell wide, so rows never
+/// shift as it animates.
+pub const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+/// The [`SPINNER`] frame for a redraw `tick` (wraps around).
+#[must_use]
+pub fn spinner(tick: usize) -> &'static str {
+    SPINNER[tick % SPINNER.len()]
+}
+
 /// A pane border: cyan when focused, dim otherwise.
 #[must_use]
 pub fn border_style(focused: bool) -> Style {

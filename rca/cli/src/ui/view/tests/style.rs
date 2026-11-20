@@ -8,7 +8,7 @@ fn investigating_symbol_animates_and_others_stay_fixed() {
     let (frame0, _) = status_symbol(Status::Investigating, 0);
     let (frame1, _) = status_symbol(Status::Investigating, 1);
     assert_ne!(frame0, frame1, "investigating must animate");
-    let (wrapped, _) = status_symbol(Status::Investigating, INVESTIGATING_FRAMES.len());
+    let (wrapped, _) = status_symbol(Status::Investigating, beagle_tui::widgets::SPINNER.len());
     assert_eq!(wrapped, frame0, "frames cycle");
 
     let (fix0, fix_style) = status_symbol(Status::Fixing, 0);
@@ -33,7 +33,7 @@ fn investigating_symbol_animates_and_others_stay_fixed() {
 
 #[test]
 fn every_spinner_frame_is_one_cell_wide() {
-    for frame in INVESTIGATING_FRAMES {
+    for frame in beagle_tui::widgets::SPINNER {
         assert_eq!(frame.chars().count(), 1, "frame `{frame}` shifts layout");
     }
 }

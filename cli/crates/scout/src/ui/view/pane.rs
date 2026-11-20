@@ -4,7 +4,7 @@
 use super::{
     activity, dim, pane_block, project_glyph, task_color, task_glyph, App, Block, Color,
     Constraint, Focus, Frame, Layout, Line, Modifier, Paragraph, Project, Rect, Span, Style, Tab,
-    Task, TaskStatus, Text, Wrap, WrapLayout, SPINNER, WORKING,
+    Task, TaskStatus, Text, Wrap, WrapLayout, WORKING,
 };
 
 pub(super) fn draw_overview(frame: &mut Frame<'_>, app: &mut App, area: Rect) {
@@ -113,7 +113,7 @@ pub(super) fn project_header(project: &Project, tick: usize) -> Vec<Line<'static
     for task in working {
         let mut spans = vec![
             Span::styled(
-                format!("{} now   ", SPINNER[tick % SPINNER.len()]),
+                format!("{} now   ", beagle_tui::widgets::spinner(tick)),
                 Style::default().fg(WORKING).add_modifier(Modifier::BOLD),
             ),
             Span::styled(format!("{} ", task.id), dim()),

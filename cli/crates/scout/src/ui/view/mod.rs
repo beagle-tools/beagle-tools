@@ -17,9 +17,6 @@ use crate::store::{Project, Task};
 use super::keys::HELP;
 use super::{App, Focus, Screen, Tab, WrapLayout};
 
-/// Beagle's spinner: the "an agent is on it right now" signal.
-const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-
 /// A working task whose files have been quiet this long gets a yellow
 /// "quiet" — a crashed agent and a busy one look the same otherwise.
 const QUIET_AFTER: Duration = Duration::from_mins(10);
@@ -58,7 +55,7 @@ fn task_glyph(status: TaskStatus, tick: usize) -> (&'static str, Style) {
     match status {
         TaskStatus::Todo => ("○", Style::default().fg(Color::Gray)),
         TaskStatus::Working => (
-            SPINNER[tick % SPINNER.len()],
+            beagle_tui::widgets::spinner(tick),
             Style::default().fg(WORKING).add_modifier(Modifier::BOLD),
         ),
         TaskStatus::Paused => ("‖", Style::default().fg(Color::Yellow)),
