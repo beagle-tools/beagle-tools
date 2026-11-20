@@ -33,5 +33,9 @@ done
 unset IFS
 [ -n "$real" ] || { echo "agentd git shim: no real git on PATH" >&2; exit 127; }
 
-export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0="$(dirname "$self_dir")/githooks"
+# Appended after the caller's own GIT_CONFIG_* pairs (never replacing
+# them); the last value of a key wins, so this hooksPath always applies.
+n=${GIT_CONFIG_COUNT:-0}
+export "GIT_CONFIG_KEY_$n=core.hooksPath" "GIT_CONFIG_VALUE_$n=$(dirname "$self_dir")/githooks"
+export GIT_CONFIG_COUNT=$((n + 1))
 exec "$real" "$@"

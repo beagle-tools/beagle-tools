@@ -117,14 +117,16 @@ fn the_summary_splits_by_branch_and_flags_a_protected_main_push() {
 }
 
 #[test]
-fn no_protected_orgs_flags_nothing() {
+fn no_protected_orgs_guards_every_repo() {
     let push = [(
         "acme/widgets".to_owned(),
         Some("main".to_owned()),
         "push".to_owned(),
     )];
-    assert!(!summary(&push, &[]).unwrap().contains("PUSHED TO MAIN"));
-    assert!(!is_protected_main("acme/widgets", Some("main"), &[]));
+    assert!(summary(&push, &[]).unwrap().contains("PUSHED TO MAIN"));
+    assert!(is_protected_main("acme/widgets", Some("main"), &[]));
+    assert!(!is_protected_main("acme/widgets", Some("abc-1"), &[]));
+    assert!(!is_protected_main("jdoe/widgets", Some("main"), &acme()));
     assert!(is_protected_main("ACME/widgets", Some("master"), &acme()));
     assert!(!is_protected_main("acme/widgets", Some("abc-1"), &acme()));
 }

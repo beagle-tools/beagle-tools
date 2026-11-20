@@ -1,15 +1,16 @@
 //! Daemon-side settings for the git guard: `~/.config/agentd/agentd.yaml`.
 //!
 //! ```yaml
-//! # GitHub orgs whose main/master no run may push to directly. Runs push a
-//! # branch and open a PR instead. Empty (the default) protects nothing.
+//! # Narrows the push guard to these GitHub orgs' repos. Empty (the
+//! # default) guards main/master on EVERY remote.
 //! protected_orgs: [acme]
 //! ```
 //!
-//! `$AGENTD_PROTECTED_ORGS` (space- or comma-separated) overrides the file.
-//! Every key is optional and unknown keys are ignored, so a file written for
-//! a newer agentd still loads. agentd hands the list to each run as
-//! `$AGENTD_PROTECTED_ORGS`, which its pre-push hook reads.
+//! `$AGENTD_PROTECTED_ORGS` (space- or comma-separated) in the DAEMON's
+//! environment overrides the file. Every key is optional and unknown keys
+//! are ignored, so a file written for a newer agentd still loads. agentd
+//! bakes the list into its pre-push hook at startup; a run's own
+//! environment never changes it.
 
 use std::path::{Path, PathBuf};
 
@@ -19,7 +20,7 @@ use serde::Deserialize;
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(default)]
 pub struct DaemonConfig {
-    /// Orgs whose `main`/`master` an agent must never push to.
+    /// Orgs the push guard is narrowed to; empty guards every remote.
     pub protected_orgs: Vec<String>,
 }
 
@@ -49,7 +50,7 @@ pub fn config_path() -> Option<PathBuf> {
 }
 
 /// The protected orgs: `$AGENTD_PROTECTED_ORGS` when set, else the config
-/// file's `protected_orgs`, else none.
+/// file's `protected_orgs`, else none (which guards every remote).
 #[must_use]
 pub fn protected_orgs() -> Vec<String> {
     match std::env::var("AGENTD_PROTECTED_ORGS") {

@@ -84,16 +84,23 @@ hidden_projects: [demo]                               # left off the jobs screen
 
 ```yaml
 # agentd.yaml — the daemon
-protected_orgs: [acme]   # GitHub orgs whose main/master no run may push to
+protected_orgs: [acme]   # narrow the push guard to these orgs (default: every remote)
 ```
 
 **Git guard.** Every run gets agentd's `git` shim first on `PATH` and
 `core.hooksPath` pointed at agentd's hook dispatcher (both written to
-`~/.local/state/agentd/lib/` on startup). The shim always refuses
-`push --no-verify` and overriding `core.hooksPath`; the `pre-push` hook
-refuses a push to `main`/`master` on any of `protected_orgs`
-(`$AGENTD_PROTECTED_ORGS` overrides the file; none by default). Every hook
-then runs the repo's own hook, so nothing is skipped. When a model run
+`~/.local/state/agentd/lib/` on startup, appended after the run's own
+`GIT_CONFIG_*` pairs). The shim always refuses `push --no-verify` and
+overriding `core.hooksPath`; the `pre-push` hook refuses a push to
+`main`/`master` on every remote, or only on `protected_orgs` repos when that
+is set (`$AGENTD_PROTECTED_ORGS` in the daemon's environment overrides the
+file). The policy is written into the hook at startup — a run cannot turn
+it off through its environment — and the remote's URL is resolved with
+`git ls-remote --get-url`, so remote names, `insteadOf` rewrites and SSH
+host aliases are all caught. Restart agentd after changing it. Every hook
+then runs the repo's own hook, so nothing is skipped. A run's environment
+(manifest `env:`, params) reaches it through a 0600 file it sources and
+deletes, never the command line `ps` shows. When a model run
 finishes, its log notes the repos and branches it wrote to
 (`repos touched: acme/widgets @ abc-1-fix (commit ×2, push)`), flagged
 `⚠ PUSHED TO MAIN` if one got past the guard.
