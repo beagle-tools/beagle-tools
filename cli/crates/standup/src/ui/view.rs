@@ -7,6 +7,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, List, ListItem, ListState, Padding, Paragraph};
 use ratatui::Frame;
 
+use beagle_tui::chrome::{self, HelpFilter, Tone};
 use beagle_tui::widgets::{self, border_style, truncate, LIST_HIGHLIGHT};
 
 use super::doc::state_color;
@@ -35,7 +36,7 @@ pub(super) fn draw(frame: &mut Frame<'_>, app: &mut App) {
     draw_content(frame, app, main);
     draw_footer(frame, app, footer);
     if app.help {
-        widgets::draw_help(frame, HELP);
+        chrome::draw_help(frame, HELP, HelpFilter::Off);
     }
     if let Some(picker) = &app.picker {
         draw_picker(frame, app, picker);
@@ -253,25 +254,11 @@ fn empty_state(app: &App) -> Vec<Line<'static>> {
 }
 
 fn draw_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    let line = match &app.status {
-        _ if app.side.is_active() => Line::from(vec![
-            Span::styled(
-                format!(" {}", beagle_tui::pane_resize::HINT),
-                Style::default().fg(Color::Cyan),
-            ),
-            Span::styled(
-                app.status
-                    .as_ref()
-                    .map(|s| format!("   {s}"))
-                    .unwrap_or_default(),
-                Style::default().fg(Color::Yellow),
-            ),
-        ]),
-        Some(status) => Line::styled(format!(" {status}"), Style::default().fg(Color::Yellow)),
-        None => Line::styled(
-            " j/k move · enter/esc focus · v select · y copy · i id · o ticket · p PRs · d reports · [ ] older/newer · w resize · ? help · q quit",
-            Style::default().fg(Color::DarkGray),
-        ),
-    };
-    frame.render_widget(Paragraph::new(line), area);
+    chrome::draw_footer(
+        frame,
+        area,
+        "j/k move · enter/esc focus · v select · y copy · i id · o ticket · p PRs · d reports · [ ] older/newer · w resize · ? help · q quit",
+        app.status.as_deref().map(|s| (s, Tone::Info)),
+        app.side.is_active(),
+    );
 }

@@ -33,7 +33,9 @@ Terminal-UI pieces shared by the beagle TUIs (`beagle rca`, `beagle scout`,
 | `wrap`      | `DocLine` and word-wrapping layout with a source-line map                      |
 | `docview`   | `DocView`: scrolling document pane with line cursor, visual select, pan, keys  |
 | `doc`       | Document building blocks: dim text, rules, link rows, diagram blocks           |
-| `widgets`   | Pane borders, centred overlays, the key-help sheet, cursor painting            |
+| `widgets`   | Pane borders, centred overlays, cursor painting                                |
+| `chrome`    | The `?` help sheet (`draw_help`, optional fuzzy filter) and the footer (`draw_footer` / `footer_line`, `Tone`) every TUI uses |
+| `fuzzy`     | Case-insensitive subsequence matching with highlight positions (filters, finders, help) |
 | `watch`     | Recursive filesystem watcher + per-frame drain, for live reload                |
 | `clipboard` | Copy via `pbcopy` / `wl-copy` / `xclip` / `xsel`, falling back to OSC 52 (works over SSH) |
 | `links`     | `extract_urls` from text; open a URL with `open` / `xdg-open`, detached        |
