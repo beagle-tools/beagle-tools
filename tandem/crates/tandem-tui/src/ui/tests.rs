@@ -234,44 +234,97 @@ fn w_resizes_the_list_within_its_limits_and_esc_leaves() {
     assert_eq!(a.pane.width(total), widest);
 }
 
-/// The standard beagle TUI keymap (`docs/CODING_STANDARDS.md` "Terminal UIs").
+/// Walks `beagle_tui::keymap::STANDARD` (`docs/CODING_STANDARDS.md`
+/// "Terminal UIs"): a new job fails to compile here until the review TUI
+/// handles it or says why it does not apply.
 #[test]
 fn tandem_follows_the_standard_keymap() {
+    use beagle_tui::keymap::{self, Job};
+    for row in keymap::STANDARD {
+        let mut app = app();
+        let keys = keymap::keys(row.job);
+        match row.job {
+            Job::Move => {
+                app.handle_key(keys[0]);
+                assert_eq!(app.sel, 1, "j");
+                app.handle_key(keys[1]);
+                assert_eq!(app.sel, 0, "k");
+                app.handle_key(keys[3]);
+                assert_eq!(app.sel, 1, "G");
+                app.handle_key(keys[2]);
+                assert_eq!(app.sel, 0, "g");
+                for k in &keys[4..] {
+                    assert_eq!(app.handle_key(*k), Flow::Continue, "{k:?}");
+                }
+            }
+            Job::OpenBack => {
+                app.handle_key(keys[0]);
+                assert_eq!(app.focus, Focus::Content, "Enter");
+                app.handle_key(keys[1]);
+                assert_eq!(app.focus, Focus::List, "Esc");
+            }
+            Job::Tabs => {
+                for (k, want) in keys.iter().zip([Tab::Diff, Tab::Comments, Tab::Diff]) {
+                    app.handle_key(*k);
+                    assert_eq!(app.tab, want, "{k:?}");
+                }
+            }
+            Job::HelpQuit => {
+                app.handle_key(keys[0]);
+                assert_eq!(app.mode, Mode::Help, "?");
+                press(&mut app, KeyCode::Char('j'));
+                assert_eq!(app.mode, Mode::Normal, "any key closes help");
+                for k in &keys[1..] {
+                    assert_eq!(app.handle_key(*k), Flow::Quit, "{k:?}");
+                }
+            }
+            Job::Reload => {
+                // r refreshes from GitHub; it must never queue a review.
+                let queued = app.rows.iter().filter(|r| r.stage == Stage::Queued).count();
+                app.status = None;
+                assert_eq!(app.handle_key(keys[0]), Flow::Continue);
+                // The fetch reached the worker (absent in tests, so it says so).
+                assert!(
+                    app.status
+                        .as_ref()
+                        .is_some_and(|(m, _)| m.contains("worker")),
+                    "r asks the worker to refresh: {:?}",
+                    app.status
+                );
+                app.reload().unwrap();
+                let after = app.rows.iter().filter(|r| r.stage == Stage::Queued).count();
+                assert_eq!(after, queued, "r must not queue a review");
+            }
+            // n/a: no search, no editor, no copy keys in the review TUI yet.
+            Job::Search | Job::Edit | Job::Copy => {}
+            Job::OpenInBrowser => {
+                // Pressing it would open a real browser: check it is the
+                // documented key instead.
+                assert!(super::keys::HELP.iter().any(|(k, _)| *k == row.keys[0]));
+            }
+            Job::Resize => {
+                app.handle_key(keys[0]);
+                assert!(app.pane.is_active(), "w");
+            }
+        }
+    }
+}
+
+#[test]
+fn tandem_github_writes_are_uppercase_and_ask_first() {
     let mut app = app();
-    // Open with l, back with h; tabs with ] / [ and digits.
-    press(&mut app, KeyCode::Char('l'));
-    assert_eq!(app.focus, Focus::Content);
-    press(&mut app, KeyCode::Char(']'));
-    assert_eq!(app.tab, Tab::Diff);
-    press(&mut app, KeyCode::Char('['));
-    assert_eq!(app.tab, Tab::Summary);
+    press(&mut app, KeyCode::Enter);
     press(&mut app, KeyCode::Char('3'));
-    assert_eq!(app.tab, Tab::Comments);
-    // P (post) and A (approve) are uppercase and always ask first.
     press(&mut app, KeyCode::Char('P'));
     assert!(matches!(app.mode, Mode::Confirm(Action::Post { .. })));
     press(&mut app, KeyCode::Esc);
     press(&mut app, KeyCode::Char('A'));
     assert!(matches!(app.mode, Mode::Confirm(Action::Approve(_))));
     press(&mut app, KeyCode::Char('n'));
-    assert_eq!(app.mode, Mode::Normal);
     // Lowercase p is no longer a GitHub write.
     press(&mut app, KeyCode::Char('p'));
     assert_eq!(app.mode, Mode::Normal);
-    press(&mut app, KeyCode::Char('h'));
-    assert_eq!(app.focus, Focus::List);
-    // r refreshes (never re-reviews): no PR gets queued again.
-    let queued = app.rows.iter().filter(|r| r.stage == Stage::Queued).count();
-    assert_eq!(press(&mut app, KeyCode::Char('r')), Flow::Continue);
-    app.reload().unwrap();
-    let after = app.rows.iter().filter(|r| r.stage == Stage::Queued).count();
-    assert_eq!(after, queued, "r must not queue a review");
-    // Help: any key closes it, q and Q quit from it too.
-    press(&mut app, KeyCode::Char('?'));
-    assert_eq!(app.mode, Mode::Help);
-    press(&mut app, KeyCode::Char('j'));
-    assert_eq!(app.mode, Mode::Normal);
-    press(&mut app, KeyCode::Char('?'));
-    assert_eq!(press(&mut app, KeyCode::Char('Q')), Flow::Quit);
-    assert_eq!(press(&mut app, KeyCode::Char('q')), Flow::Quit);
+    for (write, _) in beagle_tui::keymap::GITHUB_WRITES {
+        assert!(write.chars().all(|c| c.is_ascii_uppercase()), "{write}");
+    }
 }

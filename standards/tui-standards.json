@@ -1,0 +1,34 @@
+{
+  "keymap": [
+    {"job": "Move", "keys": ["j", "k", "g", "G", "ctrl-d", "ctrl-u"], "doc": "`j`/`k` or `↑`/`↓`, `g`/`G` top/bottom, `ctrl-d`/`ctrl-u` page"},
+    {"job": "Open / back", "keys": ["Enter", "Esc"], "doc": "`Enter`, `l` or `→` open; `Esc`, `b`, `h` or `←` back"},
+    {"job": "Tabs", "keys": ["Tab", "]", "["], "doc": "`Tab`, `]` and `[` cycle tabs (and `1`–`9` jump)"},
+    {"job": "Help / quit", "keys": ["?", "q", "Q"], "doc": "`?` help; `q` and `Q` quit; any key closes help"},
+    {"job": "Reload", "keys": ["r"], "doc": "`r`"},
+    {"job": "Search", "keys": ["/"], "doc": "`/`"},
+    {"job": "Open in browser", "keys": ["o"], "doc": "`o`"},
+    {"job": "Edit", "keys": ["E"], "doc": "`E`"},
+    {"job": "Copy", "keys": ["y", "Y", "i"], "doc": "`y` line or selection, `Y` URL, `i` id"},
+    {"job": "Resize side pane", "keys": ["w"], "doc": "`w` (above)"}
+  ],
+  "github_writes": [
+    {"key": "A", "action": "approve"},
+    {"key": "M", "action": "merge"},
+    {"key": "P", "action": "post/publish"},
+    {"key": "D", "action": "ready↔draft"},
+    {"key": "X", "action": "close"}
+  ],
+  "tuis": {
+    "rca/cli": "rca/cli/src/ui/tests/keys_standard.rs",
+    "cli/crates/recap": "cli/crates/recap/src/tests/ui_keymap.rs",
+    "cli/crates/scout": "cli/crates/scout/src/ui/keys_tests.rs",
+    "cli/crates/standup": "cli/crates/standup/src/tests/ui_keymap.rs",
+    "tandem/crates/tandem-tui": "tandem/crates/tandem-tui/src/ui/tests.rs"
+  },
+  "not_tuis": {
+    "utils/tui": "the shared crate itself",
+    "cli/crates/beagle": "uses only the release picker behind `beagle version list`",
+    "cli/crates/serve": "an HTTPS API, no terminal UI",
+    "workflows/crates/agenttop": "out of scope for now (its keys predate the standard)"
+  }
+}

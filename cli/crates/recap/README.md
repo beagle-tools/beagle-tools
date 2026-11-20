@@ -10,7 +10,7 @@ TUI shows them side by side:
   (side by side, like your git diffs), else a built-in coloured diff. A
   per-file list sits on top; `n`/`N` jump between files.
 - **3 Comments**: the PR's open threads from people, one at a time as
-  sub-tabs (`n`/`N` or `]`/`[`; `•` marks unread). Bots, ignored authors and
+  sub-tabs (`n`/`N`; `•` marks unread). Bots, ignored authors and
   automated replies are left out, and resolved threads disappear. Beside
   each thread sits an agent's local review of it (`J`/`K` scroll). Nothing
   is ever posted to GitHub.

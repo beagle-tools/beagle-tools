@@ -25,6 +25,7 @@ pub mod delta;
 pub mod doc;
 pub mod docview;
 pub mod error;
+pub mod keymap;
 pub mod links;
 pub mod markdown;
 pub mod pane_resize;
