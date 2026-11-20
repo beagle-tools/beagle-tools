@@ -101,6 +101,11 @@ jobs:
         env:
           BEAGLE_AFFILIATION_PATTERNS: ${{ secrets.BEAGLE_AFFILIATION_PATTERNS }}
           BEAGLE_AFFILIATION_REQUIRED: "1"
+      - name: commit emails are GitHub noreply addresses
+        if: >-
+          github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository
+        run: ./scripts/check-commit-email.sh
       - run: node scripts/check-standards.mjs
       - name: unit tests for the CI and release scripts
         run: node --test scripts/ci/*.test.mjs scripts/release/*.test.mjs cli/scripts/*.test.mjs

@@ -36,6 +36,7 @@ check: standards check-utils check-tandem check-rca check-workflows check-cli
 standards:
 	./scripts/check-file-length.sh;
 	./scripts/check-affiliation.sh;
+	./scripts/check-commit-email.sh;
 	node scripts/check-standards.mjs;
 	node --test scripts/ci/*.test.mjs scripts/release/*.test.mjs cli/scripts/*.test.mjs;
 
