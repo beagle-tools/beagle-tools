@@ -64,6 +64,24 @@ pub fn resolve_root(flag: Option<&str>, env: Option<&str>, config: &Config, cwd:
     DIRS.resolve_root(flag, env, config.root.as_deref(), cwd)
 }
 
+/// The store root `beagle recap` uses: `flag` (`--root`) when given, else
+/// the environment, the config file and discovery from the working
+/// directory, in the order the module docs give. `beagle serve` calls it
+/// with no flag, so the phone reads the store the TUI shows.
+///
+/// # Errors
+/// An unreadable or invalid config file, or an unreadable working
+/// directory.
+pub fn root_for(flag: Option<&str>) -> Result<PathBuf> {
+    let config = match config_path() {
+        Some(path) => load(&path)?,
+        None => Config::default(),
+    };
+    let env_root = DIRS.env_root();
+    let cwd = std::env::current_dir().map_err(|e| crate::Error::io(".", e))?;
+    Ok(resolve_root(flag, env_root.as_deref(), &config, &cwd))
+}
+
 #[cfg(test)]
 #[path = "tests/config.rs"]
 mod tests;

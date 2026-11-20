@@ -59,6 +59,10 @@ pub fn handle(ctx: &Ctx, req: &Request) -> Response {
         ["v1", "rca", rest @ ..] => {
             api::root("rca", &ctx.stores.rca).and_then(|root| api::rca::route(root, rest, req))
         }
+        ["v1", "recap", rest @ ..] => api::root("recap", &ctx.stores.recap)
+            .and_then(|root| api::recap::route(root, rest, req)),
+        ["v1", "standup", rest @ ..] => api::root("standup", &ctx.stores.standup)
+            .and_then(|root| api::standup::route(root, rest, req)),
         _ => Err(api::ApiError::not_found(format!(
             "no endpoint {}",
             req.path

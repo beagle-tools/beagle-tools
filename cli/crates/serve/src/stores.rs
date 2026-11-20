@@ -17,6 +17,10 @@ pub struct Stores {
     pub scout: Source,
     /// `beagle rca`'s store root (the directory holding `rcas/`).
     pub rca: Source,
+    /// `beagle recap`'s store root (the directory holding `recaps/`).
+    pub recap: Source,
+    /// `beagle standup`'s store root (the directory holding `standups/`).
+    pub standup: Source,
 }
 
 impl Stores {
@@ -26,18 +30,25 @@ impl Stores {
         Self {
             scout: beagle_scout::default_root().map_err(|e| e.to_string()),
             rca: beagle_rca::effective_root(None).map_err(|e| e.to_string()),
+            recap: ::recap::config::root_for(None).map_err(|e| e.to_string()),
+            standup: ::standup::config::root_for(None).map_err(|e| e.to_string()),
         }
     }
 
     /// One line per store, for the startup log.
     #[must_use]
     pub fn describe(&self) -> Vec<String> {
-        [("scout", &self.scout), ("rca", &self.rca)]
-            .into_iter()
-            .map(|(tool, source)| match source {
-                Ok(path) => format!("{tool}: {}", path.display()),
-                Err(e) => format!("{tool}: unavailable ({e})"),
-            })
-            .collect()
+        [
+            ("scout", &self.scout),
+            ("rca", &self.rca),
+            ("recap", &self.recap),
+            ("standup", &self.standup),
+        ]
+        .into_iter()
+        .map(|(tool, source)| match source {
+            Ok(path) => format!("{tool}: {}", path.display()),
+            Err(e) => format!("{tool}: unavailable ({e})"),
+        })
+        .collect()
     }
 }

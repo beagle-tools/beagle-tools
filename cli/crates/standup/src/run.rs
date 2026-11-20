@@ -28,18 +28,7 @@ pub(crate) fn main(args: Vec<OsString>) -> ExitCode {
 }
 
 fn store_for(root_flag: Option<&str>) -> Result<Store, Error> {
-    let config = match config::config_path() {
-        Some(path) => config::load(&path)?,
-        None => config::Config::default(),
-    };
-    let env_root = config::DIRS.env_root();
-    let cwd = env::current_dir().map_err(|e| Error::io(".", e))?;
-    Ok(Store::new(config::resolve_root(
-        root_flag,
-        env_root.as_deref(),
-        &config,
-        &cwd,
-    )))
+    Ok(Store::new(config::root_for(root_flag)?))
 }
 
 /// `date` parsed, or the newest report when `None`.

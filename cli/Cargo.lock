@@ -172,7 +172,9 @@ name = "beagle-serve"
 version = "0.1.0"
 dependencies = [
  "beagle",
+ "beagle-recap",
  "beagle-scout",
+ "beagle-standup",
  "beagle-utils",
  "rustls",
  "rustls-pki-types",
