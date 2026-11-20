@@ -106,3 +106,22 @@ fn loads_project_with_agent_and_reports_bad_files() {
 
     let _ = std::fs::remove_dir_all(&root);
 }
+
+#[test]
+fn codex_sandbox_loads_and_defaults_to_off() {
+    let root = temp_root("sandbox");
+    write(
+        &root.join("demo/boxed.yaml"),
+        "kind: Agent\nname: boxed\nrunner: codex\nworkdir: /tmp\nprompt: p.md\nsandbox: workspace-write\n",
+    );
+    write(&root.join("demo/p.md"), "hi\n");
+    write(
+        &root.join("demo/open.yaml"),
+        "kind: Agent\nname: open\nrunner: codex\nworkdir: /tmp\nprompt: p.md\n",
+    );
+    let out = load_root(&root).unwrap();
+    let by_name = |n: &str| out.agents.iter().find(|a| a.name == n).unwrap().sandbox;
+    assert_eq!(by_name("boxed"), crate::types::CodexSandbox::WorkspaceWrite);
+    assert_eq!(by_name("open"), crate::types::CodexSandbox::Off);
+    let _ = std::fs::remove_dir_all(&root);
+}

@@ -69,6 +69,10 @@ fn codex_command(spec: &AgentSpec) -> RunnerCommand {
         "exec".to_owned(),
         "--json".to_owned(),
         "--skip-git-repo-check".to_owned(),
+        // Writes only inside the checkout (plus the run dir the runner adds
+        // with --add-dir), and no network: a review needs neither.
+        "--sandbox".to_owned(),
+        "workspace-write".to_owned(),
     ];
     if let Some(model) = &spec.model {
         args.push("-m".to_owned());
@@ -164,6 +168,8 @@ mod tests {
         assert_eq!(cmd.program, "codex");
         assert_eq!(cmd.args.last().unwrap(), "-");
         assert!(cmd.args.contains(&"--skip-git-repo-check".to_owned()));
+        let at = cmd.args.iter().position(|a| a == "--sandbox").unwrap();
+        assert_eq!(cmd.args[at + 1], "workspace-write");
     }
 
     #[test]

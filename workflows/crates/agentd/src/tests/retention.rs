@@ -162,6 +162,7 @@ fn noop_runs_die_young_but_the_newest_survives() {
         notify_icon_failure: None,
         concurrency: agent_core::types::ConcurrencyPolicy::Forbid,
         isolation: agent_core::types::Isolation::None,
+        sandbox: agent_core::types::CodexSandbox::Off,
         enabled: true,
         entrypoint: None,
         triggers: Vec::new(),

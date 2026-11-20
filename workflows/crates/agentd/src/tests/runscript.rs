@@ -1,4 +1,4 @@
-use agent_core::types::ConcurrencyPolicy;
+use agent_core::types::{CodexSandbox, ConcurrencyPolicy};
 
 use super::*;
 use crate::runenv::{env_exports, param_pairs};
@@ -34,6 +34,7 @@ fn spec(runner: Runner, model: Option<&str>) -> AgentSpec {
         timeout_minutes: 30,
         concurrency: ConcurrencyPolicy::Forbid,
         isolation: Isolation::None,
+        sandbox: CodexSandbox::Off,
         enabled: true,
         entrypoint: None,
         triggers: Vec::new(),
@@ -237,6 +238,22 @@ fn codex_command_shape_keeps_stdin_arg_last() {
         runner_command(&spec(Runner::Codex, None), Some("o4-mini")),
         "codex exec --json --skip-git-repo-check -m 'o4-mini' -"
     );
+}
+
+#[test]
+fn codex_sandbox_is_opt_in_and_keeps_the_data_dir_writable() {
+    let mut s = spec(Runner::Codex, None);
+    s.sandbox = CodexSandbox::WorkspaceWrite;
+    assert_eq!(
+        runner_command(&s, None),
+        "codex exec --json --skip-git-repo-check --sandbox workspace-write --add-dir \"$AGENTD_DATA_DIR\" -"
+    );
+    s.sandbox = CodexSandbox::ReadOnly;
+    assert!(runner_command(&s, None).contains("--sandbox read-only"));
+    // Claude ignores it.
+    let mut c = spec(Runner::Claude, None);
+    c.sandbox = CodexSandbox::WorkspaceWrite;
+    assert!(!runner_command(&c, None).contains("--sandbox"));
 }
 
 #[test]

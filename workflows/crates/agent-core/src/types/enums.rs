@@ -221,3 +221,30 @@ pub enum Isolation {
     /// Run in a fresh `git worktree` of the workdir, cleaned up afterwards.
     Worktree,
 }
+
+/// The codex sandbox a run gets (`codex exec --sandbox`); claude ignores it.
+/// Off by default so existing jobs keep their network and file access;
+/// `workspace-write` limits writes to the workdir and the run's data dir and
+/// blocks network, `read-only` blocks writes too.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum CodexSandbox {
+    /// No `--sandbox` flag: codex's own config decides.
+    #[default]
+    Off,
+    /// `--sandbox read-only`.
+    ReadOnly,
+    /// `--sandbox workspace-write`.
+    WorkspaceWrite,
+}
+
+impl CodexSandbox {
+    /// The value for codex's `--sandbox`, or `None` when off.
+    pub fn flag(self) -> Option<&'static str> {
+        match self {
+            Self::Off => None,
+            Self::ReadOnly => Some("read-only"),
+            Self::WorkspaceWrite => Some("workspace-write"),
+        }
+    }
+}

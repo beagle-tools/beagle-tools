@@ -158,6 +158,7 @@ mod tests {
             timeout_minutes: 30,
             concurrency: crate::types::ConcurrencyPolicy::Forbid,
             isolation: crate::types::Isolation::None,
+            sandbox: crate::types::CodexSandbox::Off,
             enabled: true,
             entrypoint: None,
             triggers: Vec::new(),

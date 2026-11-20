@@ -1,5 +1,5 @@
 use super::*;
-use crate::types::{ConcurrencyPolicy, Isolation, Runner};
+use crate::types::{CodexSandbox, ConcurrencyPolicy, Isolation, Runner};
 
 fn mem_store() -> Store {
     let conn = Connection::open_in_memory().unwrap();
@@ -38,6 +38,7 @@ fn spec(project: &str, name: &str) -> AgentSpec {
         timeout_minutes: 30,
         concurrency: ConcurrencyPolicy::Forbid,
         isolation: Isolation::None,
+        sandbox: CodexSandbox::Off,
         enabled: true,
         entrypoint: None,
         triggers: Vec::new(),

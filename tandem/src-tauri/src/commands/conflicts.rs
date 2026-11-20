@@ -142,8 +142,9 @@ pub async fn start_conflict_fix(
         (spec, detail.pull_request, briefing)
     };
 
-    // Tandem fetches and merges: the agent's sandbox has no network, so
-    // asking it to do this is how you get "git fetch: permission denied"
+    // Tandem fetches and merges: the agent has no GitHub credentials (and
+    // codex no network), so asking it to do this is how you get "git fetch:
+    // permission denied"
     // and a resolution written against commits it never saw.
     let dir = crate::commands::workspace::ensure_pr_checkout(&state, &repo, number).await?;
     let merge = crate::commands::merge_tree::prepare_merge(&dir, &pr.base_ref).await?;
