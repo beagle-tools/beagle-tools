@@ -69,5 +69,6 @@ To update rca, update beagle: `beagle update` (every tool ships in the one
 binary).
 
 The <id> is a lowercase slug ([a-z0-9-], max 64 chars) and becomes the
-directory name under <root>/rcas/. Without --root, the config file's `root`
-is used, then the current directory.";
+directory name under <root>/rcas/. `--root <dir>` (or `--root=<dir>`) may
+come before or after the command. Without it, the config file's `root` is
+used, then the current directory.";

@@ -72,3 +72,21 @@ fn os_args_parse_and_help_runs() {
         std::process::ExitCode::from(2)
     );
 }
+
+#[test]
+fn root_help_version_and_unknown_words() {
+    for argv in [
+        &["--root", "/x", "list"][..],
+        &["list", "--root", "/x"],
+        &["--root=/x", "list"],
+    ] {
+        assert_eq!(p(argv).unwrap().root.as_deref(), Some("/x"), "{argv:?}");
+    }
+    for word in ["help", "-h", "--help"] {
+        assert_eq!(p(&[word]).unwrap().command, Command::Help, "{word}");
+    }
+    for word in ["version", "-V", "--version"] {
+        assert_eq!(p(&[word]).unwrap().command, Command::Version, "{word}");
+    }
+    assert_eq!(p(&["lsit"]).unwrap_err(), "unknown command `lsit`");
+}

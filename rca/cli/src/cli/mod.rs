@@ -245,8 +245,19 @@ pub enum Command {
 /// Returns a human-readable message for unknown commands or flags, missing
 /// values, and invalid slugs/severities/statuses/versions.
 pub fn parse_args(args: impl Iterator<Item = String>) -> Result<Command, String> {
-    let mut args = args.peekable();
+    // `--root=DIR` is `--root DIR`, and `--root` may come before the
+    // subcommand as well as after it.
+    let mut args = args
+        .flat_map(|a| match a.strip_prefix("--root=") {
+            Some(dir) => vec!["--root".to_owned(), dir.to_owned()],
+            None => vec![a],
+        })
+        .peekable();
     let mut root: Option<PathBuf> = None;
+    while args.peek().map(String::as_str) == Some("--root") {
+        args.next();
+        root = Some(PathBuf::from(take_value(&mut args, "--root")?));
+    }
 
     // The subcommand, if any, is the first non-flag argument.
     let subcommand = match args.peek().map(String::as_str) {
@@ -332,3 +343,7 @@ fn take_value(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<Str
 #[cfg(test)]
 #[path = "tests/parse.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tests/parse_shape.rs"]
+mod tests_shape;

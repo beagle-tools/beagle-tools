@@ -152,8 +152,8 @@ list` (`cli/crates/beagle/src/selfupdate/`): it downloads the
 `.sha256` and swaps the binary atomically (`beagle_utils::update`). A
 Homebrew install runs `brew upgrade beagle-tools/tap/beagle` instead, and a
 source build prints the `cargo install` that rebuilds it. Tools linked into
-`beagle` never update themselves there (`beagle rca update`,
-`beagle tandem update` point at `beagle update`). The standalone rca binary
+`beagle` never update themselves there (`beagle rca update` and
+`beagle tandem update` are usage errors naming `beagle update`). The standalone rca binary
 keeps its own updater over the same shared code, on `beagle-rca-v*` tags.
 
 ## In-app updates

@@ -8,6 +8,7 @@
 
 mod doctor;
 mod selfupdate;
+mod shared;
 mod tools;
 
 use std::ffi::OsString;
@@ -43,7 +44,15 @@ fn main() -> ExitCode {
             ExitCode::from(2)
         }
         Some(name) => match tools::find(name) {
-            Some(tool) => (tool.run)(rest),
+            // `help` and `version` mean the same in every tool.
+            Some(tool) => match shared::shared(&rest) {
+                Some(shared::Shared::Help) => (tool.run)(vec![OsString::from("--help")]),
+                Some(shared::Shared::Version) => {
+                    println!("{}", shared::version_line(tool.name));
+                    ExitCode::SUCCESS
+                }
+                None => (tool.run)(rest),
+            },
             None => unknown(name),
         },
         None => unknown(&first.to_string_lossy()),

@@ -38,9 +38,34 @@ enum Mode {
     Standalone,
 }
 
+impl Mode {
+    /// What error messages start with: the command the user typed.
+    const fn prefix(self) -> &'static str {
+        match self {
+            Self::Unified => "beagle rca",
+            Self::Standalone => "beagle",
+        }
+    }
+
+    /// `command`, unless this binary has no such command: under `beagle`,
+    /// `update` and `version list` belong to `beagle` itself (an rca-only
+    /// download would replace every other tool), so they are usage errors.
+    fn allows(self, command: Command) -> Result<Command, String> {
+        match (self, &command) {
+            (Self::Unified, Command::Update { .. }) => {
+                Err("unknown command `update` — `beagle update` updates every tool".to_owned())
+            }
+            (Self::Unified, Command::VersionList) => Err(
+                "unknown command `version list` — `beagle version list` lists releases".to_owned(),
+            ),
+            _ => Ok(command),
+        }
+    }
+}
+
 /// Runs rca with the arguments AFTER `beagle rca` (the unified `beagle`
 /// command's tool contract). `--help` works; `update` and `version list`
-/// point at `beagle update` instead of replacing the binary.
+/// are `beagle`'s own commands, so here they are usage errors.
 pub fn run(args: Vec<OsString>) -> ExitCode {
     main_with(args, Mode::Unified)
 }
@@ -71,31 +96,20 @@ fn main_with(args: Vec<OsString>, mode: Mode) -> ExitCode {
             bad.to_string_lossy()
         )),
     };
-    let command = match parsed {
+    let prefix = mode.prefix();
+    let command = match parsed.and_then(|c| mode.allows(c)) {
         Ok(command) => command,
         Err(message) => {
-            eprintln!("error: {message}\n\n{USAGE}");
+            eprintln!("{prefix}: {message}\n\n{USAGE}");
             return ExitCode::from(2);
         }
     };
     match execute(command, mode) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
-            eprintln!("error: {e}");
+            eprintln!("{prefix}: {e}");
             ExitCode::FAILURE
         }
-    }
-}
-
-/// The refusal `beagle rca update` / `beagle rca version list` get under
-/// the unified command.
-fn unified_update_error(what: &str) -> Error {
-    Error::Tool {
-        tool: "beagle rca",
-        message: format!(
-            "`{what}` is handled by the beagle command itself: run `beagle {what}` \
-             (it updates rca together with every other beagle tool)"
-        ),
     }
 }
 
@@ -184,17 +198,12 @@ fn execute(command: Command, mode: Mode) -> Result<(), Error> {
         Command::Config => run_config(),
         Command::Skill { action } => run_skill(action),
         Command::Agent { action } => run_agent_service(action),
-        Command::Update { version } => match mode {
-            Mode::Unified => Err(unified_update_error("update")),
-            Mode::Standalone => install_version(match version {
-                Some(version) => version,
-                None => latest_release()?,
-            }),
-        },
-        Command::VersionList => match mode {
-            Mode::Unified => Err(unified_update_error("version list")),
-            Mode::Standalone => run_version_list(),
-        },
+        // Under `beagle`, `Mode::allows` already turned these away.
+        Command::Update { version } => install_version(match version {
+            Some(version) => version,
+            None => latest_release()?,
+        }),
+        Command::VersionList => run_version_list(),
         Command::Banner => {
             println!(
                 "{}\nbeagle {} — a TUI for root-cause analysis workspaces",

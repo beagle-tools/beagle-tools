@@ -64,9 +64,18 @@ tool may be named after one:
   agent is running.
 
 **Tools never update themselves under `beagle`.** One tool's download
-would replace every other tool in the binary, so a tool's own `update`
-refuses and points at `beagle update` when linked here (rca's `run`,
-tandem's `run_as`).
+would replace every other tool in the binary, so under `beagle` a tool has
+no `update` (or `version list`): they are usage errors (exit 2) that name
+`beagle update` (rca's `run`, tandem's `run_as`).
+
+**One CLI shape.** Every tool, under `beagle`:
+- answers `help` / `-h` / `--help` with its help and `version` / `-V` /
+  `--version` with `beagle <tool> <beagle's version>` — `main.rs` answers
+  these (`shared.rs`) before the tool sees them;
+- takes `--root DIR` / `--root=DIR` before or after its subcommand (when it
+  has a store);
+- prefixes errors with `beagle <tool>: ` and exits 2 on a usage error
+  (unknown command, word or flag), 1 on a failure.
 
 ## Commands
 

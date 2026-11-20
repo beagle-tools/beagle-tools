@@ -172,3 +172,16 @@ fn misc() {
     assert!(parse("frobnicate").is_err());
     assert!(parse("status p finished").is_err());
 }
+
+#[test]
+fn root_anywhere_and_unknown_words() {
+    for argv in [
+        &["--root", "/x", "list"][..],
+        &["list", "--root", "/x"],
+        &["--root=/x", "list"],
+    ] {
+        let inv = parse_args(argv.iter().map(ToString::to_string)).unwrap();
+        assert_eq!(inv.root, Some(PathBuf::from("/x")), "{argv:?}");
+    }
+    assert!(parse_args(["lsit".to_owned()]).is_err());
+}

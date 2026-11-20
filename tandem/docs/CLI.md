@@ -222,12 +222,12 @@ tandem-cli update           # do whatever updating means for this install
 `beagle-tandem-latest` release (the same file the in-app updater
 reads). What `update` does depends on how this copy got here:
 
-| Installed as                   | `update` does                                                                  |
-| ------------------------------ | ------------------------------------------------------------------------------ |
-| inside the app, via Homebrew   | `brew upgrade --cask beagle-tandem`                                            |
-| inside the app, some other way | tells you to use the app's own updater; a CLI shouldn't swap out a running app |
-| standalone build (from source) | tells you to rebuild, or to install the app                                    |
-| `beagle tandem`                | refuses and points at `beagle update`, which updates the whole `beagle` binary |
+| Installed as                   | `update` does                                                                                |
+| ------------------------------ | -------------------------------------------------------------------------------------------- |
+| inside the app, via Homebrew   | `brew upgrade --cask beagle-tandem`                                                          |
+| inside the app, some other way | tells you to use the app's own updater; a CLI shouldn't swap out a running app               |
+| standalone build (from source) | tells you to rebuild, or to install the app                                                  |
+| `beagle tandem`                | not a command (hidden; exit 2): run `beagle update`, which updates the whole `beagle` binary |
 
 The version it reports is the release it shipped in (release CI stamps
 it with `scripts/set-version.mjs`). A build made outside the release

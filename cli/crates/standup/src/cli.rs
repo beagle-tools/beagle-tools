@@ -128,6 +128,9 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Args, String> {
             "-V" | "--version" => positional.insert(0, "version".to_owned()),
             "--json" | "--update" => flags.push((arg, None)),
             "--root" => root = Some(it.next().ok_or("--root needs a value")?),
+            flag if flag.starts_with("--root=") => {
+                root = Some(flag["--root=".len()..].to_owned());
+            }
             flag if flag.starts_with("--") => {
                 let value = it.next().ok_or_else(|| format!("{flag} needs a value"))?;
                 flags.push((arg, Some(value)));
