@@ -147,7 +147,7 @@ function reviewCommand(cmd: string, a: Args): unknown {
     case "list_comment_revisions":
       return [];
     case "list_mcp_servers":
-      return [{ name: "linear", tool_prefix: "mcp__linear", detail: "stdio", connected: true }];
+      return [{ name: "tracker", tool_prefix: "mcp__tracker", detail: "stdio", connected: true }];
     case "list_agent_specs":
       return agentSpecs;
     case "save_agent_spec":

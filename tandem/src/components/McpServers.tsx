@@ -11,8 +11,8 @@ import { ipc } from "../lib/ipc";
 import type { McpServer } from "../lib/types";
 import { Spinner } from "./ui";
 
-/** Allowed either wholesale (`mcp__linear`) or tool by tool
- * (`mcp__linear__get_issue`) — both mean "this agent can use it". */
+/** Allowed either wholesale (`mcp__tracker`) or tool by tool
+ * (`mcp__tracker__get_issue`) — both mean "this agent can use it". */
 function isEnabled(allowed: string[], prefix: string): boolean {
   return allowed.some((tool) => tool === prefix || tool.startsWith(`${prefix}__`));
 }
@@ -133,7 +133,7 @@ export function McpServerPicker({
       )}
       <span className="text-[10px] leading-relaxed text-muted">
         Ticking one allows every tool that server offers, writes included. For a read-only agent,
-        list the specific tools (e.g. <span className="font-mono">mcp__linear__get_issue</span>) in
+        list the specific tools (e.g. <span className="font-mono">mcp__tracker__get_issue</span>) in
         allowed tools above instead.
       </span>
     </div>

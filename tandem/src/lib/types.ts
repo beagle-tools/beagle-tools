@@ -199,7 +199,7 @@ export interface CommentRevision {
 /** An MCP server the local `claude` CLI knows about. */
 export interface McpServer {
   name: string;
-  /** Prefix its tools carry, e.g. "mcp__linear". */
+  /** Prefix its tools carry, e.g. "mcp__tracker". */
   tool_prefix: string;
   detail: string;
   connected: boolean;

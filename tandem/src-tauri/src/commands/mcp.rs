@@ -1,6 +1,6 @@
 //! What MCP servers the local `claude` CLI knows about, so the agent
 //! editor can offer them as checkboxes instead of making you know that
-//! `mcp__linear` is the magic string.
+//! `mcp__tracker` is the magic string.
 //!
 //! Read-only: Tandem never adds, removes or authenticates a server —
 //! that stays with `claude mcp` where the OAuth flow can be interactive.
@@ -15,9 +15,9 @@ const LIST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(25);
 
 #[derive(Debug, Clone, Serialize)]
 pub struct McpServer {
-    /// As `claude mcp list` prints it, e.g. "claude.ai Datadog (2)".
+    /// As `claude mcp list` prints it, e.g. "claude.ai Acme (2)".
     pub name: String,
-    /// The prefix its tools carry, e.g. "`mcp__claude_ai_Datadog_2`" —
+    /// The prefix its tools carry, e.g. "`mcp__claude_ai_Acme_2`" —
     /// what goes in an agent's allowed-tools list.
     pub tool_prefix: String,
     /// URL or command, for telling two similar entries apart.
@@ -28,7 +28,7 @@ pub struct McpServer {
 
 /// How Claude Code derives a tool prefix from a server name: anything
 /// that isn't alphanumeric becomes an underscore, and the edges are
-/// trimmed. "claude.ai Datadog (2)" -> "`claude_ai_Datadog_2`".
+/// trimmed. "claude.ai Acme (2)" -> "`claude_ai_Acme_2`".
 fn tool_prefix(name: &str) -> String {
     let mut out = String::with_capacity(name.len());
     let mut pending_underscore = false;
@@ -98,31 +98,30 @@ mod tests {
 
     #[test]
     fn derives_the_prefix_claude_code_uses() {
-        assert_eq!(tool_prefix("linear"), "mcp__linear");
+        assert_eq!(tool_prefix("tracker"), "mcp__tracker");
+        assert_eq!(tool_prefix("claude.ai Acme (2)"), "mcp__claude_ai_Acme_2");
         assert_eq!(
-            tool_prefix("claude.ai Datadog (2)"),
-            "mcp__claude_ai_Datadog_2"
-        );
-        assert_eq!(
-            tool_prefix("claude.ai Zoom for Claude"),
-            "mcp__claude_ai_Zoom_for_Claude"
+            tool_prefix("claude.ai Acme Meetings"),
+            "mcp__claude_ai_Acme_Meetings"
         );
     }
 
     #[test]
     fn reads_a_health_line() {
-        let got = parse_line("linear: https://mcp.linear.app/mcp (HTTP) - ✔ Connected").unwrap();
-        assert_eq!(got.name, "linear");
-        assert_eq!(got.tool_prefix, "mcp__linear");
-        assert_eq!(got.detail, "https://mcp.linear.app/mcp (HTTP)");
+        let got =
+            parse_line("tracker: https://mcp.example.com/tracker (HTTP) - ✔ Connected").unwrap();
+        assert_eq!(got.name, "tracker");
+        assert_eq!(got.tool_prefix, "mcp__tracker");
+        assert_eq!(got.detail, "https://mcp.example.com/tracker (HTTP)");
         assert!(got.connected);
     }
 
     #[test]
     fn spots_a_server_that_needs_authenticating() {
         let got =
-            parse_line("claude.ai Gong: https://mcp.gong.io/mcp - ! Needs authentication").unwrap();
-        assert_eq!(got.name, "claude.ai Gong");
+            parse_line("claude.ai Acme Docs: https://mcp.example.com/mcp - ! Needs authentication")
+                .unwrap();
+        assert_eq!(got.name, "claude.ai Acme Docs");
         assert!(!got.connected);
     }
 

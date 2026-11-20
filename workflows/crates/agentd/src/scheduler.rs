@@ -195,7 +195,7 @@ mod tests {
 
     #[test]
     fn six_field_seconds_schedule_polls_subminute() {
-        // The migration path for ai-pipelines' 30s poll loops: a 6-field cron
+        // For jobs that poll every 30s: a 6-field cron
         // with a seconds column.
         let every_30s = parse_schedule("*/30 * * * * *").unwrap();
         assert!(is_due(

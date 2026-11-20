@@ -1,9 +1,7 @@
 # The beagle agent runtime
 
 An always-on, native-Rust daemon that turns **RCAs you mark ready into
-remediation PRs** — and the TUI/desktop surfaces to watch and steer it. It is
-the in-repo, Rust-native successor to the Go `ai-pipelines/beagle` feature
-agent; the two coexist today (see [Coexistence](#coexistence-with-the-go-pipeline)).
+remediation PRs** — and the TUI/desktop surfaces to watch and steer it.
 
 ```
 RCA at status `agent`  ──▶  beagle-agentd  ──▶  isolated git worktree
@@ -155,16 +153,3 @@ A down daemon shows a clean offline banner in both — it never hangs the UI.
   tick unless `gh auth status` and `claude --version` both succeed.
 - **RCA store root** — resolved from `$BEAGLE_AGENT_RCA_ROOT`, else the daemon's
   working directory.
-
-## Coexistence with the Go pipeline
-
-The Go `ai-pipelines/beagle` feature agent (GitHub issue → merged PR) and this
-runtime (RCA → remediation PR) do related but distinct jobs, and **run side by
-side today**. This runtime is the intended successor. The switch-over happens
-once it has proven, in daily use, that it:
-
-1. drives real RCAs to merged remediation PRs without manual cleanup,
-2. matches the Go pipeline's crash-safety and orphan-handling in practice, and
-3. covers the triggers you actually rely on.
-
-Until then, run whichever fits the task; nothing here retires the Go pipeline.

@@ -47,9 +47,9 @@ Design sketch:
 5. **UX.** The agent editor's network-allowlist field switches from
    "informational" to "enforced"; runs display a per-run egress log tab.
 
-Prior art to lean on: the dotfiles-ai repo's `codex/infra` (command guardrails +
-"the real boundary must be the environment, not command rules") and its
-colima-based Docker setup on macOS.
+Prior art to lean on: command-guardrail setups, whose main lesson is "the real
+boundary must be the environment, not command rules", and colima-based Docker
+on macOS.
 
 ## Invariants that hold in both versions
 

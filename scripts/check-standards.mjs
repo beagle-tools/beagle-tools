@@ -24,7 +24,7 @@ const RUST_WORKSPACES = [
 ];
 const FRONTENDS = ["tandem", "rca/desktop", "rca/web", "workflows/desktop"];
 const REQUIRED_SCRIPTS = ["format:check", "lint", "typecheck", "test", "build", "e2e"];
-const SKIP_DIRS = new Set([".git", "target", "node_modules", "dist", ".astro", "gen"]);
+const SKIP_DIRS = new Set([".git", ".claude", "target", "node_modules", "dist", ".astro", "gen"]);
 
 function walk(dir, out = []) {
   for (const name of readdirSync(join(root, dir))) {

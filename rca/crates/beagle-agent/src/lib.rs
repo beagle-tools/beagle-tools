@@ -5,9 +5,7 @@
 //! poller, git-worktree isolation, the headless `claude` runner, and the
 //! control-socket protocol shared with the TUI and desktop clients.
 //!
-//! It is the Rust-native successor to the Go `ai-pipelines/beagle` feature
-//! agent (tracked by epic #137). Subsystems land module by module; see the
-//! epic's child issues.
+//! Subsystems land module by module.
 //!
 //! [`beagle-agentd`]: https://github.com/beagle-tools/beagle-tools/tree/main/rca/crates/beagle-agentd
 
