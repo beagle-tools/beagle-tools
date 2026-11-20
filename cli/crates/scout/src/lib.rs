@@ -16,6 +16,7 @@ pub mod config;
 pub mod editor;
 pub mod error;
 pub mod frontmatter;
+pub mod gitignore;
 pub mod hooks;
 pub mod markdown;
 pub mod model;

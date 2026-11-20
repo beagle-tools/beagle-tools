@@ -232,7 +232,9 @@ pub fn file(root: &Path, session: &str) -> PathBuf {
 
 /// Appends `event` to the session's recording in a single write, so
 /// concurrent hooks never interleave inside a line. Starting a new
-/// recording also prunes ones untouched for two weeks.
+/// recording also prunes ones untouched for two weeks and, in a store
+/// inside a git repo, makes sure its `.gitignore` keeps recordings out
+/// (a store picked by `$SCOUT_ROOT` or config never ran `init`).
 ///
 /// # Errors
 /// [`Error::Io`] if the directory or file cannot be written.
@@ -242,6 +244,9 @@ pub fn append(root: &Path, session: &str, event: &Event) -> Result<()> {
     let path = file(root, session);
     if !path.exists() {
         prune(&dir);
+        if crate::gitignore::in_git_repo(root) {
+            crate::gitignore::ensure(root).map_err(Error::io(root.join(".gitignore")))?;
+        }
     }
     let mut line = serde_json::to_string(event)?;
     line.push('\n');

@@ -108,8 +108,9 @@ pub fn load(path: &Path) -> Result<Value> {
 }
 
 /// Writes the settings back (pretty-printed, atomically), first copying the
-/// current file to `settings.json.scout-backup`. Returns the backup path
-/// when there was a file to back up.
+/// current file to `settings.json.scout-backup` — once: an existing backup
+/// is the user's settings from before scout ever touched them, so it is
+/// never overwritten. Returns the backup path when one exists.
 ///
 /// # Errors
 /// [`Error::Io`] or [`Error::Json`].
@@ -117,7 +118,9 @@ pub fn save(path: &Path, settings: &Value) -> Result<Option<PathBuf>> {
     let dir = path.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(dir).map_err(Error::io(dir))?;
     let backup = path.with_extension("json.scout-backup");
-    let backed_up = if path.exists() {
+    let backed_up = if backup.exists() {
+        Some(backup)
+    } else if path.exists() {
         fs::copy(path, &backup).map_err(Error::io(&backup))?;
         Some(backup)
     } else {

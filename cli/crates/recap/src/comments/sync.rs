@@ -41,6 +41,7 @@ pub fn sync_all(store: &Store, config: &CommentsConfig, now: &str) -> Result<Str
                 threads += found.len();
                 let recap_dir = store.recap_dir(&id);
                 forget_gone(&recap_dir, &found);
+                super::gitignore::ensure(&recap_dir);
                 write_json(
                     &dir(&recap_dir).join("threads.json"),
                     &Threads {
