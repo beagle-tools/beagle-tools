@@ -41,7 +41,7 @@ fn hosted_update_is_a_usage_error() {
 #[test]
 fn hosted_names_still_run_the_store_commands() {
     // Not the update refusal: it gets as far as looking for the database.
-    let err = dispatch_cli(&cli(Command::Queue { all: false }), "beagle tandem").unwrap_err();
+    let err = dispatch_cli(&cli(Command::AppQueue { all: false }), "beagle tandem").unwrap_err();
     assert!(err.contains("no database at"), "{err}");
 }
 
@@ -81,4 +81,40 @@ fn the_review_queue_commands_join_the_cli() {
     }
     // The existing commands are unchanged.
     assert!(matches!(parse(&["paths"]).command, Some(Command::Paths)));
+}
+
+#[test]
+fn the_desktop_queue_commands_are_app_prefixed_and_keep_old_aliases() {
+    for word in ["app-queue", "queue"] {
+        assert!(
+            matches!(
+                parse(&[word]).command,
+                Some(Command::AppQueue { all: false })
+            ),
+            "{word}"
+        );
+    }
+    for word in ["app-review", "review"] {
+        assert!(
+            matches!(
+                parse(&[word, "--repo", "acme/widgets", "--pr", "7"]).command,
+                Some(Command::AppReview { pr: 7, .. })
+            ),
+            "{word}"
+        );
+    }
+}
+
+#[test]
+fn the_help_names_both_queues() {
+    use clap::CommandFactory as _;
+    let help = Cli::command().render_long_help().to_string();
+    assert!(help.contains("TWO review queues"), "{help}");
+    assert!(
+        help.contains("app-review") && help.contains("app-queue"),
+        "{help}"
+    );
+    // The old names stay as hidden aliases only.
+    assert!(!help.contains("\n  queue "), "{help}");
+    assert!(!help.contains("\n  review "), "{help}");
 }

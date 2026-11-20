@@ -48,7 +48,14 @@ With no command, opens the review TUI: a terminal queue where an agent \
 reviews the PRs you `add` into local comments, and you read the diff, \
 summary and comments, post the comments you pick and approve — both only \
 on a confirmed keypress. The other commands read the Tandem desktop app's \
-store as JSON, or drive the review queue from a script or an agent.";
+store as JSON, or drive the review queue from a script or an agent.
+
+There are TWO review queues, with separate stores:
+  terminal queue  `add`, `list` (+ `claim`/`ingest`/`fail` for the
+                  reviewer). Worked by the config's `kick` command or a
+                  scheduled reviewer job; read in the review TUI.
+  desktop queue   `app-review`, `app-queue`. Worked by the Tandem desktop
+                  app, every 20 s, only while it is running.";
 
 /// The standalone binary's name; any other program name is a host (the
 /// unified `beagle` command) that owns updating itself.
@@ -119,16 +126,20 @@ enum Command {
         #[arg(long, default_value_t = 20)]
         limit: u32,
     },
-    /// PRs waiting on your review that no agent has reviewed yet —
-    /// the question a scheduled job asks.
-    Queue {
+    /// DESKTOP APP: PRs waiting on your review that no agent has reviewed
+    /// yet, from the Tandem app's store — the question a scheduled job asks.
+    #[command(name = "app-queue", alias = "queue")]
+    AppQueue {
         /// Include ones a review has already been queued for.
         #[arg(long)]
         all: bool,
     },
-    /// Ask Tandem to review a PR. Tandem starts it with your agent
-    /// config; this only records the request.
-    Review {
+    /// DESKTOP APP: ask the Tandem app to review a PR. The app starts it
+    /// (every 20 s, only while Tandem.app is running) with your agent
+    /// config; this only records the request. For the terminal queue, use
+    /// `add`.
+    #[command(name = "app-review", alias = "review")]
+    AppReview {
         /// The repo, as owner/name.
         #[arg(long)]
         repo: String,
@@ -165,11 +176,19 @@ pub fn run(args: Vec<OsString>) -> ExitCode {
 /// host's own `update` owns updating; it is hidden from the help and a
 /// usage error, exit 2).
 pub fn run_as(program: &'static str, args: Vec<OsString>) -> ExitCode {
+    run_hosted(program, env!("CARGO_PKG_VERSION"), args)
+}
+
+/// [`run_as`], with `--version` printing `version` — the host's own
+/// version (`beagle tandem --version` says beagle's), since the tool ships
+/// inside it.
+pub fn run_hosted(program: &'static str, version: &'static str, args: Vec<OsString>) -> ExitCode {
     let hosted = program != STANDALONE;
     let with_program = std::iter::once(OsString::from(program)).chain(args);
     let parsed = Cli::command()
         .name(program)
         .bin_name(program)
+        .version(version)
         .mut_subcommand("update", |update| update.hide(hosted))
         .try_get_matches_from(with_program)
         .and_then(|matches| Cli::from_arg_matches(&matches));
@@ -264,7 +283,7 @@ fn dispatch(cli: &Cli, command: &Command, program: &str) -> Result<(), String> {
 
     // The one command that writes: it records a request, it does not
     // touch review data.
-    if let Command::Review {
+    if let Command::AppReview {
         repo,
         pr,
         agent,
@@ -293,9 +312,9 @@ fn read(conn: &Connection, command: &Command) -> Result<serde_json::Value, Strin
         Command::Comments { repo, pr, threads } => query::comments(conn, repo, *pr, *threads),
         Command::Summary { repo, pr } => query::summary(conn, repo, *pr),
         Command::Runs { repo, pr, limit } => query::runs(conn, repo.as_deref(), *pr, *limit),
-        Command::Queue { all } => queue::queue(conn, *all),
+        Command::AppQueue { all } => queue::queue(conn, *all),
         Command::Paths
-        | Command::Review { .. }
+        | Command::AppReview { .. }
         | Command::Update { .. }
         | Command::ReviewQueue(_) => Ok(serde_json::Value::Null),
     }

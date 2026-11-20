@@ -7,8 +7,8 @@ JSON digging already done.
 
 It opens the database **read-only**. A tool that can only read can't
 corrupt a review you're in the middle of, and Tandem's WAL mode means
-you don't have to close the app first. The one exception is `review`,
-which appends a request to the review queue (below).
+you don't have to close the app first. The one exception is `app-review`,
+which appends a request to the desktop app's review queue (below).
 
 Run with **no command**, it opens the [review TUI](#the-review-tui): a
 terminal review queue with its own store, where an agent reviews the
@@ -17,8 +17,23 @@ PRs you queue and you triage the result.
 The code is a library crate (`crates/tandem-cli`, `tandem_cli::run`)
 with a thin `main.rs`, so the same commands are also linked into the
 unified `beagle` command as **`beagle tandem`** (`tandem_cli::run_as`):
-`beagle tandem prs`, `beagle tandem queue`, … behave exactly like
-`tandem-cli prs`, `tandem-cli queue`, ….
+`beagle tandem prs`, `beagle tandem app-queue`, … behave exactly like
+`tandem-cli prs`, `tandem-cli app-queue`, ….
+
+## Two review queues
+
+There are two queues, each with its own store and its own worker. Pick
+the one whose worker is running:
+
+| Queue                 | Commands                                                 | Store                                 | Worked by                                               |
+| --------------------- | -------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------- |
+| Terminal (review TUI) | `add`, `list` (`claim`/`ingest`/`fail` for the reviewer) | `<data dir>/tandem-tui/cache.sqlite3` | the config's `kick` command or a scheduled reviewer job |
+| Desktop app           | `app-review`, `app-queue`                                | the app's `cache.sqlite3`             | the Tandem app, every 20 s, only while it runs          |
+
+`add` warns when nothing looks set to work the terminal queue: no `kick`
+configured and no reviewer has claimed a PR in the last 24 hours.
+`queue` and `review` still work as hidden aliases of `app-queue` and
+`app-review` for one release.
 
 ## Getting it
 
@@ -50,8 +65,8 @@ tandem-cli prs [--repo owner/name] [--limit 50]
 tandem-cli comments --repo owner/name --pr 123 [--threads]
 tandem-cli summary  --repo owner/name --pr 123
 tandem-cli runs [--repo owner/name [--pr 123]] [--limit 20]
-tandem-cli queue [--all]
-tandem-cli review --repo owner/name --pr 123 [--agent name] [--by who]
+tandem-cli app-queue [--all]                     # the desktop app's queue
+tandem-cli app-review --repo owner/name --pr 123 [--agent name] [--by who]
 tandem-cli update [--check]
 
 # the review TUI's queue (its own store; see "The review TUI")
@@ -96,36 +111,36 @@ tandem-cli runs --limit 200 \
 
 ## Driving Tandem from a scheduled job
 
-The point of `queue` and `review` is that **an outside process decides
+The point of `app-queue` and `app-review` is that **an outside process decides
 what needs reviewing, and Tandem decides how to review it**, with the
 agents, prompts and conventions you have configured. Nothing out there
 starts an agent itself.
 
 ```bash
 # what is waiting on me that nothing has reviewed yet?
-tandem-cli queue
+tandem-cli app-queue
 
 # ask Tandem to review one
-tandem-cli review --repo acme/widgets --pr 123 --by nightly-job
+tandem-cli app-review --repo acme/widgets --pr 123 --by nightly-job
 ```
 
 A whole cron job is those two lines:
 
 ```bash
-tandem-cli queue | jq -r '.[] | "\(.repo.owner)/\(.repo.name) \(.number)"' |
+tandem-cli app-queue | jq -r '.[] | "\(.repo.owner)/\(.repo.name) \(.number)"' |
   while read -r repo number; do
-    tandem-cli review --repo "$repo" --pr "$number" --by nightly-job
+    tandem-cli app-review --repo "$repo" --pr "$number" --by nightly-job
   done
 ```
 
-`queue` is the review-request inbox (mirrored into the database each
+`app-queue` is the review-request inbox (mirrored into the database each
 time the app loads your "requested" list) minus anything an agent has
 already finished reviewing and anything already queued, so running it
 twice in a row does not review the same PR twice. A queued request that
 failed to start doesn't count as queued. `--all` ignores the queued
 filter.
 
-`review` records a request and returns immediately. Tandem picks it up
+`app-review` records a request and returns immediately. Tandem picks it up
 within ~20 seconds while it is running, syncs the PR if it has never
 been opened, and starts a normal review run, the same one the review
 button starts. `--agent <name>` picks an agent; otherwise Tandem uses
