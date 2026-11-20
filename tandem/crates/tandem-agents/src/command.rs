@@ -50,6 +50,9 @@ fn claude_command(spec: &AgentSpec) -> RunnerCommand {
         args.push("--allowedTools".to_owned());
         args.push(spec.allowed_tools.join(","));
     }
+    // Always: no gh, no git push, no keychain (see beagle_utils::agent_env).
+    args.push("--disallowedTools".to_owned());
+    args.push(beagle_utils::agent_env::CLAUDE_DISALLOWED_TOOLS.join(","));
     if let Some(extra) = &spec.append_system_prompt {
         args.push("--append-system-prompt".to_owned());
         args.push(extra.clone());
@@ -148,7 +151,9 @@ mod tests {
                 "--model",
                 "opus",
                 "--allowedTools",
-                "Read,Grep"
+                "Read,Grep",
+                "--disallowedTools",
+                "Bash(gh:*),Bash(git push:*),Bash(security:*)"
             ]
         );
     }

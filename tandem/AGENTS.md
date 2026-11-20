@@ -78,9 +78,11 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
   explicit user clicks or confirmed keypresses (post a chosen comment,
   approve, merge, commit a suggestion, and so on). An agent run must never be able to
   write to GitHub, and the runner enforces it: `beagle_utils::agent_env::deny_github`
-  strips the token variables, logs `gh` out (empty `GH_CONFIG_DIR`) and clears
-  git's credentials before the agent starts. Agent output stays local until the
-  user posts it.
+  overrides `GH_TOKEN` with a dummy (so every `gh` call gets 401, keychain
+  login included), empties `GH_CONFIG_DIR` and clears git's credentials, and
+  Claude runs also get `--disallowedTools` for `gh`, `git push` and `security`.
+  A process running as the user can still read the keychain directly; the v2
+  sandbox closes that. Agent output stays local until the user posts it.
 - **Schema migrations are append-only.** Add a new entry to `MIGRATIONS`
   in `crates/tandem-cache/src/schema.rs`. Never edit a migration that has
   shipped. Most rows are JSON blobs, so adding a `#[serde(default)]`

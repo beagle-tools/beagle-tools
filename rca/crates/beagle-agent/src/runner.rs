@@ -185,6 +185,10 @@ impl Runner {
                 .arg("--allowedTools")
                 .arg(spec.allowed_tools.join(" "));
         }
+        // Always: no gh, no git push, no keychain (see beagle_utils::agent_env).
+        command
+            .arg("--disallowedTools")
+            .arg(beagle_utils::agent_env::CLAUDE_DISALLOWED_TOOLS.join(" "));
         command
             .stdin(Stdio::null())
             .stdout(Stdio::from(log))

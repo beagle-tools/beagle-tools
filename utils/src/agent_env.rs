@@ -10,8 +10,10 @@
 //!
 //! [`deny_github`] removes it from one command:
 //!
-//! - the token variables `gh` and other clients read are removed;
-//! - `GH_CONFIG_DIR` points at an empty directory, so `gh` is logged out;
+//! - `GH_TOKEN` is set to a dummy GitHub rejects: `gh` prefers it over its
+//!   own login (including the token it keeps in the macOS keychain), so
+//!   every `gh` call fails with 401; the other token variables are removed;
+//! - `GH_CONFIG_DIR` points at an empty directory, so `gh` has no accounts;
 //! - git's credential helpers are cleared and it may not prompt, so an
 //!   HTTPS push has nothing to authenticate with;
 //! - git over SSH is refused, so a push can't use an SSH key either.
@@ -19,18 +21,32 @@
 //! Local git (log, diff, commit) keeps working. Values set explicitly on
 //! the command AFTER this call win, so a user who really wants an agent to
 //! reach GitHub can still say so in the agent's own env.
+//!
+//! **Limit.** A process running as the user can still read the user's
+//! keychain directly (`gh auth token --user <name>`, `security …`). For
+//! Claude runs, [`CLAUDE_DISALLOWED_TOOLS`] also refuses those commands;
+//! only the planned per-run sandbox closes the path completely.
 
 use std::ffi::OsString;
 use std::path::Path;
 use std::process::Command;
 
-/// Environment variables that carry a GitHub (or GitHub Enterprise) token.
-pub const TOKEN_VARS: [&str; 4] = [
-    "GH_TOKEN",
+/// Token variables removed outright (`GH_TOKEN` is overridden instead).
+pub const TOKEN_VARS: [&str; 3] = [
     "GITHUB_TOKEN",
     "GH_ENTERPRISE_TOKEN",
     "GITHUB_ENTERPRISE_TOKEN",
 ];
+
+/// What `GH_TOKEN` is set to: not a token, so GitHub answers 401, and it
+/// says why to anyone who prints it.
+pub const DUMMY_GH_TOKEN: &str = "no-github-access-for-agents";
+
+/// Commands a Claude agent may not run (`--disallowedTools`): `gh` (incl.
+/// `gh auth token`, which would read the keychain), `git push`, and
+/// macOS `security` (the keychain).
+pub const CLAUDE_DISALLOWED_TOOLS: [&str; 3] =
+    ["Bash(gh:*)", "Bash(git push:*)", "Bash(security:*)"];
 
 /// Strips GitHub write access from `cmd` (see the module docs).
 /// `empty_dir` becomes the agent's `gh` config dir; it is created if
@@ -43,6 +59,7 @@ pub fn deny_github(cmd: &mut Command, empty_dir: &Path) -> std::io::Result<()> {
     for var in TOKEN_VARS {
         cmd.env_remove(var);
     }
+    cmd.env("GH_TOKEN", DUMMY_GH_TOKEN);
     cmd.env("GH_CONFIG_DIR", empty_dir);
     cmd.env("GIT_TERMINAL_PROMPT", "0");
     // `false` as the ssh program: any git operation over SSH fails at once.
@@ -94,6 +111,7 @@ mod tests {
         for var in TOKEN_VARS {
             assert_eq!(env.get(var), Some(&None), "{var} must be removed");
         }
+        assert_eq!(env["GH_TOKEN"].as_deref(), Some(DUMMY_GH_TOKEN));
         assert_eq!(env["GH_CONFIG_DIR"].as_deref(), Some(dir.to_str().unwrap()));
         assert!(dir.is_dir());
         assert_eq!(env["GIT_SSH_COMMAND"].as_deref(), Some("false"));
