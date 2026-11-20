@@ -81,7 +81,27 @@ beagle://pair?url=https%3A%2F%2Fmac.example-tailnet.ts.net%3A8787&token=4f0c…
 ```
 
 plus the URL and token as plain text. `url` and `token` are
-percent-encoded query values.
+percent-encoded query values. The first `pair` makes the token and saves
+it (with the MagicDNS name) to `serve.toml`; later runs show the same
+code. `pair --rotate` makes a new token and restarts the background
+service so it takes effect.
+
+### Running it
+
+```sh
+beagle serve                 # foreground, logs to stderr
+beagle serve install         # launchd agent com.beagle.serve: starts at login,
+                             # restarts if it exits (30 s throttle); re-run to restart
+beagle serve status          # running? (also shown by `beagle doctor`)
+beagle serve uninstall
+```
+
+The agent runs `beagle serve` from your home directory with your `PATH`,
+plus any of `SCOUT_ROOT`, `RECAP_ROOT`, `STANDUP_ROOT`, `BEAGLE_CONFIG`,
+`TANDEM_TUI_DB`, `XDG_CONFIG_HOME` and `XDG_DATA_HOME` set when you ran
+`install`, so it reads the stores your shell's `beagle` commands do. Logs:
+`~/.local/state/beagle/serve/serve.{out,err}.log`; the first lines name the
+store each tool resolved to.
 
 ## Conventions
 

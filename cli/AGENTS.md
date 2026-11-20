@@ -60,7 +60,8 @@ tool may be named after one:
   prints the `cargo install` that rebuilds it. Release CI marks release
   builds with `BEAGLE_RELEASE_TARGET`; anything without it is a source build.
 - `doctor`: old standalone binaries (`scout`, `recap`, `standup`, another
-  `beagle`) still on `PATH`.
+  `beagle`) still on `PATH`, and (macOS) whether the `beagle serve` launchd
+  agent is running.
 
 **Tools never update themselves under `beagle`.** One tool's download
 would replace every other tool in the binary, so a tool's own `update`

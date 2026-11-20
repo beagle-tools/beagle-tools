@@ -59,6 +59,9 @@ pub enum Error {
     /// The address is one the server refuses to bind without a flag.
     #[error("{0}")]
     Refused(String),
+    /// Installing, removing or asking about the launchd agent failed.
+    #[error("service: {0}")]
+    Service(String),
     /// Listening failed.
     #[error("can't listen on {addr}: {source}")]
     Bind {

@@ -3,6 +3,9 @@
 //! another `beagle` (the standalone rca 0.x binary, or a second copy of
 //! this one) that shadows or duplicates the running `beagle`.
 //!
+//! On macOS it also reports whether the `beagle serve` launchd agent is
+//! running (`launchctl print`, read-only).
+//!
 //! It only reads directory entries; it never runs what it finds.
 
 use std::ffi::OsStr;
@@ -36,15 +39,47 @@ pub fn run() -> ExitCode {
     // No PATH means nothing on it to report.
     let path_var = std::env::var_os("PATH").unwrap_or_default();
     let findings = scan(&path_var, this.as_deref());
+    let serve_ok = report_serve();
     if findings.is_empty() {
         println!("✓ no old standalone binaries on PATH — `beagle` is the only one");
-        return ExitCode::SUCCESS;
+        return if serve_ok {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        };
     }
     for finding in &findings {
         println!("{}", describe(finding));
     }
     println!("\nRemove them with whatever installed them (`brew uninstall …`, `cargo uninstall …`, or `rm`).");
     ExitCode::FAILURE
+}
+
+/// Prints whether the `beagle serve` background service is running (macOS
+/// only). Returns `false` only for a service that is installed but down:
+/// not installing it is a choice, not a problem.
+fn report_serve() -> bool {
+    if !cfg!(target_os = "macos") {
+        return true;
+    }
+    let (line, ok) = match beagle_serve::service::status() {
+        Ok(status) => serve_line(&status),
+        Err(e) => (format!("? beagle serve: could not ask launchd: {e}"), true),
+    };
+    println!("{line}");
+    ok
+}
+
+/// The doctor's line for a service status, and whether it is healthy.
+pub fn serve_line(status: &beagle_serve::service::Status) -> (String, bool) {
+    use beagle_serve::service::Status;
+    match status {
+        Status::NotInstalled => (format!("· {}", status.describe()), true),
+        Status::Loaded { pid: Some(_), .. } => (format!("✓ {}", status.describe()), true),
+        Status::Loaded { pid: None, .. } | Status::NotLoaded(_) => {
+            (format!("✗ {}", status.describe()), false)
+        }
+    }
 }
 
 /// Every [`Finding`] in the `PATH`-style `path_var`, in `PATH` order.

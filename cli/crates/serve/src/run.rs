@@ -6,12 +6,12 @@ use std::process::ExitCode;
 use std::sync::Arc;
 
 use crate::auth::Token;
-use crate::cli::{self, Command, ServeOptions};
+use crate::cli::{self, Command, PairOptions, ServeOptions};
 use crate::config;
 use crate::error::{Error, Result};
 use crate::router::Ctx;
 use crate::stores::Stores;
-use crate::{server, tailscale, tls};
+use crate::{pair, server, service, tailscale, tls};
 
 /// Entry point behind [`crate::run`].
 pub(crate) fn main(args: Vec<OsString>) -> ExitCode {
@@ -28,6 +28,10 @@ pub(crate) fn main(args: Vec<OsString>) -> ExitCode {
             Ok(())
         }
         Command::Serve(opts) => serve(&opts),
+        Command::Pair(opts) => pair_command(&opts),
+        Command::Install => service::install().map(|done| println!("{done}")),
+        Command::Uninstall => service::uninstall().map(|done| println!("{done}")),
+        Command::Status => status(),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
@@ -46,6 +50,78 @@ fn load_config() -> Result<(std::path::PathBuf, config::Config)> {
     }
     let config = config::load(&path)?;
     Ok((path, config))
+}
+
+/// `beagle serve pair`: makes (or rotates) the token, saves what it
+/// learned, and prints the QR code and the plain values.
+fn pair_command(opts: &PairOptions) -> Result<()> {
+    let (path, mut config) = load_config()?;
+    let (token, new) = pair::token_for(&config, opts.rotate)?;
+    let host = match opts.host.clone().or_else(|| config.host.clone()) {
+        Some(host) => host,
+        None => tailscale::dns_name()?,
+    };
+    let port = opts.port.unwrap_or_else(|| config.port());
+    let updated = config::Config {
+        token: Some(token.as_str().to_owned()),
+        host: Some(host.clone()),
+        port: opts.port.or(config.port),
+        ..config.clone()
+    };
+    if updated != config {
+        config::save(&path, &updated)?;
+        config = updated;
+    }
+    let url = pair::server_url(&host, port);
+    println!("{}", pair::qr(&pair::pair_link(&url, &token))?);
+    println!("Scan this with the beagle app, or enter:");
+    println!("  server: {url}");
+    println!("  token:  {}", token.as_str());
+    if new {
+        println!("\nNew token saved to {} (mode 0600).", path.display());
+        restart_after_rotation();
+    }
+    let (cert, key) = config.cert_paths(&config::cert_dir()?, &host);
+    if !cert.is_file() || !key.is_file() {
+        println!(
+            "\nNo TLS certificate yet. Create it with:\n  tailscale cert --cert-file {} --key-file {} {host}",
+            cert.display(),
+            key.display()
+        );
+    }
+    Ok(())
+}
+
+/// A running server read the old token at startup; restart the background
+/// service so the new one takes effect.
+fn restart_after_rotation() {
+    if !cfg!(target_os = "macos") {
+        println!("Restart `beagle serve` if it is running, so it uses the new token.");
+        return;
+    }
+    match service::restart_if_loaded() {
+        Ok(true) => println!("Restarted the background service: it now uses the new token."),
+        Ok(false) => println!("Restart `beagle serve` if it is running, so it uses the new token."),
+        Err(e) => eprintln!("beagle serve: warning: could not restart the service: {e}"),
+    }
+}
+
+/// `beagle serve status`.
+fn status() -> Result<()> {
+    println!("{}", service::status()?.describe());
+    let (_, config) = load_config()?;
+    if let Some(host) = &config.host {
+        println!("  url:   {}", pair::server_url(host, config.port()));
+    }
+    println!(
+        "  token: {}",
+        if config.token.is_some() {
+            "set"
+        } else {
+            "none — run `beagle serve pair`"
+        }
+    );
+    Ok(())
 }
 
 /// `beagle serve [options]`: runs until killed.

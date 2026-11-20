@@ -15,6 +15,9 @@ beagle-standup.workspace = true
 beagle-utils.workspace = true
 # rustls (ring provider) is already in this workspace's lockfile through
 # reqwest; the server reuses it rather than adding a second TLS stack.
+# The pairing QR code; no default features, so no image/SVG stack and no
+# transitive dependencies.
+qrcode = { version = "0.15", default-features = false, features = ["std"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 rustls-pki-types = { version = "1", features = ["std"] }
 serde.workspace = true
@@ -25,6 +28,8 @@ time.workspace = true
 toml.workspace = true
 
 [dev-dependencies]
+# Decodes the drawn pairing QR code in tests, as a phone camera would.
+rqrr = { version = "0.11", default-features = false }
 tandem-cache.workspace = true
 tempfile.workspace = true
 

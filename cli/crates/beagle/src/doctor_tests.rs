@@ -82,3 +82,27 @@ fn non_executables_are_ignored() {
     fs::write(bin.join("standup"), "notes").expect("write");
     assert_eq!(scan(&path_of(&[&bin]), None), []);
 }
+
+#[test]
+fn the_serve_service_is_reported_and_only_a_down_one_fails() {
+    use beagle_serve::service::Status;
+    let (line, ok) = serve_line(&Status::NotInstalled);
+    assert!(ok, "not installing it is a choice");
+    assert!(line.contains("beagle serve install"), "{line}");
+    let running = Status::Loaded {
+        plist: PathBuf::from("/p"),
+        state: "running".into(),
+        pid: Some(9),
+    };
+    assert_eq!(
+        serve_line(&running),
+        ("✓ beagle serve: running (pid 9)".into(), true)
+    );
+    let down = Status::Loaded {
+        plist: PathBuf::from("/p"),
+        state: "waiting".into(),
+        pid: None,
+    };
+    assert!(!serve_line(&down).1);
+    assert!(!serve_line(&Status::NotLoaded(PathBuf::from("/p"))).1);
+}

@@ -15,7 +15,7 @@
 //!         │          └──▶ stores (each tool's root, resolved once)
 //!         ├──▶ http   (request head parsing, responses)
 //!         └──▶ tls    (rustls from the tailscale cert)
-//! config, tailscale: read by run
+//! config, tailscale, pair (token + QR), service (launchd): used by run
 //! ```
 //!
 //! The crate follows the `beagle` tool contract: [`ABOUT`] and [`run`].
@@ -28,9 +28,11 @@ mod cli;
 pub mod config;
 pub mod error;
 pub mod http;
+pub mod pair;
 pub mod router;
 mod run;
 pub mod server;
+pub mod service;
 pub mod stores;
 pub mod tailscale;
 pub mod tls;
