@@ -10,9 +10,10 @@
 //! ```text
 //! ui ──▶ store ──▶ model
 //!  │                 ▲
-//!  ├──▶ markdown ────┘
-//!  └──▶ ansi
+//!  └──▶ markdown ────┘
 //! ```
+//!
+//! ANSI diagram rendering comes from `beagle_tui::ansi`.
 //!
 //! `config` (the user config file) and `update` (self-update against GitHub
 //! releases) sit beside `ui` at the top of the stack; both depend only on
@@ -25,7 +26,6 @@
 //! and `commands` do the I/O.
 
 pub mod agentd;
-pub mod ansi;
 pub mod banner;
 mod cli;
 pub mod clipboard;

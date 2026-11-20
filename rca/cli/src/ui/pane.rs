@@ -126,7 +126,7 @@ impl App {
             Ok(Some(content)) => Pane::Diagram {
                 // Diagrams support ANSI SGR colors; codes are zero-width so
                 // alignment is preserved.
-                text: crate::ansi::to_text(&content),
+                text: beagle_tui::ansi::to_text(&content),
                 raw: content.lines().map(str::to_owned).collect(),
                 name: entry.name.clone(),
                 index: self.diagram_index,
