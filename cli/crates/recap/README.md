@@ -61,7 +61,7 @@ automated_markers = []   # e.g. ["Automated reply"]: hide replies a tool posted 
 ## Keys
 
 - `j/k` move (the PR list, or a line cursor in the pane) · `enter` focus in
-  (list → pane → agent review) · `esc` back out
+  (list → pane → agent review) · `esc`/`b` back out
 - `tab`/`]`, `shift-tab`/`[` or `1`/`2`/`3` Summary / Diff / Comments (and focus the pane)
 - `n/N` next / previous file (or thread) · `J/K` `space` `ctrl-d/u` page ·
   `g/G` top / bottom · `h/l` pan sideways
@@ -70,7 +70,7 @@ automated_markers = []   # e.g. ["Automated reply"]: hide replies a tool posted 
 - `D` draft ⇄ ready for review · `M` merge (only when approved, every check
   green and GitHub says it can; auto-merge while checks run) · `X` close
   without merging (and archive). Each asks first.
-- `a` archive · `A` show the archive · `U` restore. Merged PRs archive
+- `a` archive · `s` show the archive · `U` restore. Merged PRs archive
   themselves 24 hours after merging.
 - `w` resize the PR list: ←/→ (h/l) width · `0` default · `Esc` done (not saved)
 - `r` reload · `?` help · `q`/`Q` quit

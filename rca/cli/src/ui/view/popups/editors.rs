@@ -1,5 +1,5 @@
 //! The small editing popups: the `t` status picker, `#` tags editor,
-//! `P`/`I` attach prompt, and `D` delete confirmation.
+//! `u`/`I` attach prompt, and `d` delete confirmation.
 
 use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -143,7 +143,7 @@ pub(in crate::ui::view) fn draw_tags_editor(frame: &mut Frame, app: &App, area: 
     frame.render_stateful_widget(list, rect, &mut state);
 }
 
-/// The `P`/`I` attach prompt: an input box for a PR URL or a ticket
+/// The `u`/`I` attach prompt: an input box for a PR URL or a ticket
 /// reference to attach to the selected incident.
 pub(in crate::ui::view) fn draw_attach_prompt(frame: &mut Frame, app: &App, area: Rect) {
     let Some(prompt) = app.attach_prompt() else {
@@ -182,7 +182,7 @@ pub(in crate::ui::view) fn draw_attach_prompt(frame: &mut Frame, app: &App, area
     frame.render_widget(Paragraph::new(lines).block(block), rect);
 }
 
-/// The `D` delete confirmation: names the incident (title + slug) and
+/// The `d` delete confirmation: names the incident (title + slug) and
 /// waits for an explicit `y` or `n`. Red border — this one is destructive.
 pub(in crate::ui::view) fn draw_confirm_delete(frame: &mut Frame, app: &App, area: Rect) {
     let Some(confirm) = app.confirm_delete() else {

@@ -180,6 +180,8 @@ stacking + toggling) · `F` follow (tail -f) · `s` collapse/expand the
 sidebar · `w` resize the sidebar (←/→, `0` default, `Esc` done) · `a`
 show/hide archived · `T` toolbox ·
 `o` open links/PRs · `R` related incidents · `V` sign off final-review · `S` settings ·
+`u` attach a PR · `I` attach a ticket · `d` delete (list, asks y/n) · `m`
+agents screen ·
 `c` copy tab / `C` copy whole RCA (pbcopy or OSC 52) · `y` copy the line
 (or selection) · `i` copy the incident id · `x` export to
 `exports/<slug>.md` · `E` open this tab's file in your editor (config
@@ -228,7 +230,7 @@ remediation PR: move an RCA to `status = "agent"` and it implements
 opens a PR, attaches it, and advances the RCA — deterministic Rust owns
 git/GitHub, `claude` only edits code. Configure it in `~/.config/beagle/agents.toml`,
 autostart it with `beagle rca agent install` (launchd on macOS, `systemd --user` on
-Linux), and watch it from the **Agents screen** (`A` in the TUI, or the
+Linux), and watch it from the **Agents screen** (`m` in the TUI, or the
 sidebar's **Agents** button in the desktop app).
 
 Full guide — config, custom prompts, commands and the control socket — in

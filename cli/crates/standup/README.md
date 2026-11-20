@@ -54,7 +54,7 @@ is `--root DIR`, else `$STANDUP_ROOT`, else `root = "…"` in
 ## Keys
 
 `j/k` move (the list, or a line cursor in the write-up) · `enter` open
-the write-up · `esc` back · `J/K` `space` `ctrl-d/u` page · `g/G` top/bottom
+the write-up · `esc`/`b` back · `J/K` `space` `ctrl-d/u` page · `g/G` top/bottom
 · `v` select lines · `y` copy the line/selection (list: the ticket URL) ·
 `Y` copy the ticket URL · `i` copy the id (the date, or `<date> <ticket>`) ·
 `h/l` pan wide diagrams · `d` pick a report by day · `[`/`]` older/newer

@@ -68,7 +68,7 @@ impl App {
     }
 
     /// Moves merged recaps whose PR merged over 24h ago to the archive (they
-    /// stay readable there: `A`).
+    /// stay readable there: `s`).
     pub(crate) fn auto_archive(&mut self) {
         match self.store.archive_merged_older_than(
             crate::store::now_unix(),
@@ -78,7 +78,7 @@ impl App {
             Ok(ids) => {
                 self.reload();
                 self.status = Some(format!(
-                    "archived {} (merged over 24h ago — A shows the archive)",
+                    "archived {} (merged over 24h ago — s shows the archive)",
                     ids.join(", ")
                 ));
             }

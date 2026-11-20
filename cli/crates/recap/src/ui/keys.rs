@@ -15,7 +15,7 @@ pub(super) const HELP: &[(&str, &str)] = &[
         "enter",
         "focus in: PR list → pane → (Comments) agent review",
     ),
-    ("esc", "end the selection, then focus back out one step"),
+    ("esc  b", "end the selection, then focus back out one step"),
     (
         "tab ] · shift-tab [",
         "next / previous tab (and focus the pane)",
@@ -55,7 +55,7 @@ pub(super) const HELP: &[(&str, &str)] = &[
     ),
     ("X", "close the PR without merging, and archive its recap"),
     ("a", "archive this recap (local only; the PR is untouched)"),
-    ("A", "show / hide the archive"),
+    ("s", "show / hide the archive (the shelf)"),
     ("U", "in the archive: restore this recap"),
     ("t", "open the ticket in the tracker"),
     ("r", "reload from disk"),
@@ -106,9 +106,13 @@ impl App {
             KeyCode::Enter => self.focus_in(),
             KeyCode::Tab | KeyCode::Char(']') => self.open_tab(self.tab.step(true)),
             KeyCode::BackTab | KeyCode::Char('[') => self.open_tab(self.tab.step(false)),
-            KeyCode::Esc if self.view.anchor.is_some() => self.view.anchor = None,
-            KeyCode::Esc if self.focus == Focus::Review => self.focus = Focus::Content,
-            KeyCode::Esc => self.focus = Focus::List,
+            KeyCode::Esc | KeyCode::Char('b') if self.view.anchor.is_some() => {
+                self.view.anchor = None;
+            }
+            KeyCode::Esc | KeyCode::Char('b') if self.focus == Focus::Review => {
+                self.focus = Focus::Content;
+            }
+            KeyCode::Esc | KeyCode::Char('b') => self.focus = Focus::List,
             // A tab key means "show me this": switch and focus the pane, so
             // j/k scroll it straight away.
             KeyCode::Char('1') => self.open_tab(Tab::Summary),
@@ -138,7 +142,7 @@ impl App {
             KeyCode::Char('M') => self.ask_merge(),
             KeyCode::Char('X') => self.ask_close(),
             KeyCode::Char('a') => self.archive_selected(),
-            KeyCode::Char('A') => self.toggle_shelf(),
+            KeyCode::Char('s') => self.toggle_shelf(),
             KeyCode::Char('U') => self.unarchive_selected(),
             KeyCode::Char('t') => self.open_ticket(),
             KeyCode::Char('r') => {

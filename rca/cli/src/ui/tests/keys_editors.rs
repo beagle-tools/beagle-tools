@@ -144,8 +144,8 @@ fn shift_p_attaches_a_pr_via_the_prompt() {
     let mut app = app_with(1);
     let id = app.selected_rca().expect("selected").id.clone();
 
-    // P opens the prompt; typing builds the URL.
-    press(&mut app, KeyCode::Char('P'));
+    // u opens the prompt; typing builds the URL.
+    press(&mut app, KeyCode::Char('u'));
     assert!(app.attach_prompt().is_some(), "prompt open");
     for c in "https://github.com/o/r/pull/7".chars() {
         press(&mut app, KeyCode::Char(c));
@@ -161,7 +161,7 @@ fn shift_p_attaches_a_pr_via_the_prompt() {
     assert!(app.status_line().is_some_and(|s| s.contains("attached")));
 
     // A bad URL keeps the prompt open with an error.
-    press(&mut app, KeyCode::Char('P'));
+    press(&mut app, KeyCode::Char('u'));
     for c in "not-a-url".chars() {
         press(&mut app, KeyCode::Char(c));
     }

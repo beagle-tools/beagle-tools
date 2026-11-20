@@ -68,3 +68,25 @@ test("a TUI that draws its own help or footer fails", () => {
   assert.match(errors, /tandem-tui: draw the \? help with beagle_tui::chrome::draw_help/);
   assert.match(errors, /tandem-tui: draw the footer with beagle_tui::chrome::draw_footer/);
 });
+
+test("a reserved GitHub-write capital bound to something else fails", () => {
+  const f = "cli/crates/scout/src/ui/keys.rs";
+  const src = readReal(f).replace("KeyCode::Char('?')", "KeyCode::Char('?' | 'M')");
+  const errors = checkTuiStandards(readWith({ [f]: src }), realFiles);
+  assert.match(errors.join("\n"), /binds `M`, a capital reserved for a GitHub write/);
+});
+
+test("a declared GitHub write may use its capital", () => {
+  assert.ok(readReal("cli/crates/recap/src/ui/keys.rs").includes("Char('M')"));
+  assert.deepEqual(checkTuiStandards(readReal, realFiles), []);
+});
+
+test("declaring a non-write capital fails", () => {
+  const json = JSON.parse(readReal("standards/tui-standards.json"));
+  json.tui_github_writes["rca/cli"] = ["T"];
+  const errors = checkTuiStandards(
+    readWith({ "standards/tui-standards.json": JSON.stringify(json) }),
+    realFiles,
+  );
+  assert.match(errors.join("\n"), /declares T, which is not a GitHub write/);
+});

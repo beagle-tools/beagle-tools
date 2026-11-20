@@ -266,8 +266,8 @@ fn empty_state(app: &App) -> Vec<Line<'static>> {
 
 fn draw_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
     let hints = match app.shelf {
-        Shelf::Active => "j/k move · enter/esc focus · tab/1/2/3 summary/diff/comments · o PR · i copy id · D ready · M merge · X close · a archive · A archive view · w resize · ? help · q quit",
-        Shelf::Archived => "ARCHIVE · j/k move · 1/2 summary/diff · U restore · A back to PRs · w resize · ? help · q quit",
+        Shelf::Active => "j/k move · enter/esc focus · tab/1/2/3 summary/diff/comments · o PR · i copy id · D ready · M merge · X close · a archive · s archive view · w resize · ? help · q quit",
+        Shelf::Archived => "ARCHIVE · j/k move · 1/2 summary/diff · U restore · s back to PRs · w resize · ? help · q quit",
     };
     let sync_error = app
         .comments_error

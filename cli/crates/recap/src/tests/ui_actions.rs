@@ -131,7 +131,7 @@ fn closing_archives_and_the_archive_view_restores() {
         ["older-1"]
     );
 
-    key(&mut app, KeyCode::Char('A'));
+    key(&mut app, KeyCode::Char('s'));
     assert_eq!(app.shelf, Shelf::Archived);
     assert_eq!(
         app.rows.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
@@ -146,7 +146,7 @@ fn closing_archives_and_the_archive_view_restores() {
         .contains("this is the archive"));
     key(&mut app, KeyCode::Char('U'));
     assert_eq!(app.rows.len(), 0);
-    key(&mut app, KeyCode::Char('A'));
+    key(&mut app, KeyCode::Char('s'));
     assert_eq!(app.rows.len(), 2, "restored");
 
     // `a` archives locally without touching GitHub.

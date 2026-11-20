@@ -90,5 +90,47 @@ export function checkTuiStandards(read, files) {
       errors.push(`${dir}: draw the footer with beagle_tui::chrome::draw_footer (or footer_line)`);
     }
   }
+  // 5. Capitals reserved for GitHub writes (A, M, P, D, X) are bound only by
+  //    a TUI that declares that write under "tui_github_writes", so a
+  //    reserved capital never does something harmless in one tool and
+  //    writes to GitHub in another.
+  const reserved = new Set(data.github_writes.map((w) => w.key));
+  const declared = data.tui_github_writes ?? {};
+  for (const [dir, keys] of Object.entries(declared)) {
+    if (!(dir in data.tuis)) errors.push(`tui_github_writes: ${dir} is not a registered TUI`);
+    for (const k of keys) {
+      if (!reserved.has(k)) errors.push(`tui_github_writes: ${dir} declares ${k}, which is not a GitHub write`);
+    }
+  }
+  for (const [dir, testFile] of Object.entries(data.tuis)) {
+    const allowed = new Set(declared[dir] ?? []);
+    const sources = files.filter(
+      (f) =>
+        f.startsWith(`${dir}/src/`) &&
+        f.endsWith(".rs") &&
+        f !== testFile &&
+        !f.includes("/tests/") &&
+        !/(^|\/|_)tests?\.rs$/.test(f),
+    );
+    for (const f of sources) {
+      for (const k of capitalKeys(read(f))) {
+        if (reserved.has(k) && !allowed.has(k)) {
+          errors.push(
+            `${f}: binds \`${k}\`, a capital reserved for a GitHub write — use a lowercase key, ` +
+              'or declare the write under "tui_github_writes" in standards/tui-standards.json',
+          );
+        }
+      }
+    }
+  }
   return errors;
+}
+
+/** The capital letters a Rust source binds as keys (`KeyCode::Char('A' | 'b')`). */
+export function capitalKeys(source) {
+  const keys = new Set();
+  for (const m of source.matchAll(/Char\(([^)]*)\)/g)) {
+    for (const c of m[1].matchAll(/'([A-Z])'/g)) keys.add(c[1]);
+  }
+  return keys;
 }

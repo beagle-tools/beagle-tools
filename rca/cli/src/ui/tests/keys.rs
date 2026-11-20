@@ -32,7 +32,7 @@ fn connected(ids: &[&str]) -> AgentsStatus {
 fn agents_selection_moves_and_clamps() {
     let mut app = app_with(1);
     app.set_agents_status(connected(&["a", "b", "c"]));
-    press(&mut app, KeyCode::Char('A'));
+    press(&mut app, KeyCode::Char('m'));
     assert_eq!(app.agents_selected(), 0);
     press(&mut app, KeyCode::Char('j'));
     assert_eq!(app.agents_selected(), 1);
@@ -48,7 +48,7 @@ fn agents_selection_moves_and_clamps() {
 #[test]
 fn agents_e_opens_config_for_edit() {
     let mut app = app_with(1);
-    press(&mut app, KeyCode::Char('A'));
+    press(&mut app, KeyCode::Char('m'));
     assert!(matches!(
         press(&mut app, KeyCode::Char('e')),
         Flow::EditAgentsConfig(_)
@@ -58,7 +58,7 @@ fn agents_e_opens_config_for_edit() {
 #[test]
 fn agents_toggle_and_log_are_safe_without_a_selection() {
     let mut app = app_with(1);
-    press(&mut app, KeyCode::Char('A'));
+    press(&mut app, KeyCode::Char('m'));
     // Default status is Connecting → no agent selected → x and enter no-op
     // (no socket call), and the screen stays put.
     assert_eq!(press(&mut app, KeyCode::Char('x')), Flow::Continue);
@@ -67,16 +67,16 @@ fn agents_toggle_and_log_are_safe_without_a_selection() {
 }
 
 #[test]
-fn shift_a_toggles_the_agents_screen() {
+fn m_toggles_the_agents_screen() {
     let mut app = app_with(1);
     assert_eq!(app.screen(), Screen::Rcas);
-    press(&mut app, KeyCode::Char('A'));
+    press(&mut app, KeyCode::Char('m'));
     assert_eq!(app.screen(), Screen::Agents);
-    // `A` toggles back...
-    press(&mut app, KeyCode::Char('A'));
+    // `m` toggles back...
+    press(&mut app, KeyCode::Char('m'));
     assert_eq!(app.screen(), Screen::Rcas);
     // ...and so does Esc from the agents screen.
-    press(&mut app, KeyCode::Char('A'));
+    press(&mut app, KeyCode::Char('m'));
     press(&mut app, KeyCode::Esc);
     assert_eq!(app.screen(), Screen::Rcas);
 }
@@ -86,8 +86,8 @@ fn agents_screen_leaves_rca_state_untouched() {
     let mut app = app_with(3);
     let focus_before = app.focus();
     let tab_before = app.tab();
-    press(&mut app, KeyCode::Char('A'));
-    press(&mut app, KeyCode::Char('A'));
+    press(&mut app, KeyCode::Char('m'));
+    press(&mut app, KeyCode::Char('m'));
     assert_eq!(app.focus(), focus_before);
     assert_eq!(app.tab(), tab_before);
 }
@@ -95,7 +95,7 @@ fn agents_screen_leaves_rca_state_untouched() {
 #[test]
 fn agents_screen_ignores_rca_keys_but_still_quits() {
     let mut app = app_with(1);
-    press(&mut app, KeyCode::Char('A'));
+    press(&mut app, KeyCode::Char('m'));
     // A normal RCA key is a no-op here and the screen stays put.
     assert_eq!(press(&mut app, KeyCode::Char('j')), Flow::Continue);
     assert_eq!(app.screen(), Screen::Agents);

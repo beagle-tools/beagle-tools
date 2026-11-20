@@ -13,7 +13,7 @@ pub(super) const HELP: &[(&str, &str)] = &[
         "list: pick an item · write-up: move the line cursor",
     ),
     ("enter", "open the write-up (focus it)"),
-    ("esc", "end the selection, then back to the list"),
+    ("esc  b", "end the selection, then back to the list"),
     ("J / K  space", "move through the write-up (from anywhere)"),
     ("ctrl-d / ctrl-u", "half page down / up"),
     ("g / G", "top / bottom"),
@@ -78,8 +78,10 @@ impl App {
                 self.status =
                     Some("no tabs here — enter opens the write-up, esc goes back".to_owned());
             }
-            KeyCode::Esc if self.view.anchor.is_some() => self.view.anchor = None,
-            KeyCode::Esc => self.focus = Focus::List,
+            KeyCode::Esc | KeyCode::Char('b') if self.view.anchor.is_some() => {
+                self.view.anchor = None;
+            }
+            KeyCode::Esc | KeyCode::Char('b') => self.focus = Focus::List,
             KeyCode::Char('j') | KeyCode::Down => self.down(1),
             KeyCode::Char('k') | KeyCode::Up => self.up(1),
             KeyCode::Char('v') if self.focus == Focus::Content => {
