@@ -100,8 +100,114 @@ pub(crate) async fn prepare_merge(
     })
 }
 
-/// Is the merge resolved — every path staged and no markers left?
-pub(crate) async fn unresolved(dir: &std::path::Path) -> Result<Vec<String>, TandemError> {
+/// The paths git left unmerged: the conflicted files, whether or not the
+/// agent has finished editing them (it is told not to touch git, so they
+/// stay unstaged until the push).
+pub(crate) async fn conflict_paths(dir: &std::path::Path) -> Result<Vec<String>, TandemError> {
     let unmerged = must(&["diff", "--name-only", "--diff-filter=U"], dir).await?;
-    Ok(unmerged.lines().map(str::to_owned).collect())
+    let mut paths: Vec<String> = unmerged.lines().map(str::to_owned).collect();
+    paths.dedup();
+    Ok(paths)
+}
+
+/// The conflicted paths that still hold a conflict marker — what is left
+/// for a human. A conflicted path with no markers is resolved and waits
+/// to be staged by the push.
+pub(crate) async fn unresolved(dir: &std::path::Path) -> Result<Vec<String>, TandemError> {
+    Ok(conflict_paths(dir)
+        .await?
+        .into_iter()
+        .filter(|p| {
+            // An unreadable or deleted file has no markers to resolve.
+            std::fs::read(dir.join(p)).is_ok_and(|bytes| has_conflict_markers(&bytes))
+        })
+        .collect())
+}
+
+/// Whether `text` holds a git conflict marker: a line starting with
+/// `<<<<<<< ` or `>>>>>>> ` (or exactly `<<<<<<<` / `>>>>>>>`). `=======`
+/// alone is not enough — it is also a Markdown heading underline.
+pub(crate) fn has_conflict_markers(text: &[u8]) -> bool {
+    text.split(|&b| b == b'\n').any(|line| {
+        let line = line.strip_suffix(b"\r").unwrap_or(line);
+        ["<<<<<<<", ">>>>>>>"].iter().any(|m| {
+            line.strip_prefix(m.as_bytes())
+                .is_some_and(|rest| rest.is_empty() || rest.starts_with(b" "))
+        })
+    })
+}
+
+/// What the push will commit for the conflicted paths: their diff
+/// against the PR head, shown to the user before they push.
+pub(crate) async fn resolution_diff(dir: &std::path::Path) -> Result<String, TandemError> {
+    let paths = conflict_paths(dir).await?;
+    if paths.is_empty() {
+        return Ok(String::new());
+    }
+    let mut args = vec!["diff", "HEAD", "--"];
+    args.extend(paths.iter().map(String::as_str));
+    must(&args, dir).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::has_conflict_markers;
+
+    #[test]
+    fn markers_are_the_angle_lines_not_the_equals() {
+        assert!(has_conflict_markers(
+            b"a\n<<<<<<< HEAD\nx\n=======\ny\n>>>>>>> base\n"
+        ));
+        assert!(has_conflict_markers(b">>>>>>>\r\n"));
+        assert!(!has_conflict_markers(b"Title\n=======\n\nbody\n"));
+        assert!(!has_conflict_markers(b"let s = \"<<<<<<<\";\n"));
+        assert!(!has_conflict_markers(b"<<<<<<<<< not a marker\n"));
+    }
+
+    /// A real conflicted merge: before the edit the file is unresolved;
+    /// after the agent removes the markers (without touching git) it is
+    /// resolved but still a conflict path, so the push stages it — and
+    /// only it, not a stray file next to it.
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn an_edited_conflict_is_resolved_and_staged_alone() {
+        use super::{conflict_paths, git, resolution_diff, unresolved};
+        let dir = std::env::temp_dir().join(format!("tandem-merge-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        rt.block_on(async {
+            let run = |args: &'static [&'static str]| {
+                let dir = dir.clone();
+                async move { assert!(git(args, &dir).await.unwrap().0, "git {args:?}") }
+            };
+            run(&["init", "-q", "-b", "main"]).await;
+            run(&["config", "user.email", "t@example.com"]).await;
+            run(&["config", "user.name", "t"]).await;
+            std::fs::write(dir.join("f.txt"), "a\n").unwrap();
+            run(&["add", "f.txt"]).await;
+            run(&["commit", "-q", "-m", "base"]).await;
+            run(&["checkout", "-q", "-b", "side"]).await;
+            std::fs::write(dir.join("f.txt"), "side\n").unwrap();
+            run(&["commit", "-q", "-am", "side"]).await;
+            run(&["checkout", "-q", "main"]).await;
+            std::fs::write(dir.join("f.txt"), "main\n").unwrap();
+            run(&["commit", "-q", "-am", "main"]).await;
+            let (clean, _, _) = git(&["merge", "--no-commit", "side"], &dir).await.unwrap();
+            assert!(!clean);
+
+            assert_eq!(unresolved(&dir).await.unwrap(), vec!["f.txt"]);
+            std::fs::write(dir.join("f.txt"), "main\nside\n").unwrap();
+            std::fs::write(dir.join("stray.txt"), "scratch\n").unwrap();
+            assert_eq!(unresolved(&dir).await.unwrap(), Vec::<String>::new());
+            assert_eq!(conflict_paths(&dir).await.unwrap(), vec!["f.txt"]);
+            let diff = resolution_diff(&dir).await.unwrap();
+            assert!(diff.contains("+side"), "{diff}");
+            assert!(!diff.contains("stray"), "{diff}");
+        });
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

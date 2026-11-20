@@ -1,8 +1,10 @@
 //! Merged-PR archive: when a PR merges, its cached data (detail, diff,
 //! comments, agent runs) is kept for three days, then purged at
-//! 11:59:59 PM EST on the third day.
+//! 11:59:59 PM US Eastern time (EST or EDT) on the third day.
 
-use chrono::{DateTime, Duration, FixedOffset, NaiveTime, Offset, TimeZone, Utc};
+use chrono::{
+    DateTime, Datelike, Duration, FixedOffset, NaiveDate, NaiveTime, Offset, TimeZone, Utc, Weekday,
+};
 use rusqlite::params;
 use tandem_core::github::{ArchivedPr, PullRequest, RepoRef};
 use tandem_core::{Result, TandemError};
@@ -10,18 +12,37 @@ use tandem_core::{Result, TandemError};
 use crate::schema::cache_err;
 use crate::Cache;
 
-/// EST as a fixed offset (UTC-5), per the retention spec.
-fn est() -> FixedOffset {
-    // -5h is always a valid offset; the UTC fallback can't actually fire.
-    FixedOffset::west_opt(5 * 3600).unwrap_or_else(|| Utc.fix())
+/// US Eastern time's offset on `date` at end of day: EDT (UTC-4) from the
+/// second Sunday of March to the day before the first Sunday of November,
+/// EST (UTC-5) otherwise. The switch happens at 2 AM, so 11:59:59 PM on a
+/// switch day already has the new offset.
+fn eastern(date: NaiveDate) -> FixedOffset {
+    let nth_sunday = |month: u32, n: u8| {
+        NaiveDate::from_weekday_of_month_opt(date.year(), month, Weekday::Sun, n)
+    };
+    let dst = match (nth_sunday(3, 2), nth_sunday(11, 1)) {
+        (Some(start), Some(end)) => date >= start && date < end,
+        _ => false,
+    };
+    let hours = if dst { 4 } else { 5 };
+    // -4h/-5h are always valid offsets; the UTC fallback can't fire.
+    FixedOffset::west_opt(hours * 3600).unwrap_or_else(|| Utc.fix())
 }
 
-/// Purge deadline: 11:59:59 PM EST on the third day after archival.
+/// Purge deadline: 11:59:59 PM US Eastern (EST or EDT, whichever is in
+/// effect that day) on the third day after archival.
 pub fn purge_deadline(archived_at: DateTime<Utc>) -> DateTime<Utc> {
-    let local = archived_at.with_timezone(&est());
+    // The archival's Eastern calendar date (the offset is taken from the
+    // UTC date; it can only differ within an hour of a switch night).
+    let day = archived_at
+        .with_timezone(&eastern(archived_at.date_naive()))
+        .date_naive();
     let eod = NaiveTime::from_hms_opt(23, 59, 59).unwrap_or(NaiveTime::MIN);
-    let deadline_local = (local.date_naive() + Duration::days(3)).and_time(eod);
-    match est().from_local_datetime(&deadline_local).single() {
+    let deadline_day = day + Duration::days(3);
+    match eastern(deadline_day)
+        .from_local_datetime(&deadline_day.and_time(eod))
+        .single()
+    {
         Some(dt) => dt.with_timezone(&Utc),
         // Fixed offsets never produce ambiguous local times.
         None => archived_at + Duration::days(3),
@@ -193,27 +214,46 @@ pub(crate) fn parse_ts(s: &str) -> Result<DateTime<Utc>> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn deadline_is_est_eod_three_days_out() {
-        // Archived 2026-09-16 10:00 EST (15:00 UTC) → purge 2026-09-19
-        // 23:59:59 EST = 2026-09-20 04:59:59 UTC.
-        let archived = Utc.with_ymd_and_hms(2026, 9, 16, 15, 0, 0).unwrap();
-        let deadline = purge_deadline(archived);
-        assert_eq!(
-            deadline,
-            Utc.with_ymd_and_hms(2026, 9, 20, 4, 59, 59).unwrap()
-        );
+    fn utc(year: i32, month: u32, day: u32, hour: u32, min: u32, sec: u32) -> DateTime<Utc> {
+        Utc.with_ymd_and_hms(year, month, day, hour, min, sec)
+            .unwrap()
     }
 
     #[test]
-    fn deadline_handles_est_date_rollover() {
-        // 2026-09-16 23:30 EST is 2026-09-17 04:30 UTC — the EST date is
-        // still the 16th, so purge lands on the 19th EOD EST.
-        let archived = Utc.with_ymd_and_hms(2026, 9, 17, 4, 30, 0).unwrap();
-        let deadline = purge_deadline(archived);
+    fn deadline_is_est_eod_three_days_out_in_winter() {
+        // 2026-01-14 10:00 EST (15:00 UTC) → 2026-01-17 23:59:59 EST.
+        let deadline = purge_deadline(utc(2026, 1, 14, 15, 0, 0));
+        assert_eq!(deadline, utc(2026, 1, 18, 4, 59, 59));
+    }
+
+    #[test]
+    fn deadline_is_edt_eod_in_summer() {
+        // 2026-09-16 11:00 EDT (15:00 UTC) → 2026-09-19 23:59:59 EDT,
+        // an hour earlier in UTC than a fixed UTC-5 gave.
+        let deadline = purge_deadline(utc(2026, 9, 16, 15, 0, 0));
+        assert_eq!(deadline, utc(2026, 9, 20, 3, 59, 59));
+    }
+
+    #[test]
+    fn deadline_handles_eastern_date_rollover() {
+        // 2026-09-17 03:30 UTC is still 2026-09-16 23:30 EDT, so the
+        // purge lands on the 19th.
+        let deadline = purge_deadline(utc(2026, 9, 17, 3, 30, 0));
+        assert_eq!(deadline, utc(2026, 9, 20, 3, 59, 59));
+    }
+
+    #[test]
+    fn deadline_follows_the_switch_days() {
+        // DST 2026 runs from Sun 8 March to Sun 1 November.
+        // Archived in EST, purged on the first EDT day.
         assert_eq!(
-            deadline,
-            Utc.with_ymd_and_hms(2026, 9, 20, 4, 59, 59).unwrap()
+            purge_deadline(utc(2026, 3, 5, 15, 0, 0)),
+            utc(2026, 3, 9, 3, 59, 59)
+        );
+        // Archived in EDT, purged on the first EST day.
+        assert_eq!(
+            purge_deadline(utc(2026, 10, 29, 15, 0, 0)),
+            utc(2026, 11, 2, 4, 59, 59)
         );
     }
 

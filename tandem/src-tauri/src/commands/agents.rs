@@ -216,12 +216,14 @@ pub async fn start_agent_review(
     launch_run(
         app,
         &state,
-        spec,
-        repo,
-        pr,
-        "pr review",
-        None,
-        None,
+        LaunchRun {
+            spec,
+            repo,
+            pr,
+            purpose: "pr review",
+            target_comment_id: None,
+            prepared: None,
+        },
         move |run_id, comments_file, workdir| {
             // The checkout is where the repo states its own rules; with
             // no checkout the agent reviews on general principles.
@@ -242,26 +244,43 @@ pub async fn start_agent_review(
     .await
 }
 
+/// What to launch: the agent, the PR, and what the run is for.
+pub(crate) struct LaunchRun {
+    /// The agent to run.
+    pub spec: AgentSpec,
+    /// The PR's repo.
+    pub repo: RepoRef,
+    /// The PR the run works on.
+    pub pr: tandem_core::github::PullRequest,
+    /// What the run is for ("pr review", "thread reply", …).
+    pub purpose: &'static str,
+    /// Local comment the run centers on, for jump-to-highlight.
+    pub target_comment_id: Option<String>,
+    /// A checkout the caller prepared and this must not disturb: a
+    /// conflict resolution leaves a merge in progress, and re-running
+    /// `gh pr checkout` over it fails — which dropped the run back to no
+    /// workdir at all, so the agent could read the conflicted file but
+    /// not write it.
+    pub prepared: Option<std::path::PathBuf>,
+}
+
 /// Shared launch path for every agent run (fresh review or thread
 /// reply): create the run dir, spawn the process, persist the run row,
 /// stash the cancel handle, and start the event pump.
-#[allow(clippy::too_many_arguments)]
 pub(crate) async fn launch_run(
     app: AppHandle,
     state: &AppState,
-    spec: AgentSpec,
-    repo: RepoRef,
-    pr: tandem_core::github::PullRequest,
-    purpose: &str,
-    target_comment_id: Option<String>,
-    // A checkout the caller prepared and this must not disturb: a
-    // conflict resolution leaves a merge in progress, and re-running
-    // `gh pr checkout` over it fails — which dropped the run back to no
-    // workdir at all, so the agent could read the conflicted file but
-    // not write it.
-    prepared: Option<std::path::PathBuf>,
+    launch: LaunchRun,
     build_prompt_fn: impl FnOnce(&str, &str, Option<&std::path::Path>) -> String,
 ) -> Result<String, TandemError> {
+    let LaunchRun {
+        spec,
+        repo,
+        pr,
+        purpose,
+        target_comment_id,
+        prepared,
+    } = launch;
     let run_id = uuid::Uuid::new_v4().to_string();
     let run_dir = state.dirs.runs_dir.join(&run_id);
     let comments_file = run_dir

@@ -327,12 +327,24 @@ pub async fn push_conflict_resolution(
             .head_ref
     };
 
+    // Stage only the conflicted paths (the rest of the merge is already
+    // staged by git): anything else the agent touched or left lying
+    // around — scratch files, edits outside the conflict — stays out of
+    // the commit. The user saw exactly this diff before clicking push.
+    let conflicted = crate::commands::merge_tree::conflict_paths(&dir).await?;
+    let mut add = vec!["add", "--"];
+    add.extend(conflicted.iter().map(String::as_str));
     let refspec = format!("HEAD:{head}");
-    for args in [
-        ["add", "-A"].as_slice(),
-        ["commit", "--no-edit"].as_slice(),
-        ["push", "origin", &refspec].as_slice(),
-    ] {
+    let steps: [&[&str]; 3] = [
+        if conflicted.is_empty() {
+            &[][..]
+        } else {
+            add.as_slice()
+        },
+        &["commit", "--no-edit"],
+        &["push", "origin", &refspec],
+    ];
+    for args in steps.into_iter().filter(|a| !a.is_empty()) {
         let (ok, out, err) = crate::commands::merge_tree::git(args, &dir).await?;
         if !ok {
             return Err(TandemError::Config(format!(

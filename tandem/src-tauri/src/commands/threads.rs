@@ -12,7 +12,7 @@ use tandem_core::review::{
 use tandem_core::TandemError;
 use tauri::{AppHandle, Emitter, State};
 
-use crate::commands::agents::launch_run;
+use crate::commands::agents::{launch_run, LaunchRun};
 use crate::commands::parse_repo;
 use crate::commands::thread_context::{extract_file_diff, sibling_threads};
 use crate::state::AppState;
@@ -255,12 +255,14 @@ async fn launch_thread_run(
     launch_run(
         app,
         state,
-        spec,
-        repo,
-        pr,
-        "thread reply",
-        target,
-        None,
+        LaunchRun {
+            spec,
+            repo,
+            pr,
+            purpose: "thread reply",
+            target_comment_id: target,
+            prepared: None,
+        },
         move |run_id, comments_file, _workdir| {
             let ctx = ReplyContext {
                 run_id: run_id.to_owned(),

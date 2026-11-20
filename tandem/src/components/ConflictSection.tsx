@@ -12,9 +12,11 @@ import { ipc } from "../lib/ipc";
 import type { AgentRun, AgentSpec, LocalComment, ResolutionState } from "../lib/types";
 import { loadAgent, saveAgent } from "../state/persist";
 import { isWorking } from "../state/runBoard";
+import { useConflictPush } from "../state/conflictPush";
 import { useAppStore } from "../state/store";
 import { pushGithubError, pushInfo } from "../state/toasts";
 import { CommentThread } from "./comments";
+import { ConflictPushModal } from "./ConflictPushModal";
 import { Modal, Pill, Spinner } from "./ui";
 
 /** Conflict work for this PR: the agent's briefings and resolutions,
@@ -30,7 +32,7 @@ export function ConflictSection(): ReactElement | null {
   const [open, setOpen] = useState(false);
   const [starting, setStarting] = useState(false);
   const [agentName, setAgentName] = useState(loadAgent);
-  const [pushing, setPushing] = useState(false);
+  const pushFlow = useConflictPush();
   const [state, setState] = useState<ResolutionState | null>(null);
 
   const pr = bundle?.detail.pull_request;
@@ -75,21 +77,6 @@ export function ConflictSection(): ReactElement | null {
       })
       .finally(() => {
         setStarting(false);
-      });
-  };
-
-  const push = () => {
-    setPushing(true);
-    ipc
-      .pushConflictResolution(repo, pr.number)
-      .then((sha) => {
-        pushInfo(`pushed the resolution (${sha.slice(0, 7)})`);
-      })
-      .catch((e: unknown) => {
-        pushGithubError(e instanceof Error ? e.message : String(e));
-      })
-      .finally(() => {
-        setPushing(false);
       });
   };
 
@@ -138,9 +125,22 @@ export function ConflictSection(): ReactElement | null {
         setAgentName={setAgentName}
         onResolve={resolve}
         ready={state?.ready === true}
-        pushing={pushing}
-        onPush={push}
+        pushing={pushFlow.pushing}
+        onPush={() => {
+          pushFlow.openReview(repo, pr.number);
+        }}
       />
+
+      {pushFlow.review !== null ? (
+        <ConflictPushModal
+          diff={pushFlow.review.diff}
+          pushing={pushFlow.pushing}
+          onPush={() => {
+            pushFlow.push(repo, pr.number);
+          }}
+          onClose={pushFlow.close}
+        />
+      ) : null}
 
       {open && latest !== null ? (
         <FindingsModal
@@ -218,7 +218,7 @@ function ConflictActions({
           type="button"
           onClick={onPush}
           disabled={pushing}
-          title="commit the merge and push it to the PR branch"
+          title="review the diff, then commit the merge and push it to the PR branch"
           className="inline-flex items-center gap-1 rounded-md bg-moss/20 px-2 py-1 text-[11px] font-medium text-moss transition-colors hover:bg-moss/30 disabled:opacity-40"
         >
           {pushing ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />} push the

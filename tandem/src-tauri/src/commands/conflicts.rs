@@ -10,7 +10,7 @@ use tandem_core::agent::RunStatus;
 use tandem_core::TandemError;
 use tauri::{AppHandle, State};
 
-use crate::commands::agents::launch_run;
+use crate::commands::agents::{launch_run, LaunchRun};
 use crate::commands::parse_repo;
 use crate::state::AppState;
 
@@ -82,12 +82,14 @@ pub async fn start_conflict_resolution(
     launch_run(
         app,
         &state,
-        spec,
-        repo,
-        pr,
-        "conflict analysis",
-        None,
-        None,
+        LaunchRun {
+            spec,
+            repo,
+            pr,
+            purpose: "conflict analysis",
+            target_comment_id: None,
+            prepared: None,
+        },
         move |run_id, comments_file, _workdir| {
             let ctx = ConflictContext {
                 run_id: run_id.to_owned(),
@@ -161,12 +163,14 @@ pub async fn start_conflict_fix(
     launch_run(
         app,
         &state,
-        spec,
-        repo,
-        pr,
-        "conflict resolution",
-        None,
-        Some(dir),
+        LaunchRun {
+            spec,
+            repo,
+            pr,
+            purpose: "conflict resolution",
+            target_comment_id: None,
+            prepared: Some(dir),
+        },
         move |run_id, comments_file, _workdir| {
             let ctx = ResolveContext {
                 run_id: run_id.to_owned(),
@@ -208,11 +212,32 @@ pub async fn conflict_resolution_state(
         });
     }
     let unresolved = crate::commands::merge_tree::unresolved(&dir).await?;
-    // A merge in progress with nothing unmerged is a resolution waiting
-    // to be pushed.
+    // A merge in progress with no conflict markers left is a resolution
+    // waiting to be pushed.
     let merging = dir.join(".git").join("MERGE_HEAD").exists();
     Ok(ResolutionState {
         ready: merging && unresolved.is_empty(),
         unresolved,
     })
+}
+
+/// The diff `push_conflict_resolution` would commit for the conflicted
+/// paths, against the PR head — shown before the user pushes.
+#[tauri::command]
+pub async fn conflict_resolution_diff(
+    state: State<'_, AppState>,
+    repo: String,
+    number: u64,
+) -> Result<String, TandemError> {
+    let repo = parse_repo(&repo)?;
+    let dir = state
+        .dirs
+        .worktrees_dir
+        .join("agent-runs")
+        .join(repo.slug())
+        .join(number.to_string());
+    if !dir.join(".git").join("MERGE_HEAD").exists() {
+        return Ok(String::new());
+    }
+    crate::commands::merge_tree::resolution_diff(&dir).await
 }

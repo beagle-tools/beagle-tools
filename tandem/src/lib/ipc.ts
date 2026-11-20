@@ -109,6 +109,8 @@ export const ipc = {
     invoke<string>("start_conflict_fix", { agentName, repo, number }),
   conflictResolutionState: (repo: string, number: number): Promise<ResolutionState> =>
     invoke<ResolutionState>("conflict_resolution_state", { repo, number }),
+  conflictResolutionDiff: (repo: string, number: number): Promise<string> =>
+    invoke<string>("conflict_resolution_diff", { repo, number }),
   pushConflictResolution: (repo: string, number: number): Promise<string> =>
     invoke<string>("push_conflict_resolution", { repo, number }),
   startConflictResolution: (agentName: string, repo: string, number: number): Promise<string> =>
