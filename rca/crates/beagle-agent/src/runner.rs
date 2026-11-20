@@ -164,6 +164,15 @@ impl Runner {
         })?;
 
         let mut command = Command::new(&self.claude_bin);
+        // The agent only edits and commits; the orchestrator pushes and opens
+        // the PR itself. So the agent gets no GitHub token or credentials.
+        let empty_gh = spec.log_path.with_extension("gh-empty");
+        beagle_utils::agent_env::deny_github(&mut command, &empty_gh).map_err(|source| {
+            RunError::Spawn {
+                bin: self.claude_bin.to_string_lossy().into_owned(),
+                source,
+            }
+        })?;
         command
             .current_dir(spec.working_dir)
             .arg("-p")

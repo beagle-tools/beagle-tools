@@ -6,6 +6,7 @@
 //! GitHub releases) the `update` feature. Only code used by two or more apps
 //! belongs in this crate, and app-specific error types stay in the apps.
 
+pub mod agent_env;
 pub mod duration;
 pub mod fs;
 #[cfg(feature = "tracing")]
