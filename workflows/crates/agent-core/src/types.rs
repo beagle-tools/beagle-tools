@@ -147,6 +147,11 @@ pub struct AgentSpec {
     /// enforced — the run's own tool allowlist is what limits it.
     #[serde(default)]
     pub triggers: Vec<String>,
+    /// Lets runs merge PRs, approve and make `gh api` writes. Off by
+    /// default: agentd's gh shim and Claude deny rules refuse them. Only a
+    /// manifest can turn this on, never a run's environment.
+    #[serde(default)]
+    pub allow_github_writes: bool,
 }
 
 impl AgentSpec {

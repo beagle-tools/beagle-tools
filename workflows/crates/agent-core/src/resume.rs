@@ -162,6 +162,7 @@ mod tests {
             enabled: true,
             entrypoint: None,
             triggers: Vec::new(),
+            allow_github_writes: false,
         }
     }
 

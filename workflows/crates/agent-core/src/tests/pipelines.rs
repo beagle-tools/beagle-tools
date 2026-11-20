@@ -38,6 +38,7 @@ fn spec(name: &str, schedule: Option<&str>, entrypoint: Option<bool>) -> AgentSp
         enabled: true,
         entrypoint,
         triggers: Vec::new(),
+        allow_github_writes: false,
     }
 }
 

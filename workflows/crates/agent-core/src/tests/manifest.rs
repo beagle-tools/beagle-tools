@@ -125,3 +125,28 @@ fn codex_sandbox_loads_and_defaults_to_off() {
     assert_eq!(by_name("open"), crate::types::CodexSandbox::Off);
     let _ = std::fs::remove_dir_all(&root);
 }
+
+#[test]
+fn github_writes_are_off_unless_the_manifest_allows_them() {
+    let root = temp_root("ghwrites");
+    write(
+        &root.join("demo/merger.yaml"),
+        "kind: Agent\nname: merger\nrunner: claude\nworkdir: /tmp\nprompt: p.md\nallow_github_writes: true\n",
+    );
+    write(&root.join("demo/p.md"), "hi\n");
+    write(
+        &root.join("demo/reader.yaml"),
+        "kind: Agent\nname: reader\nrunner: claude\nworkdir: /tmp\nprompt: p.md\n",
+    );
+    let out = load_root(&root).unwrap();
+    let by_name = |n: &str| {
+        out.agents
+            .iter()
+            .find(|a| a.name == n)
+            .unwrap()
+            .allow_github_writes
+    };
+    assert!(by_name("merger"));
+    assert!(!by_name("reader"));
+    let _ = std::fs::remove_dir_all(&root);
+}

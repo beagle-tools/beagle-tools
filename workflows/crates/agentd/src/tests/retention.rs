@@ -166,6 +166,7 @@ fn noop_runs_die_young_but_the_newest_survives() {
         enabled: true,
         entrypoint: None,
         triggers: Vec::new(),
+        allow_github_writes: false,
     };
 
     let mut ids = Vec::new();
