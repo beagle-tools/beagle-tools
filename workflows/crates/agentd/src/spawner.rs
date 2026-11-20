@@ -118,13 +118,16 @@ fn resolve_workdir(spec: &AgentSpec, run_id: &str) -> Result<PathBuf> {
         Isolation::None => Ok(spec.workdir.clone()),
         Isolation::Worktree => {
             let path = paths::worktrees_dir()?.join(run_id);
-            let output = Command::new("git")
-                .arg("-C")
-                .arg(&spec.workdir)
-                .args(["worktree", "add", "--detach"])
-                .arg(&path)
-                .output()
-                .context("failed to execute git")?;
+            // Bounded: a hung git must not wedge the daemon tick.
+            let output = beagle_utils::process::output_with_timeout(
+                Command::new("git")
+                    .arg("-C")
+                    .arg(&spec.workdir)
+                    .args(["worktree", "add", "--detach"])
+                    .arg(&path),
+                std::time::Duration::from_secs(60),
+            )
+            .context("failed to execute git")?;
             if !output.status.success() {
                 bail!("{}", String::from_utf8_lossy(&output.stderr).trim());
             }

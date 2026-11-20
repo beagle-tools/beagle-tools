@@ -1,11 +1,23 @@
 //! The side-effecting edges of a job: publishing a finished worktree (`git
 //! push` + `gh pr create`) and the passive auth precheck. Both shell out, so
 //! they live apart from the state machine, which tests drive with fakes.
+//!
+//! Every child is bounded (a hang here would wedge the daemon tick) and
+//! resolved on the augmented PATH, so a launchd-started daemon finds `gh`.
 
+use std::io;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Output};
+use std::time::Duration;
+
+use beagle_utils::process;
 
 use crate::worktree::Worktree;
+
+/// Bound on `git push` and `gh pr create`: network calls that may upload.
+const PUBLISH_TIMEOUT: Duration = Duration::from_secs(120);
+/// Bound on each passive precheck (`gh auth status`, `claude --version`).
+const PRECHECK_TIMEOUT: Duration = Duration::from_secs(20);
 
 /// The request handed to a [`Publisher`]: everything needed to push a branch and
 /// open a PR for one RCA.
@@ -52,16 +64,15 @@ impl Publisher for GhPublisher {
             "Automated remediation for RCA `{}`, opened by beagle-agentd.",
             request.rca_id
         );
-        let output = Command::new("gh")
-            .current_dir(&request.worktree.path)
+        let mut cmd = tool("gh");
+        cmd.current_dir(&request.worktree.path)
             .args(["pr", "create", "--head"])
             .arg(&request.worktree.branch)
             .arg("--title")
             .arg(&title)
             .arg("--body")
-            .arg(&body)
-            .output()
-            .map_err(|err| PublishError(format!("running gh: {err}")))?;
+            .arg(&body);
+        let output = bounded(&mut cmd, PUBLISH_TIMEOUT, "gh")?;
         if !output.status.success() {
             return Err(PublishError(format!(
                 "gh pr create failed: {}",
@@ -77,7 +88,7 @@ impl Publisher for GhPublisher {
 #[must_use]
 pub fn default_precheck() -> Option<String> {
     if !tool_ok("gh", &["auth", "status"]) {
-        return Some("gh is not authenticated".to_string());
+        return Some("gh is not authenticated (or did not answer in time)".to_string());
     }
     if !tool_ok("claude", &["--version"]) {
         return Some("claude is not available".to_string());
@@ -85,22 +96,35 @@ pub fn default_precheck() -> Option<String> {
     None
 }
 
-/// Whether running `bin args...` exits zero.
+/// A [`Command`] for `bin`, resolved on the augmented PATH (falling back to
+/// a bare lookup) with that PATH passed to the child.
+fn tool(bin: &str) -> Command {
+    process::command(process::which(bin).unwrap_or_else(|| bin.into()))
+}
+
+/// Runs `cmd` bounded by `timeout`, mapping a spawn failure or timeout to an
+/// actionable [`PublishError`].
+fn bounded(cmd: &mut Command, timeout: Duration, bin: &str) -> Result<Output, PublishError> {
+    process::output_with_timeout(cmd, timeout).map_err(|err| {
+        if err.kind() == io::ErrorKind::TimedOut {
+            PublishError(format!("{err} — is GitHub reachable?"))
+        } else {
+            PublishError(format!("running {bin}: {err}"))
+        }
+    })
+}
+
+/// Whether running `bin args...` exits zero within [`PRECHECK_TIMEOUT`].
 fn tool_ok(bin: &str, args: &[&str]) -> bool {
-    Command::new(bin)
-        .args(args)
-        .output()
+    process::output_with_timeout(tool(bin).args(args), PRECHECK_TIMEOUT)
         .is_ok_and(|out| out.status.success())
 }
 
 /// Runs `git -C <dir> <args...>`, mapping a non-zero exit to a [`PublishError`].
 fn run_git(dir: &Path, args: &[&str]) -> Result<(), PublishError> {
-    let output = Command::new("git")
-        .arg("-C")
-        .arg(dir)
-        .args(args)
-        .output()
-        .map_err(|err| PublishError(format!("running git: {err}")))?;
+    let mut cmd = tool("git");
+    cmd.arg("-C").arg(dir).args(args);
+    let output = bounded(&mut cmd, PUBLISH_TIMEOUT, "git")?;
     if output.status.success() {
         Ok(())
     } else {

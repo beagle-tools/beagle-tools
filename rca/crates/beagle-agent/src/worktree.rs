@@ -15,6 +15,14 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Mutex, MutexGuard, PoisonError};
+use std::time::Duration;
+
+use beagle_utils::process::output_with_timeout;
+
+/// Bound on a local git command (worktree, branch, rev-parse).
+const GIT_LOCAL_TIMEOUT: Duration = Duration::from_secs(30);
+/// Bound on a git command that talks to the remote (`fetch`).
+const GIT_NETWORK_TIMEOUT: Duration = Duration::from_secs(120);
 
 /// The longest an RCA id (and thus a branch/dir component) may be.
 const MAX_ID_LEN: usize = 64;
@@ -195,12 +203,16 @@ impl Manager {
 
     /// Runs `git -C <dir> <args...>`, returning trimmed stdout on success.
     fn git(dir: &Path, args: &[&OsStr]) -> Result<String, WorktreeError> {
-        let output = Command::new("git")
-            .arg("-C")
-            .arg(dir)
-            .args(args)
-            .output()
-            .map_err(|source| WorktreeError::Spawn { source })?;
+        // A hung git must never wedge the daemon tick: `fetch` gets 120 s,
+        // local commands 30 s; on expiry git is killed and reaped.
+        let timeout = if args.first().is_some_and(|a| *a == "fetch") {
+            GIT_NETWORK_TIMEOUT
+        } else {
+            GIT_LOCAL_TIMEOUT
+        };
+        let output =
+            output_with_timeout(Command::new("git").arg("-C").arg(dir).args(args), timeout)
+                .map_err(|source| WorktreeError::Spawn { source })?;
         if output.status.success() {
             Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
         } else {

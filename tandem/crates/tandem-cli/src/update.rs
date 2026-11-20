@@ -54,10 +54,11 @@ fn inside_app(exe: &Path) -> bool {
 }
 
 fn brew_manages_tandem() -> bool {
-    std::process::Command::new("brew")
-        .args(["list", "--cask", CASK])
-        .output()
-        .is_ok_and(|o| o.status.success())
+    beagle_utils::process::output_with_timeout(
+        std::process::Command::new("brew").args(["list", "--cask", CASK]),
+        std::time::Duration::from_secs(30),
+    )
+    .is_ok_and(|o| o.status.success())
 }
 
 pub(crate) fn detect(exe: &Path) -> Install {
@@ -167,10 +168,12 @@ fn update(how: Install) -> Result<Value, String> {
         // The CLI is part of the app here, so updating it means
         // updating the app — and brew is the thing that owns that.
         Install::BrewApp => {
-            let out = std::process::Command::new("brew")
-                .args(["upgrade", "--cask", CASK])
-                .output()
-                .map_err(|e| format!("couldn't run brew: {e}"))?;
+            // A brew stuck on a download or lock is killed after 10 minutes.
+            let out = beagle_utils::process::output_with_timeout(
+                std::process::Command::new("brew").args(["upgrade", "--cask", CASK]),
+                std::time::Duration::from_secs(600),
+            )
+            .map_err(|e| format!("couldn't run brew: {e}"))?;
             if !out.status.success() {
                 return Err(format!(
                     "brew upgrade failed: {}",

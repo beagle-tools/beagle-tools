@@ -10,7 +10,7 @@ Small, dependency-free helpers shared by the apps in this monorepo
 | Module     | What it holds                                                              |
 |------------|----------------------------------------------------------------------------|
 | `paths`    | `$HOME` / XDG base-dir resolution, `~` expansion (pure `_from` variants)    |
-| `process`  | Augmented `PATH` for GUI-launched apps, preset `Command`, `which`           |
+| `process`  | Augmented `PATH` for GUI-launched apps, preset `Command`, `which`, bounded `output_with_timeout` (kill + reap on expiry) |
 | `shell`    | POSIX single-quote escaping                                                |
 | `text`     | Char-safe truncation (`…`), byte truncation, one-line collapsing           |
 | `duration` | Compact human durations (`1h2m`) and single-unit ages (`3m`)               |

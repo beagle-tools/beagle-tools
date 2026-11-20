@@ -10,7 +10,7 @@
 //! banner. Off on other platforms, and whenever `SCOUT_NOTIFY=0`.
 
 use beagle_utils::shell::quote;
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 use crate::config::Config;
 
@@ -234,12 +234,11 @@ pub fn send(n: &Notification, origin: &Origin) {
         return;
     };
     // Fire and forget: a banner that fails to show is not worth reporting.
-    let _ = Command::new(program)
-        .args(args)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn();
+    // Bounded so a stuck notifier is killed and reaped, never left behind.
+    let _ = beagle_utils::process::spawn_bounded(
+        Command::new(program).args(args),
+        std::time::Duration::from_secs(10),
+    );
 }
 
 /// Whether `program` is on this process's PATH (the one `Command::new`

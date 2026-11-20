@@ -11,13 +11,17 @@
 //! pane's width and renders its ANSI output, so the Diff tab looks exactly
 //! like their git diffs. [`render`] is the fallback.
 
-use std::io::Write as _;
-use std::process::{Command, Stdio};
+use std::process::Command;
+use std::time::Duration;
 
+use beagle_utils::process::{output_with_input_and_timeout, output_with_timeout};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 
 use crate::wrap::DocLine;
+
+/// Bound on one `delta` run; a hung delta falls back to [`render`].
+const DELTA_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// One file's change counts.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -219,34 +223,19 @@ fn push_file_table(lines: &mut Vec<DocLine>, files: &[FileStat]) {
 /// Whether the `delta` pager is installed and runnable.
 #[must_use]
 pub fn delta_available() -> bool {
-    Command::new("delta")
-        .arg("--version")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .is_ok_and(|s| s.success())
+    output_with_timeout(Command::new("delta").arg("--version"), DELTA_TIMEOUT)
+        .is_ok_and(|o| o.status.success())
 }
 
 /// Runs `delta --side-by-side` on `source` at `width` columns and returns its
 /// raw ANSI output. `None` if delta is missing or fails.
 fn run_delta(source: &str, width: u16) -> Option<String> {
-    let mut child = Command::new("delta")
-        .args(["--side-by-side", "--paging=never", "--width"])
-        .arg(width.max(40).to_string())
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .ok()?;
-    // Feed stdin from a thread so a large diff can't deadlock against a
-    // full stdout pipe.
-    let mut stdin = child.stdin.take()?;
-    let input = source.to_owned();
-    let writer = std::thread::spawn(move || {
-        let _ = stdin.write_all(input.as_bytes()); // delta exiting early is reported below
-    });
-    let out = child.wait_with_output().ok()?;
-    let _ = writer.join();
+    let mut cmd = Command::new("delta");
+    cmd.args(["--side-by-side", "--paging=never", "--width"])
+        .arg(width.max(40).to_string());
+    // Stdin is fed from a helper thread, so a large diff can't deadlock
+    // against a full stdout pipe; a hung delta falls back to the plain view.
+    let out = output_with_input_and_timeout(&mut cmd, source.as_bytes(), DELTA_TIMEOUT).ok()?;
     out.status
         .success()
         .then(|| String::from_utf8_lossy(&out.stdout).into_owned())

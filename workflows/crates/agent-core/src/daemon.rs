@@ -19,6 +19,9 @@
 
 use std::path::PathBuf;
 use std::process::Command;
+use std::time::Duration;
+
+use beagle_utils::process::output_with_timeout;
 
 use chrono::{DateTime, TimeZone, Utc};
 
@@ -140,20 +143,20 @@ pub fn classify(beat: Option<Beat>, alive: bool, now: DateTime<Utc>) -> DaemonSt
     }
 }
 
+/// Bound on the `kill -0` / `pgrep` liveness probes.
+const PROBE_TIMEOUT: Duration = Duration::from_secs(5);
+
 fn pid_alive(pid: u32) -> bool {
-    Command::new("kill")
-        .args(["-0", &pid.to_string()])
-        .stderr(std::process::Stdio::null())
-        .status()
-        .is_ok_and(|s| s.success())
+    output_with_timeout(
+        Command::new("kill").args(["-0", &pid.to_string()]),
+        PROBE_TIMEOUT,
+    )
+    .is_ok_and(|o| o.status.success())
 }
 
 fn any_agentd() -> bool {
-    Command::new("pgrep")
-        .args(["-x", "agentd"])
-        .stdout(std::process::Stdio::null())
-        .status()
-        .is_ok_and(|s| s.success())
+    output_with_timeout(Command::new("pgrep").args(["-x", "agentd"]), PROBE_TIMEOUT)
+        .is_ok_and(|o| o.status.success())
 }
 
 /// The daemon's status now. Cheap: one file read and one `kill -0`.

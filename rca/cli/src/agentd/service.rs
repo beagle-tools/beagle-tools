@@ -3,8 +3,10 @@
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::Duration;
 
 use beagle_utils::paths;
+use beagle_utils::process::output_with_timeout;
 
 use super::state_dir;
 
@@ -16,6 +18,9 @@ const UNIT: &str = "beagle-agentd.service";
 
 /// The error for every path that needs `$HOME` when it is unset or empty.
 const NO_HOME: &str = "HOME is not set";
+
+/// Bound on one service-manager call (`launchctl`, `systemctl`, `id`).
+const SERVICE_TOOL_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// The inputs for a launchd plist.
 #[derive(Debug)]
@@ -254,9 +259,7 @@ fn plist_path() -> Result<PathBuf, String> {
 
 /// The launchd GUI domain target for the current user (`gui/<uid>`).
 fn gui_domain() -> Result<String, String> {
-    let output = Command::new("id")
-        .arg("-u")
-        .output()
+    let output = output_with_timeout(Command::new("id").arg("-u"), SERVICE_TOOL_TIMEOUT)
         .map_err(|err| format!("running id: {err}"))?;
     if !output.status.success() {
         return Err("could not determine the current uid".to_string());
@@ -335,11 +338,11 @@ fn systemctl(args: &[&str]) -> Result<(), String> {
 /// Runs `program prefix... args...`, mapping a spawn failure or non-zero exit
 /// to a message that names the full invocation and its stderr.
 fn run_checked(program: &str, prefix: &[&str], args: &[&str]) -> Result<(), String> {
-    let output = Command::new(program)
-        .args(prefix)
-        .args(args)
-        .output()
-        .map_err(|err| format!("running {program}: {err}"))?;
+    let output = output_with_timeout(
+        Command::new(program).args(prefix).args(args),
+        SERVICE_TOOL_TIMEOUT,
+    )
+    .map_err(|err| format!("running {program}: {err}"))?;
     if output.status.success() {
         return Ok(());
     }

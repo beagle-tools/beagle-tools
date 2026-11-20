@@ -4,12 +4,12 @@
 //! [`crate::launchd`]).
 
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::time::Duration;
 
 use agent_core::paths;
 use anyhow::{bail, Context, Result};
-use beagle_utils::process::which;
+use beagle_utils::process::{output_with_timeout, which};
 
 use crate::launchd::{
     parse_pid, render_plist, resolve_agentd, BUILD_NOTIFIER_SH, LABEL, NOTIFY_ICONS,
@@ -124,12 +124,15 @@ fn install_notifiers() -> Result<()> {
         );
         return Ok(());
     }
-    let status = beagle_utils::process::command("bash")
-        .args(["-c", BUILD_NOTIFIER_SH, "build-notifier"])
-        .env("AGENTD_NOTIFY_ICONS_DIR", &icons)
-        .env("AGENTD_STATE_DIR", &state)
-        .status()
-        .context("run the notifier builder")?;
+    // Bounded (output still shown): a stuck build must not hang the install.
+    let status = beagle_utils::process::status_with_timeout(
+        beagle_utils::process::command("bash")
+            .args(["-c", BUILD_NOTIFIER_SH, "build-notifier"])
+            .env("AGENTD_NOTIFY_ICONS_DIR", &icons)
+            .env("AGENTD_STATE_DIR", &state),
+        Duration::from_secs(300),
+    )
+    .context("run the notifier builder")?;
     if !status.success() {
         // Icons are cosmetic; a failed build must not block the daemon.
         eprintln!("warning: building the notifier apps failed ({status}) — notifications fall back to osascript");
@@ -139,9 +142,7 @@ fn install_notifiers() -> Result<()> {
 
 /// `gui/<uid>`, the per-user launchd domain.
 fn gui_domain() -> Result<String> {
-    let out = Command::new("id")
-        .arg("-u")
-        .output()
+    let out = output_with_timeout(Command::new("id").arg("-u"), Duration::from_secs(10))
         .context("run `id -u`")?;
     let uid = String::from_utf8_lossy(&out.stdout).trim().to_owned();
     if !out.status.success() || uid.is_empty() {
@@ -152,11 +153,11 @@ fn gui_domain() -> Result<String> {
 
 /// Run launchctl quietly, returning its stdout on success.
 fn launchctl(args: &[&str]) -> Result<String> {
-    let out = Command::new("launchctl")
-        .args(args)
-        .stdin(Stdio::null())
-        .output()
-        .context("run launchctl")?;
+    let out = output_with_timeout(
+        Command::new("launchctl").args(args),
+        Duration::from_secs(30),
+    )
+    .context("run launchctl")?;
     if out.status.success() {
         Ok(String::from_utf8_lossy(&out.stdout).into_owned())
     } else {

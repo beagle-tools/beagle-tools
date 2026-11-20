@@ -32,12 +32,24 @@ pub async fn connect(config: &Config) -> Result<GithubClient> {
     .await
 }
 
+/// Bound on the `gh auth token` lookup.
+const GH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
 async fn token_for(user: &str) -> Result<String> {
-    let out = Command::new("gh")
-        .env("PATH", beagle_utils::process::augmented_path())
+    let gh = beagle_utils::process::which("gh").unwrap_or_else(|| "gh".into());
+    let mut cmd = Command::new(gh);
+    cmd.env("PATH", beagle_utils::process::augmented_path())
         .args(["auth", "token", "-u", user])
-        .output()
+        .kill_on_drop(true);
+    // Bounded: on expiry the future is dropped, which kills gh.
+    let out = tokio::time::timeout(GH_TIMEOUT, cmd.output())
         .await
+        .map_err(|_| {
+            TandemError::Auth(format!(
+                "`gh auth token -u {user}` timed out after {}s — is GitHub reachable?",
+                GH_TIMEOUT.as_secs()
+            ))
+        })?
         .map_err(|e| TandemError::Auth(format!("failed to run `gh auth token -u {user}`: {e}")))?;
     let token = String::from_utf8_lossy(&out.stdout).trim().to_owned();
     if !out.status.success() || token.is_empty() {

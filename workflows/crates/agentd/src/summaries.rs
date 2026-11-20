@@ -74,6 +74,9 @@ pub(crate) fn summary_verdict(
     }
 }
 
+/// Bound on one `gh pr view`; on expiry the outcome is Unknown (file kept).
+const GH_VIEW_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
+
 /// Ask `gh` what happened to a PR.
 ///
 /// Returns [`PrOutcome::Unknown`] on any failure — gh missing, token expired,
@@ -81,11 +84,17 @@ pub(crate) fn summary_verdict(
 /// auth problem costs you disk, never a write-up. The error text is handed
 /// back so the daemon can surface it instead of failing silently.
 fn pr_outcome(url: &str, now: chrono::DateTime<Utc>) -> (PrOutcome, Option<String>) {
-    let out = match std::process::Command::new("gh")
-        .args(["pr", "view", url, "--json", "state,mergedAt,closedAt"])
-        .output()
-    {
+    let gh = beagle_utils::process::which("gh").unwrap_or_else(|| "gh".into());
+    let mut cmd = beagle_utils::process::command(gh);
+    cmd.args(["pr", "view", url, "--json", "state,mergedAt,closedAt"]);
+    let out = match beagle_utils::process::output_with_timeout(&mut cmd, GH_VIEW_TIMEOUT) {
         Ok(o) => o,
+        Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
+            return (
+                PrOutcome::Unknown,
+                Some(format!("{e} — is GitHub reachable?")),
+            )
+        }
         Err(e) => return (PrOutcome::Unknown, Some(format!("gh not runnable: {e}"))),
     };
     if !out.status.success() {

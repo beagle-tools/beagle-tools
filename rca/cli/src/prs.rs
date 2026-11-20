@@ -93,14 +93,17 @@ pub fn parse_state_json(json: &str) -> Option<PrState> {
     }
 }
 
+/// Bound on one `gh pr view` poll.
+const GH_POLL_TIMEOUT: Duration = Duration::from_secs(20);
+
 /// Queries one PR's state via `gh`. `None` on any failure — a PR whose
 /// state can't be determined renders as a plain link.
 #[must_use]
 pub fn state_of(url: &str) -> Option<PrState> {
-    let output = gh()?
-        .args(["pr", "view", url, "--json", "state,isDraft"])
-        .output()
-        .ok()?;
+    let mut cmd = gh()?;
+    cmd.args(["pr", "view", url, "--json", "state,isDraft"]);
+    // A hung gh skips this PR for the round; the last state stays shown.
+    let output = beagle_utils::process::output_with_timeout(&mut cmd, GH_POLL_TIMEOUT).ok()?;
     if !output.status.success() {
         return None;
     }
@@ -111,8 +114,7 @@ pub fn state_of(url: &str) -> Option<PrState> {
 #[must_use]
 pub fn gh_available() -> bool {
     gh().is_some_and(|mut gh| {
-        gh.arg("--version")
-            .output()
+        beagle_utils::process::output_with_timeout(gh.arg("--version"), GH_POLL_TIMEOUT)
             .is_ok_and(|output| output.status.success())
     })
 }

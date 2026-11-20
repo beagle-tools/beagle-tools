@@ -18,16 +18,35 @@ pub struct MergeState {
     pub clean: bool,
 }
 
+/// Bound on a git command that talks to the remote or runs hooks
+/// (`fetch`, `push`, `commit`).
+const GIT_REMOTE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
+/// Bound on a local git command.
+const GIT_LOCAL_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
 pub(crate) async fn git(
     args: &[&str],
     dir: &std::path::Path,
 ) -> Result<(bool, String, String), TandemError> {
-    let output = tokio::process::Command::new("git")
-        .env("PATH", augmented_path())
+    let timeout = match args.first() {
+        Some(&("fetch" | "push" | "commit")) => GIT_REMOTE_TIMEOUT,
+        _ => GIT_LOCAL_TIMEOUT,
+    };
+    let mut cmd = tokio::process::Command::new("git");
+    cmd.env("PATH", augmented_path())
         .args(args)
         .current_dir(dir)
-        .output()
+        .kill_on_drop(true);
+    // On expiry the future is dropped, which kills git (kill_on_drop).
+    let output = tokio::time::timeout(timeout, cmd.output())
         .await
+        .map_err(|_| {
+            TandemError::Config(format!(
+                "`git {}` timed out after {}s",
+                args.first().copied().unwrap_or_default(),
+                timeout.as_secs()
+            ))
+        })?
         .map_err(|e| TandemError::Config(format!("failed to run git: {e}")))?;
     Ok((
         output.status.success(),

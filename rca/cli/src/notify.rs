@@ -8,12 +8,12 @@
 //! cache once).
 
 use std::path::PathBuf;
-use std::process::Stdio;
 use std::sync::OnceLock;
+use std::time::Duration;
 
 use beagle_utils::notify::applescript_escape;
 use beagle_utils::paths::xdg_cache_home;
-use beagle_utils::process::{command, which};
+use beagle_utils::process::{command, spawn_bounded, which};
 
 /// The beagle logo, embedded for use as the notification icon.
 const ICON_PNG: &[u8] = include_bytes!("../assets/beagle-icon.png");
@@ -105,12 +105,8 @@ pub fn send(title: &str, body: &str) {
     let Some(program) = which(program) else {
         return;
     };
-    let _ = command(program)
-        .args(args)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn();
+    // Bounded: a stuck notifier is killed and reaped after 10 s.
+    let _ = spawn_bounded(command(program).args(args), Duration::from_secs(10));
 }
 
 #[cfg(test)]

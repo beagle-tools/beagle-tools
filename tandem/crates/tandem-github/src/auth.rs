@@ -65,12 +65,24 @@ impl GithubAuth {
     }
 }
 
+/// Bound on the `gh auth token` lookup.
+const GH_TOKEN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
 async fn gh_cli_token() -> Result<String> {
-    let output = Command::new("gh")
-        .env("PATH", beagle_utils::process::augmented_path())
+    let gh = beagle_utils::process::which("gh").unwrap_or_else(|| "gh".into());
+    let mut cmd = Command::new(gh);
+    cmd.env("PATH", beagle_utils::process::augmented_path())
         .args(["auth", "token"])
-        .output()
+        .kill_on_drop(true);
+    // Bounded: on expiry the future is dropped, which kills gh.
+    let output = tokio::time::timeout(GH_TOKEN_TIMEOUT, cmd.output())
         .await
+        .map_err(|_| {
+            TandemError::Auth(format!(
+                "`gh auth token` timed out after {}s — is GitHub reachable?",
+                GH_TOKEN_TIMEOUT.as_secs()
+            ))
+        })?
         .map_err(|e| {
             if e.kind() == std::io::ErrorKind::NotFound {
                 TandemError::Auth(

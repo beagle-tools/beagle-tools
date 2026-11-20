@@ -6,7 +6,10 @@
 //! `Alacritty`) translate into a clipboard write — including over SSH.
 
 use std::io::{self, Write as _};
-use std::process::{Command, Stdio};
+use std::process::Command;
+use std::time::Duration;
+
+use beagle_utils::process::output_with_input_and_timeout;
 
 /// Clipboard commands to try, in order. First element is the binary name.
 const COMMANDS: &[&[&str]] = &[
@@ -35,24 +38,11 @@ pub fn copy(text: &str) -> io::Result<&'static str> {
 /// Pipes `text` into a spawned command; false if the binary is missing or
 /// the command fails (both mean "try the next mechanism").
 fn pipe_to(cmd: &[&str], text: &str) -> bool {
-    let Ok(mut child) = Command::new(cmd[0])
-        .args(&cmd[1..])
-        .stdin(Stdio::piped())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-    else {
-        return false;
-    };
-    if let Some(stdin) = child.stdin.take() {
-        let mut stdin = stdin;
-        if stdin.write_all(text.as_bytes()).is_err() {
-            let _ = child.kill(); // best effort; the copy already failed
-            let _ = child.wait();
-            return false;
-        }
-    }
-    child.wait().is_ok_and(|status| status.success())
+    let mut command = Command::new(cmd[0]);
+    command.args(&cmd[1..]);
+    // Bounded so a stuck clipboard tool (a hung X server) can't freeze the TUI.
+    output_with_input_and_timeout(&mut command, text.as_bytes(), Duration::from_secs(5))
+        .is_ok_and(|out| out.status.success())
 }
 
 /// Writes the OSC 52 clipboard sequence to stdout. Works from inside the
