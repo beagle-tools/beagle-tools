@@ -169,6 +169,17 @@ for (const app of FRONTENDS) {
   }
 }
 
+// Every action from outside this repo is pinned to a commit SHA
+// (docs/RELEASING.md "Actions are pinned"): a moved tag must not change
+// what runs with the release's write access and signing key.
+for (const f of files.filter((p) => p.startsWith(".github/") && /\.ya?ml$/.test(p))) {
+  for (const m of read(f).matchAll(/^\s*-?\s*uses:\s*(\S+)/gm)) {
+    const ref = m[1];
+    if (ref.startsWith("./")) continue;
+    if (!/@[0-9a-f]{40}$/.test(ref)) fail(`${f}: \`uses: ${ref}\` must be pinned to a commit SHA (tag in a comment)`);
+  }
+}
+
 // The TUI keymap: doc table ⇄ standards/tui-standards.json ⇄ every TUI.
 for (const e of checkTuiStandards(read, files)) fail(e);
 
