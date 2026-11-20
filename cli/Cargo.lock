@@ -175,6 +175,7 @@ dependencies = [
  "beagle-recap",
  "beagle-scout",
  "beagle-standup",
+ "beagle-tui",
  "beagle-utils",
  "qrcode",
  "rqrr",
