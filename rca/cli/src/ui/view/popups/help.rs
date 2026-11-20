@@ -21,7 +21,7 @@ const HELP_ROWS: &[(&str, &str)] = &[
     ("enter / l", "focus the content pane"),
     ("b / esc", "back to the incident list"),
     ("tab / [ / ], ← / →", "cycle tabs"),
-    ("1–8", "jump to a tab"),
+    ("1–9", "jump to a tab"),
     (
         "f",
         "filter: i/x/r/a/v/f status · c/h/m/l sev · p has-PR · s security · / text",
@@ -45,9 +45,9 @@ const HELP_ROWS: &[(&str, &str)] = &[
         "v",
         "visual-line select: extend with j/k · y yanks · v/esc cancel",
     ),
-    ("Y", "yank the incident id to clipboard (/beagle-review)"),
+    ("i", "copy the incident id to clipboard (/beagle-review)"),
     (
-        "e",
+        "x",
         "export RCA to exports/<id>.md (frontmatter + all tabs)",
     ),
     ("E", "open this tab's file in your editor"),
@@ -64,11 +64,12 @@ const HELP_ROWS: &[(&str, &str)] = &[
     ("S", "settings: view + edit the config file"),
     ("A", "agents: switch to the agents monitor (A / esc back)"),
     ("n / p", "next / previous diagram"),
-    ("h / l, ← / →", "pan diagrams horizontally"),
+    ("h / l", "pan wide content (diagrams) sideways"),
     ("space / pgdn / pgup", "page through content"),
+    ("ctrl-d / ctrl-u", "half a page down / up (content)"),
     ("g / G", "top / bottom"),
     ("r", "reload from disk"),
-    ("Q / ctrl-c", "quit"),
+    ("q / Q / ctrl-c", "quit"),
 ];
 
 /// Column width reserved for the keys before the action text.

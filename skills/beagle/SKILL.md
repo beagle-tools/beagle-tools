@@ -168,7 +168,7 @@ write-up has clearly gone quiet.
 
 ## Exporting (deterministic, no LLM involved)
 
-The user can press `e`, or anyone can run
+The user can press `x` in the TUI, or anyone can run
 `beagle rca export <slug> [--out <file>]`, to produce **one** markdown
 document: frontmatter (title/severity/status/dates/systems/tags) + all
 sections + diagrams in code fences with ANSI colors stripped. Same files

@@ -19,7 +19,7 @@ live, which task it is on, what it just did, and how far along the goal is.
 │○ 03 Roll the gateway config out to pr…  ││All traffic enters through the API gateway, which forwards…    │
 │     todo · 0/3 ☑                        ││                                                               │
 ╰─────────────────────────────────────────╯╰───────────────────────────────────────────────────────────────╯
-j/k select · enter read · tab/1-4 tabs · b back · F follow · E edit · ? help · Q quit
+j/k select · enter read · tab/1-4 tabs · b back · F follow · E edit · ? help · q quit
 ```
 
 ## Install
@@ -78,7 +78,7 @@ project, then read a task · `b`/`esc` back · `tab`/`]`, `shift-tab`/`[`,
 `←`/`→` or `1`–`5` switch the Task · Outcome · Session · Project · Log tabs · `space`/`pgdn`,
 `pgup`, `ctrl-d`/`ctrl-u` page · `F` follow (tail the content) · `w` resize the left list (←/→, `0` default,
 `Esc` done) · `E` open the
-shown file in `$VISUAL`/`$EDITOR` · `r` reload · `?` help · `Q`/`ctrl-c` quit.
+shown file in `$VISUAL`/`$EDITOR` · `r` reload · `?` help · `q`/`Q`/`ctrl-c` quit.
 
 The view reloads by itself whenever a file under the store changes. A task
 being worked shows Beagle's spinner and how long since its files last changed

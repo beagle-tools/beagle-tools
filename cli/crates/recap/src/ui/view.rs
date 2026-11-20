@@ -289,7 +289,7 @@ fn draw_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
         )
     } else {
         let hints = match app.shelf {
-            Shelf::Active => " j/k move · tab focus · 1/2/3 summary/diff/comments · o PR · i copy id · R ready · M merge · X close · a archive · A archive view · w resize · ? help · q quit",
+            Shelf::Active => " j/k move · enter/esc focus · tab/1/2/3 summary/diff/comments · o PR · i copy id · D ready · M merge · X close · a archive · A archive view · w resize · ? help · q quit",
             Shelf::Archived => " ARCHIVE · j/k move · 1/2 summary/diff · U restore · A back to PRs · w resize · ? help · q quit",
         };
         Line::styled(hints, Style::default().fg(Color::DarkGray))

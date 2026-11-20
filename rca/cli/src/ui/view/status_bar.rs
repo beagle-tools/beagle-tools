@@ -129,10 +129,10 @@ pub(super) fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     let mut spans = vec![Span::styled(
         match app.focus() {
             Focus::List => {
-                "  j/k select · enter open · ←/→ tabs · f filter · / search · T toolbox · R related · c copy · w resize · r reload · ? help · Q quit"
+                "  j/k select · enter open · ←/→ tabs · f filter · / search · T toolbox · R related · c copy · w resize · r reload · ? help · q quit"
             }
             Focus::Content => {
-                "  j/k line · v select · y yank · ←/→ tabs · / search · F follow · s sidebar · w resize · c copy · b back · ? help · Q quit"
+                "  j/k line · v select · y yank · ←/→ tabs · / search · F follow · s sidebar · w resize · c copy · b back · ? help · q quit"
             }
         },
         Style::default().fg(Color::DarkGray),

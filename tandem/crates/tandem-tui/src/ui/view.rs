@@ -198,7 +198,7 @@ fn draw_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
         (_, Some((msg, true))) => Line::styled(format!(" {msg}"), Style::default().fg(Color::Red)),
         (_, Some((msg, false))) => Line::styled(format!(" {msg}"), Style::default().fg(Color::Green)),
         (_, None) => Line::styled(
-            " a queue · Enter open · z zoom · w resize · p post · A approve · m gone-through · r re-review · ? help · q quit",
+            " a queue · Enter open · z zoom · w resize · P post · A approve · m gone-through · e re-review · r refresh · ? help · q quit",
             Style::default().fg(Color::DarkGray),
         ),
     };

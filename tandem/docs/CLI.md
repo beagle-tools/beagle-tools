@@ -152,11 +152,11 @@ add / `a` ──▶ queued ──claim──▶ reviewing ──ingest──▶ 
   first), **Diff** (your own `delta --side-by-side` when it is
   installed, a plain colored diff otherwise) and **Comments** (each
   with the agent's local history reply under it).
-- **GitHub writes only on a confirmed keypress:** `p` posts the
+- **GitHub writes only on a confirmed keypress:** `P` posts the
   selected comment (a one-line fix on the new side becomes a GitHub
   suggestion), `A` approves. `x` dismisses a comment, `m` marks the PR
-  gone-through, `a` queues another, `r` reviews it again, `?` lists
-  every key.
+  gone-through, `a` queues another, `e` reviews it again, `r` refreshes
+  from GitHub, `?` lists every key.
 
 The TUI keeps **its own store**, `<data dir>/tandem-tui/cache.sqlite3`
 (`$TANDEM_TUI_DB` moves it), not the desktop app's: the app drains its

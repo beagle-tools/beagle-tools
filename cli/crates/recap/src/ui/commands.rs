@@ -140,7 +140,7 @@ impl App {
         };
         if state != PrState::Open {
             self.status = Some(match state {
-                PrState::Draft => format!("{label} is a draft — R marks it ready first"),
+                PrState::Draft => format!("{label} is a draft — D marks it ready first"),
                 _ => format!("{label} is already {state}"),
             });
             return;

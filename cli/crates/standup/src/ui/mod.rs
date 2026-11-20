@@ -206,3 +206,6 @@ impl App {
 #[cfg(test)]
 #[path = "../tests/ui.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "../tests/ui_keymap.rs"]
+mod tests_keymap;

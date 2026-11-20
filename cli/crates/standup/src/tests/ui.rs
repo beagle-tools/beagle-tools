@@ -7,7 +7,7 @@ use crate::wrap;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::fs;
 
-fn key(app: &mut App, code: KeyCode) {
+pub(super) fn key(app: &mut App, code: KeyCode) {
     app.handle_key(KeyEvent::new(code, KeyModifiers::NONE));
 }
 
@@ -26,7 +26,7 @@ fn ticket(id: &str, state: &str) -> TicketManifest {
     }
 }
 
-fn fixture() -> (tempfile::TempDir, Store) {
+pub(super) fn fixture() -> (tempfile::TempDir, Store) {
     let tmp = tempfile::tempdir().unwrap();
     let store = Store::new(tmp.path());
     for d in ["2026-10-23", "2026-10-27"] {
@@ -83,7 +83,7 @@ fn content_cursor_moves_and_the_view_follows() {
     let mut app = App::new(store, None).unwrap();
     app.view.viewport = 10;
     app.view.layout(80);
-    key(&mut app, KeyCode::Tab);
+    key(&mut app, KeyCode::Enter);
     assert_eq!(app.focus, Focus::Content);
     key(&mut app, KeyCode::Char('j'));
     assert_eq!(app.view.cursor, 1);
@@ -112,7 +112,7 @@ fn visual_selection_covers_whole_source_lines() {
     let mut app = App::new(store, None).unwrap();
     app.view.viewport = 10;
     app.view.layout(80);
-    key(&mut app, KeyCode::Tab);
+    key(&mut app, KeyCode::Enter);
     // Find the overview's "0" .. "2" lines (the fixture writes 0..199).
     let start = app
         .view
@@ -303,7 +303,7 @@ fn live_reload_keeps_the_reader_in_place() {
     let mut app = App::new(store.clone(), None).unwrap();
     app.view.viewport = 10;
     app.view.layout(80);
-    key(&mut app, KeyCode::Tab);
+    key(&mut app, KeyCode::Enter);
     for _ in 0..40 {
         key(&mut app, KeyCode::Char('j'));
     }

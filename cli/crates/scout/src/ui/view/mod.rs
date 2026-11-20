@@ -275,9 +275,9 @@ fn draw_status_bar(frame: &mut Frame<'_>, app: &App, area: Rect) {
     } else {
         let hints = match (app.screen, app.focus) {
             _ if app.side.is_active() => "",
-            (Screen::Projects, _) => "j/k select · enter open · ctrl-d/u scroll · E edit · w resize · ? help · Q quit",
+            (Screen::Projects, _) => "j/k select · enter open · ctrl-d/u scroll · E edit · w resize · ? help · q quit",
             (Screen::Tasks, Focus::List) => {
-                "j/k select · enter read · tab/1-5 tabs · b back · F follow · E edit · w resize · ? help · Q quit"
+                "j/k select · enter read · tab/1-5 tabs · b back · F follow · E edit · w resize · ? help · q quit"
             }
             (Screen::Tasks, Focus::Content) => {
                 "j/k scroll · space page · g/G top/bottom · tab/1-5 tabs · b back · F follow · E edit · ?"

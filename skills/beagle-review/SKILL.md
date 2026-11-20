@@ -13,7 +13,7 @@ to edit the workspace. This is the read-only companion to `/beagle`.
 ## 1. Get the id
 
 The user pastes a slug (e.g. `2026-07-16-users-migration-blocked-by-failed-deploy`).
-In the TUI they copy it by selecting the incident and pressing `y` (yank id).
+In the TUI they copy it by selecting the incident and pressing `i` (copy id).
 If they didn't give one, ask for it — or run `beagle rca list` to show the
 choices and let them pick.
 

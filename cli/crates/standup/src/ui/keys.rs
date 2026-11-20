@@ -12,7 +12,7 @@ pub(super) const HELP: &[(&str, &str)] = &[
         "j / k  ↓ / ↑",
         "list: pick an item · write-up: move the line cursor",
     ),
-    ("tab  enter", "switch focus: list ⇄ write-up"),
+    ("enter", "open the write-up (focus it)"),
     ("esc", "end the selection, then back to the list"),
     ("J / K  space", "move through the write-up (from anywhere)"),
     ("ctrl-d / ctrl-u", "half page down / up"),
@@ -32,7 +32,7 @@ pub(super) const HELP: &[(&str, &str)] = &[
     ("r", "reload from disk"),
     pane_resize::HELP,
     ("?", "toggle this help"),
-    ("q  ctrl-c", "quit"),
+    ("q  Q  ctrl-c", "quit"),
 ];
 
 impl App {
@@ -49,9 +49,9 @@ impl App {
             return;
         }
         if self.help {
-            // Any key closes help; q still quits.
+            // Any key closes help; q and Q still quit.
             self.help = false;
-            if key.code == KeyCode::Char('q') {
+            if matches!(key.code, KeyCode::Char('q' | 'Q')) {
                 self.quit = true;
             }
             return;
@@ -65,21 +65,18 @@ impl App {
             return;
         }
         match key.code {
-            KeyCode::Char('q') => self.quit = true,
+            KeyCode::Char('q' | 'Q') => self.quit = true,
             KeyCode::Char('?') => self.help = true,
             KeyCode::Char('w') => self.side.start(),
-            KeyCode::Tab | KeyCode::Enter | KeyCode::BackTab => {
-                self.focus = match self.focus {
-                    Focus::List => Focus::Content,
-                    Focus::Content => Focus::List,
-                };
-                // Entering the write-up puts the cursor on the first visible
-                // line; leaving it ends any selection.
-                if self.focus == Focus::Content {
-                    self.view.enter();
-                } else {
-                    self.view.anchor = None;
-                }
+            // Entering the write-up puts the cursor on the first visible line.
+            KeyCode::Enter if self.focus == Focus::List => {
+                self.focus = Focus::Content;
+                self.view.enter();
+            }
+            // Tab cycles tabs in every beagle TUI; standup has none.
+            KeyCode::Tab | KeyCode::BackTab => {
+                self.status =
+                    Some("no tabs here — enter opens the write-up, esc goes back".to_owned());
             }
             KeyCode::Esc if self.view.anchor.is_some() => self.view.anchor = None,
             KeyCode::Esc => self.focus = Focus::List,
@@ -192,7 +189,7 @@ impl App {
                     self.go_to_report(i);
                 }
             }
-            KeyCode::Char('q') => {
+            KeyCode::Char('q' | 'Q') => {
                 self.picker = None;
                 self.quit = true;
             }

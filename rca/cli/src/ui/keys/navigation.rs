@@ -58,11 +58,17 @@ impl App {
             KeyCode::PageUp => self.move_cursor(-page),
             KeyCode::Char('g') | KeyCode::Home => self.cursor_to_end(false),
             KeyCode::Char('G') | KeyCode::End => self.cursor_to_end(true),
-            // Arrows switch tabs (handled globally); h/l pan diagrams.
+            // Arrows switch tabs (handled globally); h/l pan wide content.
             KeyCode::Char('h') => self.hscroll = self.hscroll.saturating_sub(4),
             KeyCode::Char('l') => self.hscroll = self.hscroll.saturating_add(4),
             _ => {}
         }
+    }
+
+    /// `ctrl-d` / `ctrl-u`: move the content cursor half a page.
+    pub(super) fn half_page(&mut self, down: bool) {
+        let half = isize::try_from((self.viewport.height / 2).max(1)).unwrap_or(1);
+        self.move_cursor(if down { half } else { -half });
     }
 
     pub(super) fn cycle_diagram(&mut self, direction: i8) {

@@ -8,9 +8,9 @@ use crate::ui::testutil::{app_with, press};
 use super::*;
 
 #[test]
-fn e_exports_the_selected_workspace_and_reports_a_short_relative_path() {
+fn x_exports_the_selected_workspace_and_reports_a_short_relative_path() {
     let mut app = app_with(1);
-    press(&mut app, KeyCode::Char('e'));
+    press(&mut app, KeyCode::Char('x'));
     let status = app.status_line().expect("status set").to_owned();
     // Relative path only — a full path was too wide for the status bar.
     assert_eq!(status, "exported to exports/rca-0.md");

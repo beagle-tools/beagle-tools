@@ -29,7 +29,8 @@ pub(crate) enum Flow {
 impl App {
     pub(crate) fn handle_key(&mut self, key: KeyEvent) -> Flow {
         self.status = None;
-        if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
+        let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
+        if ctrl && key.code == KeyCode::Char('c') {
             return Flow::Quit;
         }
         if self.side.is_active() {
@@ -49,9 +50,9 @@ impl App {
             // `A` switches to the agents screen; see `handle_agents_key` for the
             // way back.
             KeyCode::Char('A') => self.toggle_screen(),
-            // Shift-Q only: a plain `q` next to tab/scroll keys quit the app
-            // by accident too easily. Ctrl-C is handled above.
-            KeyCode::Char('Q') => return Flow::Quit,
+            // `q` and `Q` quit, as in every beagle TUI (`docs/CODING_STANDARDS.md`
+            // "Terminal UIs"). Ctrl-C is handled above.
+            KeyCode::Char('q' | 'Q') => return Flow::Quit,
             KeyCode::Char('?') => {
                 self.show_help = true;
                 self.help_filter = None;
@@ -90,32 +91,25 @@ impl App {
             }
             KeyCode::Char('c') => self.copy_current_tab(),
             KeyCode::Char('C') => self.copy_workspace(),
-            // `y` yanks the content line (or visual selection); `Y` yanks
+            // `y` yanks the content line (or visual selection); `i` copies
             // the incident id from anywhere.
             KeyCode::Char('y') => {
                 if self.focus == Focus::Content {
                     self.yank_content();
                 } else {
                     self.status =
-                        Some("open an incident (enter) to yank lines — Y yanks the id".to_owned());
+                        Some("open an incident (enter) to yank lines — i copies the id".to_owned());
                 }
             }
-            KeyCode::Char('Y') => self.copy_id(),
-            KeyCode::Char('e') => self.export_current(),
+            KeyCode::Char('i') => self.copy_id(),
+            KeyCode::Char('x') => self.export_current(),
+            KeyCode::Char('d') if ctrl && self.focus == Focus::Content => self.half_page(true),
+            KeyCode::Char('u') if ctrl && self.focus == Focus::Content => self.half_page(false),
             KeyCode::Char('r') => {
                 let _ = self.reload();
                 self.status = Some("reloaded".to_owned());
             }
-            KeyCode::Char('F') => {
-                self.follow = !self.follow;
-                if self.follow {
-                    self.scroll = u16::MAX; // jump to the tail immediately
-                    self.status =
-                        Some("following — reloads stick to the bottom · esc exits".to_owned());
-                } else {
-                    self.status = Some("follow off".to_owned());
-                }
-            }
+            KeyCode::Char('F') => self.toggle_follow(),
             KeyCode::Tab | KeyCode::Char(']') | KeyCode::Right => {
                 self.switch_tab(self.next_tab());
             }
@@ -177,6 +171,17 @@ impl App {
                 self.status = Some("no diagram to edit — add one under diagrams/ first".to_owned());
                 None
             }
+        }
+    }
+
+    /// `F`: follow (tail -f) the content, or stop following.
+    fn toggle_follow(&mut self) {
+        self.follow = !self.follow;
+        if self.follow {
+            self.scroll = u16::MAX; // jump to the tail immediately
+            self.status = Some("following — reloads stick to the bottom · esc exits".to_owned());
+        } else {
+            self.status = Some("follow off".to_owned());
         }
     }
 
@@ -283,3 +288,7 @@ mod tests_editors;
 #[cfg(test)]
 #[path = "tests/keys_actions.rs"]
 mod tests_actions;
+
+#[cfg(test)]
+#[path = "tests/keys_standard.rs"]
+mod tests_standard;
