@@ -78,8 +78,10 @@ target_repo = "~/GitHub/beagle-tools/beagle-tools"
 # A custom prompt file handed to the headless claude session (see below).
 prompt = "~/.config/beagle/prompts/rca-remediation.txt"
 
-# The --allowedTools list for the session. Empty inherits the runner default.
-allowed_tools = ["Read", "Edit", "Bash(git:*)", "Bash(gh:*)", "Bash(cargo:*)"]
+# The --allowedTools list for the session. Empty inherits your Claude Code
+# settings. The daemon pushes and opens the PR itself, so the agent needs
+# git commit but never `gh` or `git push` (and gets no GitHub credentials).
+allowed_tools = ["Read", "Edit", "Bash(git status:*)", "Bash(git diff:*)", "Bash(git add:*)", "Bash(git commit:*)", "Bash(cargo:*)"]
 
 # How often the trigger is polled. Accepts ms / s / m / h. Defaults to 60s.
 poll_interval = "60s"

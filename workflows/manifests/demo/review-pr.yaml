@@ -3,10 +3,12 @@ name: review-pr
 runner: claude
 workdir: ~
 prompt: prompts/review-pr.md
-# Bash runs `beagle tandem ingest` / `fail`; Read and Write handle the
-# context and the review file. Nothing here can reach GitHub: the context
-# carries the PR, and posting stays a keypress in the TUI.
-allowed_tools: [Bash, Read, Write]
+# Bash is limited to `beagle tandem` (ingest / fail); Read and Write handle
+# the context and the review file. The context carries the PR, so the agent
+# never needs GitHub, and posting stays a keypress in the TUI. `gh` and
+# `git push` are denied outright as a second line of defence.
+allowed_tools: ["Bash(beagle tandem:*)", Read, Write]
+disallowed_tools: ["Bash(gh:*)", "Bash(git push:*)"]
 # The TUI treats a review still running after 45 minutes as dead.
 timeout_minutes: 30
 

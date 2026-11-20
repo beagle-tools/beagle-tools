@@ -13,7 +13,7 @@
 //! trigger = { kind = "rca-status", status = "agent" }
 //! target_repo = "~/GitHub/beagle-tools/beagle-tools"
 //! prompt = "~/.config/beagle/prompts/rca-remediation.txt"
-//! allowed_tools = ["Read", "Edit", "Bash(git:*)", "Bash(gh:*)"]
+//! allowed_tools = ["Read", "Edit", "Bash(git add:*)", "Bash(git commit:*)"]
 //! poll_interval = "60s"
 //! max_concurrent = 2
 //! ```

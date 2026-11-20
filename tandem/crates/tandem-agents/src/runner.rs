@@ -128,6 +128,9 @@ async fn run_process(
     // Finder-launched apps get the bare system PATH — make sure the
     // runner CLIs installed via Homebrew/npm are findable.
     command.env("PATH", beagle_utils::process::augmented_path());
+    // The agent reviews; Tandem does every GitHub write itself, on a click.
+    // So the agent gets no token, a logged-out `gh` and no git credentials.
+    beagle_utils::agent_env::deny_github(command.as_std_mut(), &req.run_dir.join("gh-empty"))?;
     command.args(&cmd.args);
     if cmd.prompt_in_argv {
         command.arg(&req.prompt);
