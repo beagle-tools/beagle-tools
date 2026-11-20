@@ -2,9 +2,11 @@
 //! only two writes — posting a comment you picked, and approving. Both
 //! writes run solely from an explicit, confirmed keypress in the TUI.
 //!
-//! The account can be pinned by `github_user` in the config: with more
+//! Writes go out as a named account (`gh auth token -u <user>`): with more
 //! than one `gh` account logged in, plain `gh auth token` answers with
-//! whichever is active, which may not be the one you review as.
+//! whichever is active, which may not be the one you review as. The TUI
+//! picks the account (`github_user` in the config, or it asks) — see
+//! `ui::account`.
 
 use tandem_cache::Cache;
 use tandem_core::diff_parse::parse_unified_diff;
@@ -18,7 +20,14 @@ use crate::pr_ref::PrRef;
 
 /// A client authenticated as the configured account.
 pub async fn connect(config: &Config) -> Result<GithubClient> {
-    let auth = match &config.github_user {
+    connect_as(config.github_user.as_deref()).await
+}
+
+/// A client authenticated as `user` (`gh auth token -u <user>`), or as
+/// gh's active account when `None`. Writes always name the user: the TUI
+/// never posts or approves through `None`.
+pub async fn connect_as(user: Option<&str>) -> Result<GithubClient> {
+    let auth = match user {
         Some(user) => GithubAuth::Token {
             token: token_for(user).await?,
         },
@@ -31,33 +40,31 @@ pub async fn connect(config: &Config) -> Result<GithubClient> {
     .await
 }
 
-/// Bound on the `gh auth token` lookup.
+/// Bound on one `gh auth` call.
 const GH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 
 async fn token_for(user: &str) -> Result<String> {
     let owned = user.to_owned();
     // `beagle_utils::gh` is blocking (bounded, killed on expiry), so it runs
     // off the runtime's thread.
-    let out = tokio::task::spawn_blocking(move || {
-        beagle_utils::gh::run(&["auth", "token", "-u", &owned], GH_TIMEOUT)
-    })
-    .await
-    .map_err(|e| TandemError::Auth(format!("`gh auth token -u {user}` did not finish: {e}")))?;
-    let token = match out {
-        Ok(stdout) => stdout.trim().to_owned(),
-        Err(beagle_utils::gh::Error::Failed(stderr)) => {
-            return Err(TandemError::Auth(format!(
-                "`gh auth token -u {user}` failed — is {user} logged in to gh? ({stderr})"
-            )))
-        }
-        Err(e) => return Err(TandemError::Auth(format!("`gh auth token -u {user}`: {e}"))),
-    };
-    if token.is_empty() {
-        return Err(TandemError::Auth(format!(
+    let out = tokio::task::spawn_blocking(move || beagle_utils::gh::token_for(&owned, GH_TIMEOUT))
+        .await
+        .map_err(|e| TandemError::Auth(format!("`gh auth token -u {user}` did not finish: {e}")))?;
+    out.map_err(|e| match e {
+        beagle_utils::gh::Error::Failed(stderr) => TandemError::Auth(format!(
+            "`gh auth token -u {user}` failed — is {user} logged in to gh? ({stderr})"
+        )),
+        beagle_utils::gh::Error::Unexpected(_) => TandemError::Auth(format!(
             "`gh auth token -u {user}` printed no token — is {user} logged in to gh?"
-        )));
-    }
-    Ok(token)
+        )),
+        e => TandemError::Auth(format!("`gh auth token -u {user}`: {e}")),
+    })
+}
+
+/// The github.com accounts gh is logged into (`gh auth status`).
+pub fn accounts() -> Result<Vec<beagle_utils::gh::Account>> {
+    beagle_utils::gh::accounts(GH_TIMEOUT)
+        .map_err(|e| TandemError::Auth(format!("can't list gh's accounts: {e}")))
 }
 
 /// Fetches the PR's detail (with every comment and review on it) and

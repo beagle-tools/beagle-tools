@@ -10,7 +10,7 @@ use ratatui::widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragra
 use ratatui::Frame;
 
 use super::keys::HELP;
-use super::{tabs, Action, App, Focus, Mode, Tab};
+use super::{account, tabs, Action, App, Focus, Mode, Tab};
 use crate::state::{Row, Stage};
 use crate::verdict::Verdict;
 
@@ -30,6 +30,7 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App) {
     match &app.mode {
         Mode::Help => chrome::draw_help(frame, HELP, HelpFilter::Off),
         Mode::Confirm(action) => draw_confirm(frame, app, action),
+        Mode::Pick { sel, then } => account::draw_picker(frame, app, *sel, then.as_ref()),
         Mode::Normal | Mode::Input(_) => {}
     }
 }
@@ -188,16 +189,22 @@ fn draw_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
         let tone = if *error { Tone::Error } else { Tone::Ok };
         (m.as_str(), tone)
     });
+    // Who the next post or approval goes out as, always on the right.
+    let badge = account::badge(app);
+    let width = u16::try_from(badge.content.chars().count()).unwrap_or(u16::MAX);
+    let [left, right] =
+        Layout::horizontal([Constraint::Min(1), Constraint::Length(width)]).areas(area);
     chrome::draw_footer(
         frame,
-        area,
-        "a queue · Enter open · z zoom · w resize · P post · A approve · m gone-through · e re-review · r refresh · ? help · q quit",
+        left,
+        "a queue · Enter open · z zoom · w resize · P post · A approve · u account · m gone-through · e re-review · r refresh · ? help · q quit",
         status,
         app.pane.is_active(),
     );
+    frame.render_widget(Paragraph::new(Line::from(badge)), right);
 }
 
-fn centered(area: Rect, width: u16, height: u16) -> Rect {
+pub(super) fn centered(area: Rect, width: u16, height: u16) -> Rect {
     let w = width.min(area.width.saturating_sub(2));
     let h = height.min(area.height.saturating_sub(2));
     Rect {
@@ -209,11 +216,8 @@ fn centered(area: Rect, width: u16, height: u16) -> Rect {
 }
 
 fn draw_confirm(frame: &mut Frame<'_>, app: &App, action: &Action) {
-    let account = app
-        .config
-        .github_user
-        .clone()
-        .unwrap_or_else(|| "gh's active account".to_owned());
+    // A confirmation only opens once an account is chosen.
+    let account = app.account.as_deref().unwrap_or("?");
     let (title, text) = match action {
         Action::Post { preview, .. } => (
             format!(" Post this comment to GitHub as {account}? "),

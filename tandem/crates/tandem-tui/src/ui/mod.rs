@@ -6,6 +6,7 @@
 //! GitHub work (fetch, post, approve) runs on [`worker`] so the screen
 //! never waits on the network.
 
+mod account;
 mod diff;
 mod keys;
 mod tabs;
@@ -78,6 +79,12 @@ pub enum Mode {
     /// Typing a PR to queue.
     Input(String),
     Confirm(Action),
+    /// Choosing the gh account writes go out as; `then` is the write that
+    /// asked (its confirmation follows the choice).
+    Pick {
+        sel: usize,
+        then: Option<Action>,
+    },
 }
 
 /// Everything shown for the selected PR.
@@ -118,7 +125,16 @@ pub struct App {
     /// The list's width and `w`'s resize mode (not saved across runs).
     pub pane: SideResize,
     pub diff: diff::DiffCache,
-    worker: Option<Sender<worker::Cmd>>,
+    /// The gh account posts and approvals go out as; `None` until one is
+    /// configured, chosen, or gh turns out to have only one (see
+    /// [`account`]).
+    pub account: Option<String>,
+    /// gh's github.com accounts; `None` until gh answers.
+    pub accounts: Option<Vec<beagle_utils::gh::Account>>,
+    /// The config file a chosen account is saved to; `None` keeps the
+    /// choice for this session only.
+    pub config_file: Option<PathBuf>,
+    worker: Option<Sender<worker::Job>>,
     done: Option<Receiver<worker::Done>>,
 }
 
@@ -134,6 +150,9 @@ impl App {
     pub fn new(cache: Cache, config: Config) -> Self {
         Self {
             cache,
+            account: account::resolve(config.github_user.as_deref(), None),
+            accounts: None,
+            config_file: None,
             config,
             rows: Vec::new(),
             sel: 0,
@@ -158,13 +177,21 @@ impl App {
 
     /// Starts the GitHub worker on its own store connection.
     pub fn start_worker(&mut self, db: PathBuf) {
-        let (tx, rx) = worker::spawn(db, self.config.clone());
+        let (tx, rx) = worker::spawn(db);
         self.worker = Some(tx);
         self.done = Some(rx);
+        self.send(worker::Cmd::Accounts);
     }
 
+    /// Sends `cmd` to the worker. Reads go out as the chosen account (gh's
+    /// active one while none is chosen; reads are harmless); writes carry
+    /// their own account.
     pub fn send(&mut self, cmd: worker::Cmd) {
-        let sent = self.worker.as_ref().is_some_and(|w| w.send(cmd).is_ok());
+        let job = worker::Job {
+            reader: self.account.clone(),
+            cmd,
+        };
+        let sent = self.worker.as_ref().is_some_and(|w| w.send(job).is_ok());
         if !sent {
             self.error("the GitHub worker is not running");
         }
@@ -176,14 +203,29 @@ impl App {
             return false;
         };
         let finished: Vec<_> = rx.try_iter().collect();
-        for done in &finished {
+        let any = !finished.is_empty();
+        for done in finished {
             match done {
                 worker::Done::Ok(msg) => self.info(msg),
                 worker::Done::Err(msg) => self.error(msg),
+                worker::Done::Accounts(list) => self.set_accounts(list),
                 worker::Done::Quiet => {}
             }
         }
-        !finished.is_empty()
+        any
+    }
+
+    /// Stands in for the worker in tests: what the UI sends, and a way to
+    /// answer.
+    #[cfg(test)]
+    pub(crate) fn fake_worker(
+        &mut self,
+    ) -> (std::sync::mpsc::Receiver<worker::Job>, Sender<worker::Done>) {
+        let (tx, jobs) = std::sync::mpsc::channel();
+        let (done, rx) = std::sync::mpsc::channel();
+        self.worker = Some(tx);
+        self.done = Some(rx);
+        (jobs, done)
     }
 
     /// Asks the worker to re-check every PR GitHub could still change:

@@ -2,7 +2,7 @@
 //! (`docs/CODING_STANDARDS.md` "Terminal UIs"): j/k move, Enter/l opens,
 //! Esc/h goes back, Tab and 1–3 switch tabs, r reloads, ? for help. Both
 //! GitHub writes are uppercase (`P` post, `A` approve) and go through a y/n
-//! confirmation first.
+//! confirmation first; `u` picks the gh account they go out as.
 
 use beagle_tui::pane_resize;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -35,6 +35,7 @@ pub const HELP: &[(&str, &str)] = &[
     ("P", "post the selected comment to GitHub (asks first)"),
     ("x", "dismiss / restore the selected comment"),
     ("A", "approve the PR on GitHub (asks first)"),
+    ("u", "choose the gh account posts and approvals use (saved)"),
     ("m", "mark the PR gone-through / not"),
     ("a", "queue a PR (URL or owner/repo#n)"),
     ("e", "review the PR again"),
@@ -62,6 +63,7 @@ impl App {
             Mode::Help => {}
             Mode::Input(text) => self.input_key(key, text),
             Mode::Confirm(action) => self.confirm_key(key, action),
+            Mode::Pick { sel, then } => self.pick_key(key, sel, then),
             Mode::Normal => return self.normal_key(key, ctrl),
         }
         Flow::Continue
@@ -94,6 +96,7 @@ impl App {
             }
             KeyCode::Char('d') if ctrl => self.scroll_by(half, true),
             KeyCode::Char('u') if ctrl => self.scroll_by(half, false),
+            KeyCode::Char('u') => self.open_picker(None),
             _ if self.focus == Focus::List => self.list_key(key),
             _ => self.content_key(key),
         }
@@ -158,16 +161,23 @@ impl App {
 
     fn confirm_key(&mut self, key: KeyEvent, action: Action) {
         match key.code {
-            KeyCode::Char('y' | 'Y') => match action {
-                Action::Post { comment_id, .. } => {
-                    self.info("posting…");
-                    self.send(Cmd::Post(comment_id));
+            KeyCode::Char('y' | 'Y') => {
+                // Never gh's active account: no chosen account, no write.
+                let Some(user) = self.account.clone() else {
+                    self.open_picker(Some(action));
+                    return;
+                };
+                match action {
+                    Action::Post { comment_id, .. } => {
+                        self.info(format!("posting as {user}…"));
+                        self.send(Cmd::Post { comment_id, user });
+                    }
+                    Action::Approve(pr) => {
+                        self.info(format!("approving {} as {user}…", pr.label()));
+                        self.send(Cmd::Approve { pr, user });
+                    }
                 }
-                Action::Approve(pr) => {
-                    self.info(format!("approving {}…", pr.label()));
-                    self.send(Cmd::Approve(pr));
-                }
-            },
+            }
             KeyCode::Char('n' | 'N') | KeyCode::Esc => self.info("cancelled"),
             _ => self.mode = Mode::Confirm(action),
         }
@@ -245,11 +255,11 @@ impl App {
             self.info("already posted");
             return;
         }
-        let preview = gh::github_body(c);
-        self.mode = Mode::Confirm(Action::Post {
+        let action = Action::Post {
             comment_id: c.id.clone(),
-            preview,
-        });
+            preview: gh::github_body(c),
+        };
+        self.confirm_as_account(action);
     }
 
     fn ask_approve(&mut self) {
@@ -258,7 +268,8 @@ impl App {
             self.error("the agent hasn't finished reviewing this PR yet");
             return;
         }
-        self.mode = Mode::Confirm(Action::Approve(row.pr.clone()));
+        let action = Action::Approve(row.pr.clone());
+        self.confirm_as_account(action);
     }
 
     fn toggle_dismissed(&mut self) {

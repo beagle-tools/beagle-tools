@@ -4,25 +4,44 @@
 //! The worker has its own store connection; the UI sees its writes on
 //! the next reload.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, Sender};
 
+use beagle_utils::gh::Account;
 use tandem_cache::{Cache, ReviewStore, ReviewTriage};
 use tandem_core::github::PrState;
 use tandem_core::{Result, TandemError};
 use tandem_github::GithubClient;
 
-use crate::config::Config;
 use crate::gh;
 use crate::pr_ref::PrRef;
+
+/// One piece of work. Reads go out as `reader` (gh's active account when
+/// `None`); writes name their own account and never fall back.
+#[derive(Debug, Clone)]
+pub struct Job {
+    pub reader: Option<String>,
+    pub cmd: Cmd,
+}
 
 #[derive(Debug, Clone)]
 pub enum Cmd {
     Fetch(PrRef),
-    Post(String),
-    Approve(PrRef),
+    /// Post the comment with this id, as `user`.
+    Post {
+        comment_id: String,
+        user: String,
+    },
+    /// Approve the PR, as `user`.
+    Approve {
+        pr: PrRef,
+        user: String,
+    },
     /// The background merged/closed check (see `term::CHECK_STATES`).
     CheckStates(Vec<PrRef>),
+    /// List the accounts gh is logged into.
+    Accounts,
 }
 
 #[derive(Debug, Clone)]
@@ -32,10 +51,12 @@ pub enum Done {
     /// Finished with nothing worth a status line (a check that found no
     /// change). The UI still reloads, so stage changes show.
     Quiet,
+    /// gh's github.com accounts.
+    Accounts(Vec<Account>),
 }
 
-pub fn spawn(db: PathBuf, config: Config) -> (Sender<Cmd>, Receiver<Done>) {
-    let (tx, cmds) = mpsc::channel::<Cmd>();
+pub fn spawn(db: PathBuf) -> (Sender<Job>, Receiver<Done>) {
+    let (tx, jobs) = mpsc::channel::<Job>();
     let (done, rx) = mpsc::channel();
     std::thread::spawn(move || {
         let setup = Cache::open(&db).and_then(|cache| {
@@ -52,21 +73,31 @@ pub fn spawn(db: PathBuf, config: Config) -> (Sender<Cmd>, Receiver<Done>) {
                 return;
             }
         };
-        let mut client: Option<GithubClient> = None;
-        for cmd in cmds {
-            let result = rt.block_on(async {
-                if client.is_none() {
-                    client = Some(gh::connect(&config).await?);
+        // One client per account, made on first use.
+        let mut clients: HashMap<Option<String>, GithubClient> = HashMap::new();
+        for job in jobs {
+            let msg = if matches!(job.cmd, Cmd::Accounts) {
+                match gh::accounts() {
+                    Ok(list) => Done::Accounts(list),
+                    Err(e) => Done::Err(e.to_string()),
                 }
-                match &client {
-                    Some(c) => handle(&cache, c, &cmd).await,
-                    None => Err(TandemError::Auth("no GitHub client".into())),
+            } else {
+                let account = acting_as(&job);
+                let result = rt.block_on(async {
+                    if !clients.contains_key(&account) {
+                        let client = gh::connect_as(account.as_deref()).await?;
+                        clients.insert(account.clone(), client);
+                    }
+                    match clients.get(&account) {
+                        Some(c) => handle(&cache, c, &job.cmd).await,
+                        None => Err(TandemError::Auth("no GitHub client".into())),
+                    }
+                });
+                match result {
+                    Ok(msg) if msg.is_empty() => Done::Quiet,
+                    Ok(msg) => Done::Ok(msg),
+                    Err(e) => Done::Err(e.to_string()),
                 }
-            });
-            let msg = match result {
-                Ok(msg) if msg.is_empty() => Done::Quiet,
-                Ok(msg) => Done::Ok(msg),
-                Err(e) => Done::Err(e.to_string()),
             };
             if done.send(msg).is_err() {
                 return; // the UI is gone
@@ -76,32 +107,41 @@ pub fn spawn(db: PathBuf, config: Config) -> (Sender<Cmd>, Receiver<Done>) {
     (tx, rx)
 }
 
+/// The account a job runs as: a write's own, else the reader.
+pub fn acting_as(job: &Job) -> Option<String> {
+    match &job.cmd {
+        Cmd::Post { user, .. } | Cmd::Approve { user, .. } => Some(user.clone()),
+        _ => job.reader.clone(),
+    }
+}
+
 async fn handle(cache: &Cache, client: &GithubClient, cmd: &Cmd) -> Result<String> {
     match cmd {
         Cmd::Fetch(pr) => {
             gh::fetch(client, cache, pr).await?;
             Ok(format!("fetched {}", pr.label()))
         }
-        Cmd::Post(id) => {
+        Cmd::Post { comment_id, user } => {
             let comment = cache
-                .get_comment(id)?
+                .get_comment(comment_id)?
                 .ok_or_else(|| TandemError::Cache("that comment is gone".into()))?;
             if comment.posted_github_id.is_some() {
                 return Ok("already posted".to_owned());
             }
             let github_id = gh::post_comment(client, &comment).await?;
-            cache.set_comment_posted(id, github_id)?;
+            cache.set_comment_posted(comment_id, github_id)?;
             Ok(format!(
-                "posted to GitHub ({}:{})",
+                "posted to GitHub as {user} ({}:{})",
                 comment.path, comment.line
             ))
         }
-        Cmd::Approve(pr) => {
+        Cmd::Approve { pr, user } => {
             gh::approve(client, pr).await?;
             cache.set_approved(&pr.repo.slug(), pr.number)?;
-            Ok(format!("approved {}", pr.label()))
+            Ok(format!("approved {} as {user}", pr.label()))
         }
         Cmd::CheckStates(prs) => check_states(cache, client, prs).await,
+        Cmd::Accounts => Ok(String::new()),
     }
 }
 

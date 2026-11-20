@@ -16,8 +16,10 @@ use std::time::Duration;
 
 use crate::process;
 
+mod auth;
 mod pr;
 
+pub use auth::{parse_status_json, parse_status_text, Account};
 pub use pr::{parse_pr_state, PrState};
 
 /// A sensible bound on one `gh` API call (`pr view`, `api`, `auth token`).
@@ -115,6 +117,58 @@ fn pr_state_from(
     }
     let json = run_from(gh, &args, timeout)?;
     parse_pr_state(&json).ok_or_else(|| Error::Unexpected(json.trim().to_owned()))
+}
+
+/// The github.com accounts `gh` is logged into (`gh auth status`), in
+/// gh's order, each marked active or not. Empty when none is logged in.
+///
+/// Uses `--json hosts`, falling back to the plain text for a `gh` too old
+/// for it. `gh auth status` exits non-zero when any account has a problem
+/// (an expired token), so the output is read whatever the exit status.
+///
+/// # Errors
+/// [`Error::Launch`] / [`Error::TimedOut`] as [`output`]; [`Error::Failed`]
+/// when `gh` printed nothing it could be read from.
+pub fn accounts(timeout: Duration) -> Result<Vec<Account>, Error> {
+    accounts_from(&program(), timeout)
+}
+
+fn accounts_from(gh: &Path, timeout: Duration) -> Result<Vec<Account>, Error> {
+    let out = output_from(gh, &["auth", "status", "--json", "hosts"], timeout)?;
+    if let Some(accounts) = parse_status_json(&String::from_utf8_lossy(&out.stdout)) {
+        return Ok(accounts);
+    }
+    // Older gh: no `--json` here. Its text goes to stderr in some versions.
+    let out = output_from(gh, &["auth", "status"], timeout)?;
+    let text = format!(
+        "{}\n{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let accounts = parse_status_text(&text);
+    if accounts.is_empty() && !out.status.success() && !text.contains("not logged") {
+        return Err(Error::Failed(text.trim().to_owned()));
+    }
+    Ok(accounts)
+}
+
+/// The token for `login` (`gh auth token -u <login>`), trimmed: what a write
+/// as that account must use, whichever account is active.
+///
+/// # Errors
+/// As [`run`]; [`Error::Unexpected`] when gh printed no token.
+pub fn token_for(login: &str, timeout: Duration) -> Result<String, Error> {
+    token_from(&program(), login, timeout)
+}
+
+fn token_from(gh: &Path, login: &str, timeout: Duration) -> Result<String, Error> {
+    let token = run_from(gh, &["auth", "token", "-u", login], timeout)?
+        .trim()
+        .to_owned();
+    if token.is_empty() {
+        return Err(Error::Unexpected(format!("no token for {login}")));
+    }
+    Ok(token)
 }
 
 fn output_from(gh: &Path, args: &[&str], timeout: Duration) -> Result<Output, Error> {

@@ -55,7 +55,13 @@ fn app() -> App {
     crate::jobs::ingest(&cache, "r1", &review).unwrap();
     std::thread::sleep(std::time::Duration::from_millis(5));
     cache.enqueue_review("o/r", 2, None, "test").unwrap();
-    let mut app = App::new(cache, Config::default());
+    // Configured, so writes go straight to their confirmation; the
+    // no-account paths are in `account_tests.rs`.
+    let config = Config {
+        github_user: Some("octo-work".into()),
+        ..Config::default()
+    };
+    let mut app = App::new(cache, config);
     app.reload().unwrap();
     app
 }
@@ -331,3 +337,6 @@ fn tandem_github_writes_are_uppercase_and_ask_first() {
         assert!(write.chars().all(|c| c.is_ascii_uppercase()), "{write}");
     }
 }
+
+#[path = "account_tests.rs"]
+mod account_tests;
