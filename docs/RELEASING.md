@@ -87,7 +87,8 @@ plan ─┬─ tandem-desktop ────────────────�
 - **build** jobs upload into that draft:
   - `_release-tauri.yml` builds the desktop apps with tauri-action. It signs
     the updater bundles, merges `latest.json`, and adds stable-named copies of
-    the installers.
+    the installers, each with a `<asset>.sha256` that Tandem's `install.sh`
+    and `install.ps1` check before installing.
   - `_release-cli.yml` cross-builds the CLIs. It runs a `--version` smoke
     test on native targets, then uploads tarballs plus `.sha256` files. It
     sets `BEAGLE_RELEASE_TARGET` to the target, which marks the unified
@@ -212,6 +213,15 @@ To render locally, see the header of `scripts/release/homebrew.sh`.
 - **Pull a broken release:** mark the versioned release as a pre-release, or
   delete it. Then re-point the mirror by re-running the publish job of the
   last good version's workflow run.
+
+## Actions are pinned
+
+Every `uses:` of an action outside this repo names a full commit SHA, with
+its release tag in a comment (`actions/checkout@<sha> # v4.4.0`). A moved or
+hijacked tag can't change what runs with the release's write access and
+signing key. To upgrade one, resolve the new tag's commit
+(`gh api repos/<owner>/<action>/commits/<tag> --jq .sha`) and update the SHA
+and the comment together.
 
 ## Secrets
 

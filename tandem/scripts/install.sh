@@ -18,6 +18,25 @@ fail() {
   exit 1
 }
 
+# fetch <asset> <dest>: downloads the asset and checks it against the
+# release's <asset>.sha256 before anything installs it.
+fetch() {
+  curl -fSL --progress-bar -o "$2" "$BASE/$1"
+  curl -fsSL -o "$tmp/$1.sha256" "$BASE/$1.sha256" ||
+    fail "no checksum published for $1 — refusing to install an unverified download"
+  want=$(cut -d' ' -f1 <"$tmp/$1.sha256")
+  if command -v sha256sum >/dev/null 2>&1; then
+    got=$(sha256sum "$2" | cut -d' ' -f1)
+  else
+    got=$(shasum -a 256 "$2" | cut -d' ' -f1)
+  fi
+  [ -n "$want" ] && [ "$want" = "$got" ] || {
+    rm -f "$2"
+    fail "checksum mismatch for $1 (expected $want, got $got) — download discarded"
+  }
+  say "checksum ok"
+}
+
 os=$(uname -s)
 arch=$(uname -m)
 tmp=$(mktemp -d)
@@ -31,7 +50,7 @@ case "$os" in
       *) fail "unsupported macOS architecture: $arch" ;;
     esac
     say "downloading $asset…"
-    curl -fSL --progress-bar -o "$tmp/Tandem.dmg" "$BASE/$asset"
+    fetch "$asset" "$tmp/Tandem.dmg"
     say "installing to /Applications…"
     mount=$(hdiutil attach -nobrowse -readonly "$tmp/Tandem.dmg" |
       awk -F'\t' '/\/Volumes\//{print $NF; exit}')
@@ -48,7 +67,7 @@ case "$os" in
     if command -v dpkg >/dev/null 2>&1; then
       asset="Tandem-linux-amd64.deb"
       say "downloading $asset…"
-      curl -fSL --progress-bar -o "$tmp/tandem.deb" "$BASE/$asset"
+      fetch "$asset" "$tmp/tandem.deb"
       say "installing with apt (may prompt for sudo)…"
       if command -v apt-get >/dev/null 2>&1; then
         sudo apt-get install -y "$tmp/tandem.deb"
@@ -61,7 +80,8 @@ case "$os" in
       dest="${XDG_DATA_HOME:-$HOME/.local}/bin"
       mkdir -p "$dest"
       say "downloading $asset…"
-      curl -fSL --progress-bar -o "$dest/tandem" "$BASE/$asset"
+      fetch "$asset" "$tmp/tandem.AppImage"
+      mv "$tmp/tandem.AppImage" "$dest/tandem"
       chmod +x "$dest/tandem"
       say "done — installed to $dest/tandem (make sure it's on your PATH)."
     fi

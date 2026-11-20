@@ -53,5 +53,17 @@ case "$platform" in
     ;;
 esac
 
+# A `<asset>.sha256` beside each installer (`<hash>  <name>`), mirrored to
+# `-latest` with it, so the install scripts can verify what they download.
+for f in "$stage"/*; do
+  name=$(basename "$f")
+  if command -v sha256sum >/dev/null 2>&1; then
+    hash=$(sha256sum "$f" | cut -d' ' -f1)
+  else
+    hash=$(shasum -a 256 "$f" | cut -d' ' -f1)
+  fi
+  printf '%s  %s\n' "$hash" "$name" >"$f.sha256"
+done
+
 ls -l "$stage"
 gh release upload "$tag" "$stage"/* --clobber
