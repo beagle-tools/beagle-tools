@@ -159,25 +159,29 @@ add / `a` ──▶ queued ──claim──▶ reviewing ──ingest──▶ 
   from GitHub, `?` lists every key.
 
 The TUI keeps **its own store**, `<data dir>/tandem-tui/cache.sqlite3`
-(`$TANDEM_TUI_DB` moves it), not the desktop app's: the app drains its
+(`$BEAGLE_TANDEM_ROOT` or config `root` name a folder for its
+`cache.sqlite3`; the older `$TANDEM_TUI_DB` still names the file), not the
+desktop app's: the app drains its
 own review queue, and sharing a file would have it race the reviewer
 for every PR you queue. `--db` and `--dev` never apply to it;
 `tandem-cli paths` shows it under `review_tui`.
 
 ### Config
 
-All optional, in `~/.config/tandem-tui/config.yaml`
-(`$TANDEM_TUI_CONFIG` moves it). Unknown keys are an error, and so is a
-file that doesn't parse: silently ignoring it could post as the wrong
-account.
+All optional, in `~/.config/beagle/tandem.toml` (`$XDG_CONFIG_HOME`
+honoured; `$TANDEM_TUI_CONFIG` names another file). The older
+`~/.config/tandem-tui/config.yaml` is still read while the new file doesn't
+exist. A file with unknown keys or that doesn't parse prints a warning
+naming it and the TUI runs on defaults — so it acts as gh's active account
+until you fix it.
 
-```yaml
+```toml
 # The gh account reads, posts and approvals use (`gh auth token -u`).
 # Omit to use gh's active account.
-github_user: octocat
+github_user = "octocat"
 # Run after a PR is queued, so the review starts now rather than on the
 # reviewer's next scheduled tick. Omit to only queue.
-kick: [agentctl, run, demo/review-queue]
+kick = ["agentctl", "run", "demo/review-queue"]
 ```
 
 GitHub access goes through the `gh` CLI: log in with `gh auth login`

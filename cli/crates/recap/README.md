@@ -43,9 +43,12 @@ A PR is a URL or `owner/repo#n`; an ID is the recap's folder name,
 
 ## Where recaps live
 
-In `recaps/` under a store root: `--root DIR`, else `$RECAP_ROOT`, else
-`root = "…"` in `~/.config/recap/config.toml`, else the nearest parent
-directory that has `recaps/`, else the current directory.
+In `recaps/` under a store root: `--root DIR`, else `$BEAGLE_RECAP_ROOT`
+(or the older `$RECAP_ROOT`), else `root = "…"` in
+`~/.config/beagle/recap.toml` (the older `~/.config/recap/config.toml` is
+still read while the new file doesn't exist), else the nearest parent
+directory that has `recaps/`, else the current directory. A config file that
+doesn't parse prints a warning and recap runs on defaults.
 
 The same config file controls what the Comments tab ignores:
 

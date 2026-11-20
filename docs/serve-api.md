@@ -97,8 +97,10 @@ beagle serve uninstall
 ```
 
 The agent runs `beagle serve` from your home directory with your `PATH`,
-plus any of `SCOUT_ROOT`, `RECAP_ROOT`, `STANDUP_ROOT`, `BEAGLE_CONFIG`,
-`TANDEM_TUI_DB`, `XDG_CONFIG_HOME` and `XDG_DATA_HOME` set when you ran
+plus any of `BEAGLE_SCOUT_ROOT`, `BEAGLE_RECAP_ROOT`, `BEAGLE_STANDUP_ROOT`,
+`BEAGLE_RCA_ROOT`, `BEAGLE_TANDEM_ROOT`, `SCOUT_ROOT`, `RECAP_ROOT`,
+`STANDUP_ROOT`, `BEAGLE_CONFIG`, `TANDEM_TUI_DB`, `XDG_CONFIG_HOME` and
+`XDG_DATA_HOME` set when you ran
 `install`, so it reads the stores your shell's `beagle` commands do. Logs:
 `~/.local/state/beagle/serve/serve.{out,err}.log`; the first lines name the
 store each tool resolved to.
@@ -159,8 +161,9 @@ No token. For liveness checks (`curl`, launchd, the app before pairing).
 
 ## Scout
 
-Reads the store `beagle scout root` names (`$SCOUT_ROOT`, else `root` in
-`~/.config/scout/config.toml`, else `~/.scout`). The server never runs
+Reads the store `beagle scout root` names (`$BEAGLE_SCOUT_ROOT` or `$SCOUT_ROOT`, else the
+nearest `.scout-store`, else `root` in `~/.config/beagle/scout.toml`, else
+`~/.scout`). The server never runs
 scout's auto-pause sweep: a read never changes a task.
 
 ### `GET /v1/scout/projects`
@@ -347,8 +350,8 @@ does not exist yet.
 
 ## Recap
 
-Reads the store `beagle recap` resolves (`$RECAP_ROOT`, else `root` in
-`~/.config/recap/config.toml`, else the nearest directory holding
+Reads the store `beagle recap` resolves (`$BEAGLE_RECAP_ROOT` or `$RECAP_ROOT`, else `root` in
+`~/.config/beagle/recap.toml`, else the nearest directory holding
 `recaps/`).
 
 ### `GET /v1/recap?archived=false`
@@ -458,8 +461,8 @@ exists; `current` is `false` when people replied after it was written.
 
 ## Standup
 
-Reads the store `beagle standup` resolves (`$STANDUP_ROOT`, else `root` in
-`~/.config/standup/config.toml`, else the nearest directory holding
+Reads the store `beagle standup` resolves (`$BEAGLE_STANDUP_ROOT` or `$STANDUP_ROOT`, else `root` in
+`~/.config/beagle/standup.toml`, else the nearest directory holding
 `standups/`).
 
 ### `GET /v1/standup`

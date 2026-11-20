@@ -34,8 +34,9 @@ PR is a URL (https://github.com/<owner>/<repo>/pull/<n>) or <owner>/<repo>#<n>.
 ID is a recap id like widgets-42 (see `beagle recap list`).
 
 GLOBAL
-  --root DIR    store root, the dir holding recaps/ (else $RECAP_ROOT,
-                config `root`, the nearest parent dir with recaps/, or .)
+  --root DIR    store root, the dir holding recaps/ (else $BEAGLE_RECAP_ROOT,
+                $RECAP_ROOT, config `root` in ~/.config/beagle/recap.toml,
+                the nearest parent dir with recaps/, or .)
 ";
 
 /// A parsed command line.

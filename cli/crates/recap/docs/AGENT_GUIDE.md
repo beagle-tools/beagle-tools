@@ -64,8 +64,9 @@ beagle recap [ID|PR]                               # the TUI
 The **store root** is a folder containing `recaps/`, chosen in this order:
 
 1. `--root DIR`
-2. `$RECAP_ROOT`
-3. `root = "…"` in `~/.config/recap/config.toml`
+2. `$BEAGLE_RECAP_ROOT` (then the older `$RECAP_ROOT`)
+3. `root = "…"` in `~/.config/beagle/recap.toml` (or the older
+   `~/.config/recap/config.toml`; a broken file warns and is skipped)
 4. the nearest folder at or above the working directory that has `recaps/`
 5. the working directory itself
 
@@ -205,7 +206,7 @@ recap while answering unless asked.
 
 People's comments on open and draft PRs are synced into each recap's
 `comments/` (the TUI's **3 Comments** tab, or `beagle recap comments sync`).
-What is ignored is configurable in `~/.config/recap/config.toml`:
+What is ignored is configurable in `~/.config/beagle/recap.toml`:
 
 ```toml
 [comments]

@@ -1,4 +1,5 @@
-//! The user config file: `~/.config/beagle/config.toml`.
+//! The user config file: `~/.config/beagle/rca.toml` (the older
+//! `~/.config/beagle/config.toml` still works; see [`dirs`]).
 //!
 //! Optional and tiny by design — every setting has a flag or a sensible
 //! default, so beagle works with no config at all. `beagle rca config` opens the
@@ -18,8 +19,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 
+pub mod dirs;
 mod project;
 
+pub use dirs::{env_root, path, DIRS};
 pub use project::{find_project_file, load_effective, write_project_file, PROJECT_FILE};
 
 #[cfg(test)]
@@ -247,20 +250,6 @@ pub struct HandoffConfig {
     /// `~` is expanded. Optional — without it, only the write-up is sent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub prompt: Option<PathBuf>,
-}
-
-/// Where the config file lives: `$BEAGLE_CONFIG` if set, else
-/// `$XDG_CONFIG_HOME/beagle/config.toml`, else `$HOME/.config/beagle/config.toml`,
-/// else `.beagle.toml` in the current directory as a last resort.
-#[must_use]
-pub fn path() -> PathBuf {
-    if let Some(explicit) = env::var_os(CONFIG_ENV) {
-        return PathBuf::from(explicit);
-    }
-    beagle_utils::paths::xdg_config_home().map_or_else(
-        || PathBuf::from(".beagle.toml"),
-        |dir| dir.join("beagle").join("config.toml"),
-    )
 }
 
 /// Loads and validates the config at `path`. `Ok(None)` when the file does

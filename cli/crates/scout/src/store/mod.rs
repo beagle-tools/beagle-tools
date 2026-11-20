@@ -1,7 +1,7 @@
 //! The on-disk store: one directory per project, plain files, no database.
 //!
 //! ```text
-//! <root>/                      # --root, else $SCOUT_ROOT, else ~/.scout
+//! <root>/                      # --root, else $BEAGLE_SCOUT_ROOT, else ~/.scout
 //!   rate-limit-the-api/        # project id: a slug
 //!     project.md               # goal, problem, how the stack works, done-when
 //!     log.md                   # timestamped activity, appended by `beagle scout log`

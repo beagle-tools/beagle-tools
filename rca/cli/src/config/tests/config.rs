@@ -244,3 +244,29 @@ fn write_project_file_pins_roots_and_never_overwrites() {
         "relative root resolves against the .beagle's directory"
     );
 }
+
+#[test]
+fn rca_toml_in_the_beagle_folder_wins_and_config_toml_still_works() {
+    assert_eq!(DIRS.env_var(), "BEAGLE_RCA_ROOT");
+    let home = tempfile::tempdir().expect("tempdir");
+    let new = home.path().join("beagle/rca.toml");
+    let old = home.path().join("beagle/config.toml");
+    // Nothing yet: a new config goes to rca.toml.
+    assert_eq!(DIRS.config_file_in(home.path()), new);
+    std::fs::create_dir_all(home.path().join("beagle")).expect("mkdir");
+    std::fs::write(&old, "notify = true\n").expect("write old");
+    assert_eq!(DIRS.config_file_in(home.path()), old);
+    std::fs::write(&new, "notify = false\n").expect("write new");
+    assert_eq!(DIRS.config_file_in(home.path()), new);
+    assert_eq!(load(&new).expect("load").expect("some").notify, Some(false));
+}
+
+#[test]
+fn the_beagle_marker_and_rcas_dir_drive_discovery() {
+    assert_eq!(DIRS.marker, Some(PROJECT_FILE));
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let deep = tmp.path().join("a/b");
+    std::fs::create_dir_all(&deep).expect("mkdir");
+    std::fs::create_dir(tmp.path().join("rcas")).expect("rcas");
+    assert_eq!(DIRS.discover_root(&deep), tmp.path());
+}

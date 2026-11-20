@@ -28,13 +28,6 @@ pub(crate) fn main(args: Vec<OsString>) -> ExitCode {
     }
 }
 
-fn load_config() -> Result<config::Config, Error> {
-    match config::config_path() {
-        Some(path) => config::load(&path),
-        None => Ok(config::Config::default()),
-    }
-}
-
 fn store_for(root_flag: Option<&str>) -> Result<Store, Error> {
     Ok(Store::new(config::root_for(root_flag)?))
 }
@@ -92,7 +85,7 @@ fn run(args: cli::Args) -> Result<(), Error> {
         Command::Tui { target } => {
             let id = target.as_deref().map(resolve).transpose()?;
             let mut app = ui::App::new(store, id.as_ref())?;
-            app.set_comments_config(load_config()?.comments);
+            app.set_comments_config(config::load_quietly().comments);
             let mut terminal = ratatui::init();
             let result = app.run(&mut terminal);
             ratatui::restore();
@@ -250,7 +243,7 @@ fn merge_check(store: &Store, target: &str) -> Result<(), Error> {
 
 /// `beagle recap comments sync`: every open/draft PR's threads, written locally.
 fn comments_sync(store: &Store) -> Result<(), Error> {
-    let config = load_config()?;
+    let config = config::load_or_default();
     let now = store::now_unix().to_string();
     println!("{}", comments::sync_all(store, &config.comments, &now)?);
     Ok(())

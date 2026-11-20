@@ -1,10 +1,14 @@
 //! Where the recaps live — the store root, the directory containing
-//! `recaps/` — and the rest of `~/.config/recap/config.toml`.
+//! `recaps/` — and the rest of the config file.
 //!
-//! Resolution order: `--root` flag → `$RECAP_ROOT` → `root` in
-//! `~/.config/recap/config.toml` → the nearest ancestor of the working
-//! directory containing `recaps/` → the working directory. A leading `~/`
-//! is expanded everywhere. The rules live in [`beagle_tui::config`].
+//! Config: `~/.config/beagle/recap.toml` (`$XDG_CONFIG_HOME` honoured), else
+//! the older `~/.config/recap/config.toml`. A broken file warns and the
+//! defaults apply.
+//!
+//! Store root: `--root` flag → `$BEAGLE_RECAP_ROOT` → `$RECAP_ROOT` →
+//! `root` in the config → the nearest ancestor of the working directory
+//! containing `recaps/` → the working directory. A leading `~/` is expanded
+//! everywhere. The rules live in [`beagle_tui::config`].
 
 use std::path::{Path, PathBuf};
 
@@ -15,14 +19,16 @@ use serde::Deserialize;
 use crate::error::Result;
 use crate::store::RECAPS_DIR;
 
-/// The app's names: config dir, env var and data dir.
+/// The tool's names: config file, env vars and data dir.
 pub const DIRS: AppDirs = AppDirs {
     app: "recap",
-    env_var: "RECAP_ROOT",
-    data_dir: RECAPS_DIR,
+    legacy_env: &["RECAP_ROOT"],
+    legacy_configs: &["recap/config.toml"],
+    marker: None,
+    data_dir: Some(RECAPS_DIR),
 };
 
-/// `~/.config/recap/config.toml`.
+/// The config file (`~/.config/beagle/recap.toml`).
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
@@ -34,10 +40,11 @@ pub struct Config {
     pub comments: crate::comments::CommentsConfig,
 }
 
-/// The config file path (`$XDG_CONFIG_HOME` or `~/.config`).
+/// The config file in use: `beagle/recap.toml`, else the older
+/// `recap/config.toml` when only that exists.
 #[must_use]
 pub fn config_path() -> Option<PathBuf> {
-    DIRS.config_path()
+    DIRS.config_file()
 }
 
 /// Loads the config file; a missing file is the default config.
@@ -49,12 +56,21 @@ pub fn load(path: &Path) -> Result<Config> {
 }
 
 /// The config file's contents, or the defaults when there is none or it
-/// can't be read (callers that must report a broken file use [`load`]).
+/// can't be used (with a warning on stderr then).
 #[must_use]
 pub fn load_or_default() -> Config {
-    config_path()
-        .and_then(|p| load(&p).ok())
-        .unwrap_or_default()
+    let (config, warning) = DIRS.load_config();
+    if let Some(warning) = warning {
+        eprintln!("beagle recap: warning: {warning}");
+    }
+    config
+}
+
+/// [`load_or_default`] without the warning, for background threads running
+/// under the TUI (stderr would draw over it).
+#[must_use]
+pub fn load_quietly() -> Config {
+    DIRS.load_config().0
 }
 
 /// Picks the store root from the flag, environment, and config, falling
@@ -70,13 +86,9 @@ pub fn resolve_root(flag: Option<&str>, env: Option<&str>, config: &Config, cwd:
 /// with no flag, so the phone reads the store the TUI shows.
 ///
 /// # Errors
-/// An unreadable or invalid config file, or an unreadable working
-/// directory.
+/// An unreadable working directory.
 pub fn root_for(flag: Option<&str>) -> Result<PathBuf> {
-    let config = match config_path() {
-        Some(path) => load(&path)?,
-        None => Config::default(),
-    };
+    let config = load_or_default();
     let env_root = DIRS.env_root();
     let cwd = std::env::current_dir().map_err(|e| crate::Error::io(".", e))?;
     Ok(resolve_root(flag, env_root.as_deref(), &config, &cwd))

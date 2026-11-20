@@ -23,8 +23,9 @@ USAGE
 ID is a tracker ticket id like ABC-123; --url is its page in your tracker.
 
 GLOBAL
-  --root DIR    store root, the dir holding standups/ (else $STANDUP_ROOT,
-                config `root`, the nearest parent dir with standups/, or .)
+  --root DIR    store root, the dir holding standups/ (else $BEAGLE_STANDUP_ROOT,
+                $STANDUP_ROOT, config `root` in ~/.config/beagle/standup.toml,
+                the nearest parent dir with standups/, or .)
 ";
 
 /// A parsed command line.

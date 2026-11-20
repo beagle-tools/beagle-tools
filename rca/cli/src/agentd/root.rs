@@ -4,9 +4,10 @@
 //! daemon cannot lean on "whatever directory you ran it from". It resolves
 //! the store the way the CLI does, so both always look at the same RCAs:
 //!
-//! 1. `$BEAGLE_AGENT_RCA_ROOT`, when set
+//! 1. `$BEAGLE_AGENT_RCA_ROOT`, else `$BEAGLE_RCA_ROOT`, when set
 //! 2. `root` from the effective config: the nearest `.beagle` at or above
-//!    the working directory, else `~/.config/beagle/config.toml`
+//!    the working directory, else `~/.config/beagle/rca.toml` (or the
+//!    older `~/.config/beagle/config.toml`)
 //! 3. the nearest directory at or above the working directory with `rcas/`
 //!    (else the working directory itself)
 //!
@@ -39,7 +40,7 @@ pub fn store_root() -> Result<PathBuf, String> {
         .map_err(|err| format!("reading beagle config: {err}"))?
         .and_then(|config| config.root);
     Ok(store_root_from(
-        beagle_utils::paths::env_path("BEAGLE_AGENT_RCA_ROOT"),
+        beagle_utils::paths::env_path("BEAGLE_AGENT_RCA_ROOT").or_else(crate::config::env_root),
         config_root,
         &cwd,
     ))

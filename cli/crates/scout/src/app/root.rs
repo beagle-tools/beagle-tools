@@ -3,11 +3,12 @@
 //! First match wins:
 //!
 //! 1. `--root <dir>`
-//! 2. `$SCOUT_ROOT`
+//! 2. `$BEAGLE_SCOUT_ROOT`, then the older `$SCOUT_ROOT`
 //! 3. the nearest directory at or above the current one holding a
 //!    [`MARKER`] file — a store you keep in its own repo, used whenever
 //!    you are inside it
-//! 4. `root` in `~/.config/scout/config.toml` — your default store, used
+//! 4. `root` in `~/.config/beagle/scout.toml` (or the older
+//!    `~/.config/scout/config.toml`) — your default store, used
 //!    from anywhere, which is what agents working in other repos need
 //! 5. `~/.scout`
 //!
@@ -45,9 +46,9 @@ impl Source {
     pub(crate) fn describe(self) -> &'static str {
         match self {
             Self::Flag => "--root",
-            Self::Env => "$SCOUT_ROOT",
+            Self::Env => "$BEAGLE_SCOUT_ROOT or $SCOUT_ROOT",
             Self::Marker => "nearest .scout-store",
-            Self::Config => "root in ~/.config/scout/config.toml",
+            Self::Config => "root in ~/.config/beagle/scout.toml (or ~/.config/scout/config.toml)",
             Self::Default => "default",
         }
     }
@@ -103,7 +104,7 @@ pub(super) fn current(explicit: Option<PathBuf>) -> Result<(PathBuf, Source)> {
         .map(|r| beagle_utils::paths::expand_tilde(&r));
     resolve(Inputs {
         explicit,
-        env: beagle_utils::paths::env_path("SCOUT_ROOT"),
+        env: crate::config::DIRS.env_root().map(PathBuf::from),
         cwd: std::env::current_dir().ok(),
         config_root,
         home: beagle_utils::paths::home_dir(),

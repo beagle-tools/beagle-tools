@@ -215,19 +215,21 @@ fn execute(command: Command, mode: Mode) -> Result<(), Error> {
     }
 }
 
-/// Resolves the workspace root: explicit `--root` → the effective config's
-/// `root` (a `.beagle` found walking up from the working directory, else
-/// the global config) → nearest ancestor of the working directory that
-/// already contains `rcas/` → the working directory. An invalid config
-/// surfaces here rather than being silently ignored — otherwise beagle
-/// would quietly open the wrong root. `beagle serve` uses this too, so the
-/// phone reads the store `beagle rca` would.
+/// Resolves the workspace root (`docs/CODING_STANDARDS.md` rule 15):
+/// explicit `--root` → `$BEAGLE_RCA_ROOT` → the effective config's `root`
+/// (a `.beagle` found walking up from the working directory, else the
+/// global config) → nearest ancestor of the working directory that already
+/// contains `rcas/` → the working directory. A broken config warns on
+/// stderr and is skipped. `beagle serve` uses
+/// this too, so the phone reads the store `beagle rca` would.
 ///
 /// # Errors
-/// [`Error::Io`] when the working directory is unreadable, or the config
-/// file's own load error.
+/// [`Error::Io`] when the working directory is unreadable.
 pub fn effective_root(explicit: Option<PathBuf>) -> Result<PathBuf, Error> {
     if let Some(root) = explicit {
+        return Ok(root);
+    }
+    if let Some(root) = config::env_root() {
         return Ok(root);
     }
     if let Some(config) = effective_config()? {
@@ -241,10 +243,26 @@ pub fn effective_root(explicit: Option<PathBuf>) -> Result<PathBuf, Error> {
 
 /// The config governing this invocation: the nearest `.beagle` walking up
 /// from the working directory (git-style), falling back to the global
-/// config file — see [`config::load_effective`].
+/// config file — see [`config::load_effective`]. A file that cannot be read
+/// or parsed warns on stderr and counts as no config: a broken config never
+/// stops rca from starting (`beagle rca config` still reports it).
 pub(crate) fn effective_config() -> Result<Option<config::Config>, Error> {
     let cwd = env::current_dir().map_err(|e| Error::io(".", e))?;
-    config::load_effective(&cwd)
+    let (config, warning) = config_or_warning(config::load_effective(&cwd));
+    if let Some(warning) = warning {
+        eprintln!("beagle rca: warning: {warning}");
+    }
+    Ok(config)
+}
+
+/// A loaded config, or no config and a warning when it could not be used.
+fn config_or_warning(
+    loaded: Result<Option<config::Config>, Error>,
+) -> (Option<config::Config>, Option<String>) {
+    match loaded {
+        Ok(config) => (config, None),
+        Err(e) => (None, Some(format!("{e} (using defaults)"))),
+    }
 }
 
 #[cfg(test)]

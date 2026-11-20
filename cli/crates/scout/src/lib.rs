@@ -37,8 +37,8 @@ pub use error::{Error, Result};
 pub const ABOUT: &str = "watch agent work as projects of small, ordered tasks";
 
 /// The store `beagle scout` uses when run from this process without
-/// `--root`: `$SCOUT_ROOT`, the nearest `.scout-store`, `root` in
-/// `~/.config/scout/config.toml`, else `~/.scout`.
+/// `--root`: `$BEAGLE_SCOUT_ROOT` (or `$SCOUT_ROOT`), the nearest `.scout-store`, `root` in
+/// `~/.config/beagle/scout.toml` (or `~/.config/scout/config.toml`), else `~/.scout`.
 ///
 /// # Errors
 /// [`Error::NoHome`] when nothing names a store and there is no home.

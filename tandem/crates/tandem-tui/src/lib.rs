@@ -85,7 +85,7 @@ pub enum Command {
 /// Opens the review TUI on its store. Returns when you quit.
 pub fn open() -> Result<()> {
     let db = config::db_path()?;
-    let config = Config::load()?;
+    let config = Config::load();
     let cache = Cache::open(&db)?;
     ui::run(cache, db, config)
 }
@@ -94,7 +94,7 @@ pub fn open() -> Result<()> {
 /// call back (`beagle tandem`, `tandem-cli`), in the context `claim` writes.
 pub fn run(command: Command, program: &str) -> Result<ExitCode> {
     let db = config::db_path()?;
-    let config = Config::load()?;
+    let config = Config::load();
     let cache = Cache::open(&db)?;
     match command {
         Command::Add { prs, by, no_kick } => {
@@ -164,10 +164,7 @@ fn ingest(cache: &Cache, run: &str, file: &std::path::Path, program: &str) -> Re
 /// Where the review TUI keeps its data, as JSON for `paths`: the store,
 /// the config file and the GitHub account it acts as.
 pub fn paths() -> serde_json::Value {
-    let account = match Config::load() {
-        Ok(config) => serde_json::json!(config.github_user),
-        Err(e) => serde_json::json!({ "error": e.to_string() }),
-    };
+    let account = serde_json::json!(Config::load().github_user);
     serde_json::json!({
         // No data directory is reported as a null store, not an error.
         "store": config::db_path().ok(),

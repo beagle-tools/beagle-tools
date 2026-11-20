@@ -107,7 +107,7 @@ beagle rca export <slug>      # one markdown file → exports/<slug>.md
 beagle rca export <slug> --out ~/vault/incidents/<slug>.md   # e.g. an Obsidian vault
 beagle rca banner             # print the BEAGLE banner
 beagle rca init               # scaffold toolbox.md + systems/ agent context
-beagle rca config             # edit + validate ~/.config/beagle/config.toml
+beagle rca config             # edit + validate ~/.config/beagle/rca.toml
 beagle rca skill status       # is the /beagle rca skill installed for Claude Code / Codex?
 beagle rca skill install      # install (or refresh) the /beagle rca skill for both
 beagle rca version            # print rca's version
@@ -131,10 +131,15 @@ agent share the same source of truth.
 
 ## Config & updates
 
-`beagle rca config` opens `~/.config/beagle/config.toml` in your editor (config
+`beagle rca config` opens `~/.config/beagle/rca.toml` in your editor (config
 `editor`, then `$VISUAL`/`$EDITOR`, then vim) and **validates it when the
-editor closes** — typos and unknown keys are reported immediately. Every
-setting is optional and overridden by flags:
+editor closes** — typos and unknown keys are reported immediately. An older
+`~/.config/beagle/config.toml` is still used while `rca.toml` doesn't exist;
+move it with `mv ~/.config/beagle/config.toml ~/.config/beagle/rca.toml`. A
+file that breaks later only warns: rca runs on defaults. Every setting is
+optional and overridden by flags. The store root is `--root`, else
+`$BEAGLE_RCA_ROOT`, else the nearest `.beagle`, else config `root`, else the
+nearest folder holding `rcas/`, else the working directory:
 
 ```toml
 root = "/path/to/oncall"   # default --root, so `beagle rca` works from anywhere

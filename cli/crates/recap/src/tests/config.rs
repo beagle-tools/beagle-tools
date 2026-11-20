@@ -37,6 +37,32 @@ fn config_file_is_optional_and_strict() {
 }
 
 #[test]
+fn the_beagle_folder_comes_first_and_the_old_paths_still_work() {
+    assert_eq!(DIRS.env_var(), "BEAGLE_RECAP_ROOT");
+    assert_eq!(DIRS.legacy_env, ["RECAP_ROOT"]);
+    let home = tempfile::tempdir().unwrap();
+    let old = home.path().join("recap/config.toml");
+    std::fs::create_dir_all(old.parent().unwrap()).unwrap();
+    std::fs::write(&old, "root = \"/old\"").unwrap();
+    assert_eq!(DIRS.config_file_in(home.path()), old);
+    let new = home.path().join("beagle/recap.toml");
+    std::fs::create_dir_all(new.parent().unwrap()).unwrap();
+    std::fs::write(&new, "root = \"/new\"").unwrap();
+    assert_eq!(DIRS.config_file_in(home.path()), new);
+    assert_eq!(load(&new).unwrap().root.as_deref(), Some("/new"));
+}
+
+#[test]
+fn a_broken_config_warns_and_the_tool_still_starts() {
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("recap.toml");
+    std::fs::write(&path, "rooot = \"/x\"").unwrap();
+    let (config, warning) = beagle_tui::config::load_toml_or_default::<Config>(&path);
+    assert_eq!(config, Config::default());
+    assert!(warning.unwrap().contains("using defaults"));
+}
+
+#[test]
 fn tilde_paths_that_are_not_home_are_left_alone() {
     assert_eq!(expand_tilde("~bob/x"), PathBuf::from("~bob/x"));
     assert_eq!(expand_tilde("/abs"), PathBuf::from("/abs"));

@@ -1,4 +1,5 @@
-//! User settings: `~/.config/scout/config.toml` (or `$XDG_CONFIG_HOME`).
+//! User settings: `~/.config/beagle/scout.toml` (or `$XDG_CONFIG_HOME`;
+//! the older `~/.config/scout/config.toml` still works).
 //!
 //! ```toml
 //! root = "~/notes/scout"        # your default store, used from anywhere
@@ -134,11 +135,23 @@ impl Default for NotifyEvents {
     }
 }
 
-/// Where the config file lives: `$XDG_CONFIG_HOME/scout/config.toml`, else
-/// `~/.config/scout/config.toml`.
+/// scout's names in the one beagle folder (`docs/CODING_STANDARDS.md`
+/// rule 15): `~/.config/beagle/scout.toml`, `$BEAGLE_SCOUT_ROOT`, and the
+/// older `~/.config/scout/config.toml` and `$SCOUT_ROOT` as fallbacks.
+pub const DIRS: beagle_tui::config::AppDirs = beagle_tui::config::AppDirs {
+    app: "scout",
+    legacy_env: &["SCOUT_ROOT"],
+    legacy_configs: &["scout/config.toml"],
+    marker: Some(".scout-store"),
+    data_dir: None,
+};
+
+/// The config file in use: `$XDG_CONFIG_HOME/beagle/scout.toml` (so
+/// `~/.config/beagle/scout.toml`), else the older
+/// `~/.config/scout/config.toml` when only that exists.
 #[must_use]
 pub fn path() -> Option<PathBuf> {
-    beagle_utils::paths::xdg_config_home().map(|base| base.join("scout").join("config.toml"))
+    DIRS.config_file()
 }
 
 /// Loads the config, falling back to defaults. The second value is a
@@ -175,6 +188,22 @@ pub fn load_from(path: &Path) -> (Config, Option<String>) {
 #[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_beagle_folder_comes_first_and_the_old_paths_still_work() {
+        assert_eq!(DIRS.env_var(), "BEAGLE_SCOUT_ROOT");
+        assert_eq!(DIRS.legacy_env, ["SCOUT_ROOT"]);
+        let home = tempfile::tempdir().unwrap();
+        let old = home.path().join("scout/config.toml");
+        std::fs::create_dir_all(old.parent().unwrap()).unwrap();
+        std::fs::write(&old, "root = \"/old\"").unwrap();
+        assert_eq!(DIRS.config_file_in(home.path()), old);
+        let new = home.path().join("beagle/scout.toml");
+        std::fs::create_dir_all(new.parent().unwrap()).unwrap();
+        std::fs::write(&new, "root = \"/new\"").unwrap();
+        assert_eq!(DIRS.config_file_in(home.path()), new);
+        assert_eq!(load_from(&new).0.root, Some(PathBuf::from("/new")));
+    }
 
     #[test]
     fn missing_file_is_defaults() {

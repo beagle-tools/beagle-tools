@@ -139,8 +139,8 @@ in the TUI); a reviewer — for example the agentd job in
 an agent review it into local comments, a summary and a verdict; you
 read the diff, summary and comments in the terminal, post the comments
 you pick and approve, each only after a confirmation. It keeps its own
-store and an optional `~/.config/tandem-tui/config.yaml` (`github_user`,
-`kick`), and uses the `gh` CLI for GitHub. See
+store and an optional `~/.config/beagle/tandem.toml` (`github_user`,
+`kick`; the older `~/.config/tandem-tui/config.yaml` still works), and uses the `gh` CLI for GitHub. See
 [`docs/CLI.md`](docs/CLI.md#the-review-tui).
 
 ## Building from source

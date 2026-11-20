@@ -246,7 +246,9 @@ always shows the icon of the app that posts a notification, so
 id and the dog icon. Without it you get `terminal-notifier`'s Terminal icon,
 or plain `osascript` banners if that isn't installed either.
 
-Tune it in `~/.config/scout/config.toml`. Every key is optional, and these
+Tune it in `~/.config/beagle/scout.toml` (the older
+`~/.config/scout/config.toml` still works when the new file doesn't exist;
+a broken file warns and the defaults apply). Every key is optional, and these
 are the defaults:
 
 ```toml
@@ -298,9 +300,9 @@ touches it.
 A store is a folder of projects. `beagle scout root` prints the one in use and why. First match wins:
 
 1. `--root <dir>`
-2. `$SCOUT_ROOT`
+2. `$BEAGLE_SCOUT_ROOT` (then the older `$SCOUT_ROOT`)
 3. the nearest folder at or above where you are that holds a `.scout-store` file
-4. `root` in `~/.config/scout/config.toml`
+4. `root` in `~/.config/beagle/scout.toml` (or the older `~/.config/scout/config.toml`)
 5. `~/.scout`
 
 To keep projects in their own git repo:
@@ -309,9 +311,9 @@ To keep projects in their own git repo:
 cd ~/src/my-scout-projects && beagle scout init   # writes .scout-store and a .gitignore
 ```
 
-Inside that folder, `beagle scout` uses it. Agents work from other repos, so to make it your default everywhere, also set `root = "~/src/my-scout-projects"` in `~/.config/scout/config.toml`.
+Inside that folder, `beagle scout` uses it. Agents work from other repos, so to make it your default everywhere, also set `root = "~/src/my-scout-projects"` in `~/.config/beagle/scout.toml`.
 
-`init` adds `/.sessions/` and `/*/sessions/` to the store's `.gitignore`, and so does the first recording into a store inside a git repo (one picked by `$SCOUT_ROOT` or config `root` never ran `init`). Session recordings hold raw command output, which can include secrets, so they never belong in a repo. `beagle scout hook install` backs up `settings.json` once, to `settings.json.scout-backup`, and never overwrites that first backup.
+`init` adds `/.sessions/` and `/*/sessions/` to the store's `.gitignore`, and so does the first recording into a store inside a git repo (one picked by `$BEAGLE_SCOUT_ROOT` or config `root` never ran `init`). Session recordings hold raw command output, which can include secrets, so they never belong in a repo. `beagle scout hook install` backs up `settings.json` once, to `settings.json.scout-backup`, and never overwrites that first backup.
 
 ### File format
 

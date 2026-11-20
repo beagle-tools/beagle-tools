@@ -14,7 +14,8 @@ corepack pnpm install
 corepack pnpm tauri dev   # opens the app; finds the nearest rcas/ above the cwd
 ```
 
-Root resolution: config file `root` (`~/.config/beagle/config.toml`) →
+Root resolution: config file `root` (`~/.config/beagle/rca.toml`, or the
+older `~/.config/beagle/config.toml`) →
 nearest ancestor directory containing `rcas/` → the working directory.
 
 ## Quality gate
