@@ -3,6 +3,7 @@
    exactly the file nobody can find anything in. */
 @import "./base.css";
 @import "./components.css";
+@import "./controls.css";
 @import "./runlist.css";
 @import "./dag.css";
 @import "./jobs.css";

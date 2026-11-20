@@ -2,6 +2,7 @@
 
 mod agent_pump;
 pub mod agents;
+pub mod archive;
 pub mod conflicts;
 pub mod drain;
 pub mod files;
