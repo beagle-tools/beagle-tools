@@ -11,12 +11,16 @@
 mod agent_env;
 mod archive;
 mod queue;
+#[cfg(test)]
+mod review_runs_tests;
 mod review_store;
 #[cfg(test)]
 mod review_store_tests;
 mod reviewed;
 mod revisions;
 mod schema;
+#[cfg(test)]
+mod schema_tests;
 mod store;
 mod summaries;
 mod triage;

@@ -356,3 +356,7 @@ impl GithubClient {
         graphql_error(&value, "ready-for-review mutation failed")
     }
 }
+
+#[cfg(test)]
+#[path = "tests/write.rs"]
+mod tests;
