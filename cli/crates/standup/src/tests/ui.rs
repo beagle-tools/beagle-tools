@@ -319,3 +319,45 @@ fn live_reload_keeps_the_reader_in_place() {
     app.view.layout(80);
     assert_eq!((app.view.cursor, app.view.scroll), before);
 }
+
+#[test]
+fn w_resizes_the_list_within_its_limits() {
+    use ratatui::backend::TestBackend;
+    use ratatui::Terminal;
+    let (_tmp, store) = fixture();
+    let mut app = App::new(store, None).unwrap();
+    let mut t = Terminal::new(TestBackend::new(120, 20)).unwrap();
+    let mut screen = |app: &mut App| -> String {
+        t.draw(|f| view::draw(f, app)).unwrap();
+        t.backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(ratatui::buffer::Cell::symbol)
+            .collect()
+    };
+    screen(&mut app);
+    let start = app.side.width(120);
+    assert_eq!(start, view::SIDEBAR_WIDTH);
+    key(&mut app, KeyCode::Char('w'));
+    assert!(app.side.is_active());
+    assert!(screen(&mut app).contains(beagle_tui::pane_resize::HINT));
+    key(&mut app, KeyCode::Right);
+    assert_eq!(app.side.width(120), start + app.side.limits().step);
+    for _ in 0..100 {
+        key(&mut app, KeyCode::Left);
+    }
+    assert_eq!(app.side.width(120), app.side.limits().min);
+    assert!(app.status.as_deref().unwrap().contains("narrowest"));
+    // The report picker's key does nothing while resizing.
+    key(&mut app, KeyCode::Char('d'));
+    assert!(app.picker.is_none());
+    key(&mut app, KeyCode::Char('0'));
+    assert_eq!(app.side.width(120), start);
+    // q leaves resize mode instead of quitting.
+    key(&mut app, KeyCode::Char('q'));
+    assert!(!app.side.is_active() && !app.quit);
+    key(&mut app, KeyCode::Char('w'));
+    key(&mut app, KeyCode::Esc);
+    assert!(!app.side.is_active() && !app.quit);
+}

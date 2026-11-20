@@ -177,7 +177,8 @@ hits) · `\` find everywhere (fuzzy across every incident, tab, and line —
 enter jumps straight there) · `f` filter the list (i/x/r/a/v/f status ·
 c/h/m/l severity · `/` free text,
 stacking + toggling) · `F` follow (tail -f) · `s` collapse/expand the
-sidebar · `a` show/hide archived · `T` toolbox ·
+sidebar · `w` resize the sidebar (←/→, `0` default, `Esc` done) · `a`
+show/hide archived · `T` toolbox ·
 `o` open links/PRs · `R` related incidents · `V` sign off final-review · `S` settings ·
 `c` copy tab / `C` copy whole RCA (pbcopy or OSC 52) · `e` export to
 `exports/<slug>.md` · `E` open this tab's file in your editor (config

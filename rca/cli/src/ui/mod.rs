@@ -36,6 +36,8 @@ pub use tabs::{Focus, Screen, Tab};
 
 use std::collections::{HashMap, HashSet};
 
+use beagle_tui::{DefaultWidth, SideResize};
+
 use ratatui::text::Text;
 
 use crate::error::Result;
@@ -114,6 +116,8 @@ pub struct App {
     /// Never true while the list has focus — anything that returns focus
     /// to the list brings the sidebar back.
     sidebar_collapsed: bool,
+    /// The sidebar's width and `w`'s resize mode (not saved across runs).
+    side: SideResize,
     /// Archived incidents shown in the list (`a`), rendered dimmed. Off by
     /// default: the sidebar is about *now*.
     show_archived: bool,
@@ -255,6 +259,7 @@ impl App {
             tick: 0,
             follow: false,
             sidebar_collapsed: false,
+            side: SideResize::new("sidebar", DefaultWidth::Fixed(view::SIDEBAR_WIDTH)),
             show_archived: false,
             notify_enabled: false,
             notify_events: crate::config::NotifyEvents::all(),

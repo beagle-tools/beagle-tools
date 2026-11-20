@@ -33,7 +33,7 @@ fn dim() -> Style {
 pub(super) fn draw(frame: &mut Frame<'_>, app: &mut App) {
     let [main, bar] =
         Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).areas(frame.area());
-    let sidebar = (main.width / 3).clamp(28, 48);
+    let sidebar = app.side.width(main.width);
     let [side, content] =
         Layout::horizontal([Constraint::Length(sidebar), Constraint::Min(1)]).areas(main);
     match app.screen {
@@ -263,6 +263,13 @@ fn draw_status_bar(frame: &mut Frame<'_>, app: &App, area: Rect) {
         ));
         spans.push(Span::raw(" "));
     }
+    if app.side.is_active() {
+        spans.push(Span::styled(
+            beagle_tui::pane_resize::HINT,
+            Style::default().fg(Color::Cyan),
+        ));
+        spans.push(Span::raw("  "));
+    }
     if let Some(message) = &app.status {
         spans.push(Span::styled(
             message.clone(),
@@ -270,9 +277,10 @@ fn draw_status_bar(frame: &mut Frame<'_>, app: &App, area: Rect) {
         ));
     } else {
         let hints = match (app.screen, app.focus) {
-            (Screen::Projects, _) => "j/k select · enter open · ctrl-d/u scroll · E edit · ? help · Q quit",
+            _ if app.side.is_active() => "",
+            (Screen::Projects, _) => "j/k select · enter open · ctrl-d/u scroll · E edit · w resize · ? help · Q quit",
             (Screen::Tasks, Focus::List) => {
-                "j/k select · enter read · tab/1-5 tabs · b back · F follow · E edit · ? help · Q quit"
+                "j/k select · enter read · tab/1-5 tabs · b back · F follow · E edit · w resize · ? help · Q quit"
             }
             (Screen::Tasks, Focus::Content) => {
                 "j/k scroll · space page · g/G top/bottom · tab/1-5 tabs · b back · F follow · E edit · ?"

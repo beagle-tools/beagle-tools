@@ -34,7 +34,7 @@ fn sample_summary(severity: Severity) -> crate::model::RcaSummary {
 fn selected_row_keeps_the_badge_background_and_tints_the_rest() {
     let rca = sample_summary(Severity::High);
 
-    let selected = rca_list_item(&rca, 0, false, true, None, None);
+    let selected = rca_list_item(&rca, 0, false, true, None, None, SIDEBAR_WIDTH);
     let badge = &selected[0].spans[0];
     assert_eq!(
         badge.style.bg,
@@ -57,7 +57,7 @@ fn selected_row_keeps_the_badge_background_and_tints_the_rest() {
         );
     }
 
-    let unselected = rca_list_item(&rca, 0, false, false, None, None);
+    let unselected = rca_list_item(&rca, 0, false, false, None, None, SIDEBAR_WIDTH);
     assert_eq!(
         unselected[0].spans[0].style.bg,
         Some(Color::LightRed),
@@ -75,7 +75,7 @@ fn selected_row_keeps_the_badge_background_and_tints_the_rest() {
 fn sidebar_detail_line_shows_checklist_progress() {
     let rca = sample_summary(Severity::High);
 
-    let partial = rca_list_item(&rca, 0, false, false, Some((2, 7)), None);
+    let partial = rca_list_item(&rca, 0, false, false, Some((2, 7)), None, SIDEBAR_WIDTH);
     let detail: String = partial[1]
         .spans
         .iter()
@@ -86,7 +86,7 @@ fn sidebar_detail_line_shows_checklist_progress() {
         "progress in detail line: {detail}"
     );
 
-    let complete = rca_list_item(&rca, 0, false, false, Some((4, 4)), None);
+    let complete = rca_list_item(&rca, 0, false, false, Some((4, 4)), None, SIDEBAR_WIDTH);
     let progress_span = complete[1]
         .spans
         .iter()
@@ -94,7 +94,7 @@ fn sidebar_detail_line_shows_checklist_progress() {
         .expect("progress span");
     assert_eq!(progress_span.style.fg, Some(Color::LightGreen));
 
-    let none = rca_list_item(&rca, 0, false, false, None, None);
+    let none = rca_list_item(&rca, 0, false, false, None, None, SIDEBAR_WIDTH);
     let detail: String = none[1].spans.iter().map(|s| s.content.as_ref()).collect();
     assert!(!detail.contains('☑'), "no progress without checkboxes");
 }

@@ -1,0 +1,12 @@
+kind: Agent
+name: review-queue
+runner: script
+# The reviewer behind `beagle tandem` (the review TUI): claims the oldest PR
+# you queued and hands it to an agent. Manual for the demo — the TUI's
+# config can start it right after you queue a PR
+# (`kick: [agentctl, run, demo/review-queue]`); give it a schedule (e.g.
+# "*/10 * * * *") to also drain the queue on a clock.
+workdir: ~
+command: sh ~/.config/agentd/manifests/demo/scripts/review-queue.sh
+timeout_minutes: 5
+triggers: [review-pr]

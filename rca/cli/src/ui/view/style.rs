@@ -7,8 +7,8 @@ use ratatui::widgets::{Block, BorderType, Borders};
 
 use crate::model::{Severity, Status};
 
-/// Width of the incident list on the left.
-pub(super) const SIDEBAR_WIDTH: u16 = 34;
+/// Default width of the incident list on the left (`w` resizes it).
+pub(crate) const SIDEBAR_WIDTH: u16 = 34;
 
 /// Spinner frames for [`Status::Investigating`] and [`Status::Fixing`],
 /// advanced by the app tick.

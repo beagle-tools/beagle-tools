@@ -21,6 +21,7 @@ use std::fmt::Write as _;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 
+use beagle_tui::{DefaultWidth, SideResize};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Text};
 
@@ -168,6 +169,8 @@ pub struct App {
     /// keeps that task's sessions fresh too.
     on_screen: OnScreen,
     pane: Option<CachedPane>,
+    /// The left list's width and `w`'s resize mode (not saved across runs).
+    side: SideResize,
 }
 
 impl App {
@@ -195,6 +198,14 @@ impl App {
             tick: 0,
             on_screen: std::sync::Arc::default(),
             pane: None,
+            side: SideResize::new(
+                "list",
+                DefaultWidth::Fraction {
+                    divisor: 3,
+                    min: 28,
+                    max: 48,
+                },
+            ),
         })
     }
 

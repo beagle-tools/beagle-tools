@@ -130,6 +130,19 @@ tandem-cli queue | jq -r '.[] | "\(.repo.owner)/\(.repo.name) \(.number)"'
 tandem-cli review --repo acme/widgets --pr 123
 ```
 
+## In the terminal: the review TUI
+
+`tandem-cli` (or `beagle tandem`) with no arguments opens a terminal
+review queue. Queue PRs (`beagle tandem add acme/widgets#123`, or `a`
+in the TUI); a reviewer — for example the agentd job in
+`workflows/manifests/demo/review-queue.yaml` — claims each one and has
+an agent review it into local comments, a summary and a verdict; you
+read the diff, summary and comments in the terminal, post the comments
+you pick and approve, each only after a confirmation. It keeps its own
+store and an optional `~/.config/tandem-tui/config.yaml` (`github_user`,
+`kick`), and uses the `gh` CLI for GitHub. See
+[`docs/CLI.md`](docs/CLI.md#the-review-tui).
+
 ## Building from source
 
 Prereqs: Rust (the toolchain pinned in the repo's `rust-toolchain.toml`

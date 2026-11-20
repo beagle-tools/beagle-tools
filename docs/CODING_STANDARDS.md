@@ -168,6 +168,17 @@ why ~50 lines of our own code can't do it, its transitive weight, and its
 effect on build time. Dev-tooling dependencies are freer. Prefer what is
 already in the app's lockfile.
 
+### Terminal UIs
+Every beagle TUI with a side pane (a list or sidebar beside a main pane):
+rca, scout, recap, standup and Tandem's review TUI, binds **`w`** to resize mode through `beagle_tui::pane_resize` (`SideResize`), and
+binds `w` to nothing else. Arrows or `h`/`l` change the width in 2-column
+steps within 20–100 columns while the main pane keeps 40, `0` restores the
+default, `Esc`/`Enter`/`w`/`q` leave (never quit), and every other key is
+ignored while resizing. The width is not saved. The footer shows
+`pane_resize::HINT` while resizing and the `?` help lists `w`. agenttop is
+out of scope for now (its `w` opens a step's write-up). Details in
+[`utils/README.md`](../utils/README.md).
+
 ## 3. TypeScript / React
 
 ### Compiler and lint

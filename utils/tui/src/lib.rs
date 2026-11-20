@@ -4,7 +4,8 @@
 //! Everything here renders with `ratatui` and is app-agnostic: markdown and
 //! ANSI rendering, word wrapping, a scrolling document pane with a vim-style
 //! cursor ([`DocView`]), common widgets, live-reload watching, clipboard and
-//! URL opening, store-root / config-file discovery, and the release picker
+//! URL opening, store-root / config-file discovery, the shared side-pane
+//! resize mode ([`SideResize`]), and the release picker
 //! behind `version list`. Apps keep their own domain types and error
 //! enums; errors from here convert into them.
 //!
@@ -25,6 +26,7 @@ pub mod docview;
 pub mod error;
 pub mod links;
 pub mod markdown;
+pub mod pane_resize;
 pub mod version_picker;
 pub mod watch;
 pub mod widgets;
@@ -32,3 +34,4 @@ pub mod wrap;
 
 pub use docview::DocView;
 pub use error::{ConfigError, ToolError};
+pub use pane_resize::{DefaultWidth, PaneLimits, SideResize};

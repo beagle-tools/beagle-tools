@@ -12,11 +12,12 @@ import { fileURLToPath } from "node:url";
 const appDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(appDir, "scripts", "set-version.mjs");
 const MEMBERS = ["src-tauri", "crates/tandem-core", "crates/tandem-github"]
-  .concat(["crates/tandem-cache", "crates/tandem-agents", "crates/tandem-cli"])
+  .concat(["crates/tandem-cache", "crates/tandem-agents", "crates/tandem-cli", "crates/tandem-tui"])
   .map((dir) => join(dir, "Cargo.toml"));
 const FILES = ["package.json", "src-tauri/tauri.conf.json", "Cargo.toml", "Cargo.lock", ...MEMBERS];
 const CRATES = ["tandem", "tandem-core", "tandem-github", "tandem-cache", "tandem-agents"].concat(
   "tandem-cli",
+  "tandem-tui",
 );
 
 const temps = [];

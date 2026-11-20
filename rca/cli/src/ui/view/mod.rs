@@ -33,7 +33,8 @@ use popups::{
 };
 use sidebar::draw_sidebar;
 use status_bar::draw_status_bar;
-use style::{horizontal, inset, vertical, SIDEBAR_WIDTH};
+pub(super) use style::SIDEBAR_WIDTH;
+use style::{horizontal, inset, vertical};
 
 pub(crate) fn draw(frame: &mut Frame, app: &mut App) {
     let [main, status_bar] = vertical(frame.area(), &[Constraint::Min(0), Constraint::Length(1)]);
@@ -70,7 +71,7 @@ fn draw_rcas(frame: &mut Frame, app: &mut App, area: Rect) {
     let sidebar_width = if app.sidebar_collapsed() {
         0
     } else {
-        SIDEBAR_WIDTH
+        app.side.width(area.width)
     };
     let [sidebar, content] = horizontal(
         area,
@@ -181,3 +182,7 @@ fn draw_workspace(frame: &mut Frame, app: &mut App, area: Rect) {
 #[cfg(test)]
 #[path = "tests/view.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tests/resize.rs"]
+mod tests_resize;

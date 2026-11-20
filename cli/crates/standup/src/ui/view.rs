@@ -14,7 +14,8 @@ use super::keys::HELP;
 use super::{App, Focus};
 use crate::model::ReportDate;
 
-const SIDEBAR_WIDTH: u16 = 34;
+/// The list's default width (`w` resizes it).
+pub(super) const SIDEBAR_WIDTH: u16 = 34;
 
 pub(super) fn draw(frame: &mut Frame<'_>, app: &mut App) {
     let [header, body, footer] = Layout::vertical([
@@ -23,8 +24,11 @@ pub(super) fn draw(frame: &mut Frame<'_>, app: &mut App) {
         Constraint::Length(1),
     ])
     .areas(frame.area());
-    let [side, main] =
-        Layout::horizontal([Constraint::Length(SIDEBAR_WIDTH), Constraint::Min(10)]).areas(body);
+    let [side, main] = Layout::horizontal([
+        Constraint::Length(app.side.width(body.width)),
+        Constraint::Min(10),
+    ])
+    .areas(body);
 
     draw_header(frame, app, header);
     draw_items(frame, app, side);
@@ -250,9 +254,22 @@ fn empty_state(app: &App) -> Vec<Line<'static>> {
 
 fn draw_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
     let line = match &app.status {
+        _ if app.side.is_active() => Line::from(vec![
+            Span::styled(
+                format!(" {}", beagle_tui::pane_resize::HINT),
+                Style::default().fg(Color::Cyan),
+            ),
+            Span::styled(
+                app.status
+                    .as_ref()
+                    .map(|s| format!("   {s}"))
+                    .unwrap_or_default(),
+                Style::default().fg(Color::Yellow),
+            ),
+        ]),
         Some(status) => Line::styled(format!(" {status}"), Style::default().fg(Color::Yellow)),
         None => Line::styled(
-            " j/k move · tab focus · v select · y copy · i id · o ticket · p PRs · d reports · [ ] older/newer · ? help · q quit",
+            " j/k move · tab focus · v select · y copy · i id · o ticket · p PRs · d reports · [ ] older/newer · w resize · ? help · q quit",
             Style::default().fg(Color::DarkGray),
         ),
     };

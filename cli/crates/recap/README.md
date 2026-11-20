@@ -71,6 +71,7 @@ automated_markers = []   # e.g. ["Automated reply"]: hide replies a tool posted 
   without merging (and archive). Each asks first.
 - `a` archive · `A` show the archive · `U` restore. Merged PRs archive
   themselves 24 hours after merging.
+- `w` resize the PR list: ←/→ (h/l) width · `0` default · `Esc` done (not saved)
 - `r` reload · `?` help · `q` quit
 
 ## Develop

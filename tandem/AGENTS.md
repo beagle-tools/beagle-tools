@@ -14,15 +14,16 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
 
 ## Architecture map
 
-| Path                   | What lives there                                                                                                                                                                                                                                                                                                        |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `crates/tandem-core`   | Pure domain types (`github`, `review`, `agent`, `diff`), the unified-diff parser (`diff_parse`), `TandemError`. No I/O, nothing heavier than serde/chrono — every other crate speaks these types.                                                                                                                       |
-| `crates/tandem-github` | GitHub REST/GraphQL client. Wire structs in `wire.rs`, HTTP in `client.rs`, auth strategies in `auth.rs`, discovery in `discovery.rs`, rate-limit backoff in `rate_limit.rs`, the user-only write half in `write.rs`.                                                                                                   |
-| `crates/tandem-cache`  | SQLite. GitHub-data caching in `store.rs`; local-only review data in `review_store.rs` (+ `summaries.rs`, `revisions.rs`, `reviewed.rs`); merged-PR retention in `archive.rs`; the outside-process review queue in `queue.rs`; migrations in `schema.rs`.                                                               |
-| `crates/tandem-agents` | Agent runners. argv per runner in `command.rs`, stdout classification + the comment contract in `events.rs`, prompt assembly in `context.rs` / `reply.rs` / `conversation.rs` / `conventions.rs` / `summary.rs`, process lifecycle in `runner.rs`.                                                                      |
-| `crates/tandem-cli`    | `tandem-cli`: read-only JSON CLI over the cache DB, plus `review` (enqueue) and `update`. A library (`tandem_cli::run`/`run_as`, `ABOUT`) with a thin `main.rs`; `beagle` links it as `beagle tandem`. Reads raw SQL, so schema changes must keep it working (`query_tests.rs` builds a real store). See `docs/CLI.md`. |
-| `src-tauri`            | Thin Tauri shell. One file per domain under `src/commands/`; `state.rs` (`AppState`), `settings.rs` (settings + `AppDirs`), `file_config.rs` (optional `tandem.yaml`). Commands validate, lock state briefly, and delegate to the crates.                                                                               |
-| `src/`                 | React frontend. IPC only through `src/lib/ipc.ts`; shared state only through the zustand store (`src/state/store.ts`, actions in `src/state/*Actions.ts`, event subscriptions in `src/state/initAction.ts`); Rust types mirrored in `src/lib/types.ts`.                                                                 |
+| Path                   | What lives there                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `crates/tandem-core`   | Pure domain types (`github`, `review`, `agent`, `diff`), the unified-diff parser (`diff_parse`), `TandemError`. No I/O, nothing heavier than serde/chrono — every other crate speaks these types.                                                                                                                                                                                                                                                                                                                                    |
+| `crates/tandem-github` | GitHub REST/GraphQL client. Wire structs in `wire.rs`, HTTP in `client.rs`, auth strategies in `auth.rs`, discovery in `discovery.rs`, rate-limit backoff in `rate_limit.rs`, the user-only write half in `write.rs`.                                                                                                                                                                                                                                                                                                                |
+| `crates/tandem-cache`  | SQLite. GitHub-data caching in `store.rs`; local-only review data in `review_store.rs` (+ `summaries.rs`, `revisions.rs`, `reviewed.rs`); merged-PR retention in `archive.rs`; the outside-process review queue in `queue.rs`, plus job listing, atomic claiming and `pr_marks` for the review TUI in `triage.rs`; migrations in `schema.rs`.                                                                                                                                                                                        |
+| `crates/tandem-agents` | Agent runners. argv per runner in `command.rs`, stdout classification + the comment contract in `events.rs`, prompt assembly in `context.rs` / `reply.rs` / `conversation.rs` / `conventions.rs` / `summary.rs`, process lifecycle in `runner.rs`.                                                                                                                                                                                                                                                                                   |
+| `crates/tandem-cli`    | `tandem-cli`: read-only JSON CLI over the cache DB, plus `review` (enqueue) and `update`; with no command it opens the review TUI, and `tandem-tui`'s queue commands (`add`, `claim`, `ingest`, `fail`, `list`) are flattened into its own. A library (`tandem_cli::run`/`run_as`, `ABOUT`) with a thin `main.rs`; `beagle` links it as `beagle tandem`. Reads raw SQL, so schema changes must keep it working (`query_tests.rs` builds a real store). See `docs/CLI.md`.                                                            |
+| `crates/tandem-tui`    | The review TUI (library only, linked by `tandem-cli`): a terminal review queue on its own store. `lib.rs` holds the `Command` enum and `open`/`run`/`paths`; `jobs.rs` the queue life cycle (add → claim → ingest/fail), `context.rs` + `ingest.rs` + `verdict.rs` the reviewer's output contract (change them together), `gh.rs` the GitHub reads and the two user-only writes, `state.rs` where each PR stands, `ui/` the ratatui app (`keys.rs`, `view.rs`, `tabs.rs`, `diff.rs`, `worker.rs` for GitHub work off the UI thread). |
+| `src-tauri`            | Thin Tauri shell. One file per domain under `src/commands/`; `state.rs` (`AppState`), `settings.rs` (settings + `AppDirs`), `file_config.rs` (optional `tandem.yaml`). Commands validate, lock state briefly, and delegate to the crates.                                                                                                                                                                                                                                                                                            |
+| `src/`                 | React frontend. IPC only through `src/lib/ipc.ts`; shared state only through the zustand store (`src/state/store.ts`, actions in `src/state/*Actions.ts`, event subscriptions in `src/state/initAction.ts`); Rust types mirrored in `src/lib/types.ts`.                                                                                                                                                                                                                                                                              |
 
 `src/lib/types.ts` must match Rust serde output: snake_case fields and
 `kind`-tagged enums. Change both sides together.
@@ -44,6 +45,14 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
   startup) and starts the reviews other processes queued through
   `tandem-cli review`. The queue is the one place an outside process
   writes; it records requests, never review data.
+- The review TUI (`tandem-tui`) is synchronous on its UI thread: it
+  polls keys every 250ms, re-reads its store every 2s, and asks the
+  worker every 2 minutes (and once at startup) to re-check open PRs on
+  GitHub, so merged and closed PRs show as finished and sort last. GitHub work
+  (fetch, post, approve) runs on one worker thread with its own store
+  connection and a current-thread tokio runtime, fed over channels; the
+  `claim` command uses the same kind of runtime. Never `block_on` from
+  inside async code.
 
 ## Domain rules
 
@@ -64,9 +73,10 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
   (what is parsed) and this file together.
 - **GitHub writes are user-only.** The only write paths are
   `tandem-github/src/write.rs`, reached from
-  `src-tauri/src/commands/github_write.rs` and `merge.rs`, and they run
-  only on explicit user clicks (post a chosen comment, approve, merge,
-  commit a suggestion, and so on). An agent run must never be able to
+  `src-tauri/src/commands/github_write.rs` and `merge.rs`, and from the
+  review TUI's `ui/worker.rs` (via `gh.rs`), and they run only on
+  explicit user clicks or confirmed keypresses (post a chosen comment,
+  approve, merge, commit a suggestion, and so on). An agent run must never be able to
   write to GitHub. Agent output stays local until the user posts it.
 - **Schema migrations are append-only.** Add a new entry to `MIGRATIONS`
   in `crates/tandem-cache/src/schema.rs`. Never edit a migration that has
@@ -96,6 +106,12 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
 - **Debug builds use `tandem-dev` instead of `tandem`** for all of the
   above, so `make dev` never touches the installed app's data. The window
   title also says "Tandem Dev".
+- The review TUI (same in debug builds): its own store at `<data dir>/tandem-tui/cache.sqlite3`
+  (`$TANDEM_TUI_DB`) — never the app's, whose drain would race the
+  reviewer — and an optional `~/.config/tandem-tui/config.yaml`
+  (`$TANDEM_TUI_CONFIG`; `github_user`, `kick`). The reviewer's contract
+  is in `docs/CLI.md` ("The review TUI"); an example agentd job is
+  `workflows/manifests/demo/review-queue.yaml`.
 
 ## App commands (run inside `tandem/`)
 

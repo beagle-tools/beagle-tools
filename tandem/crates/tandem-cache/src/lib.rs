@@ -18,6 +18,7 @@ mod revisions;
 mod schema;
 mod store;
 mod summaries;
+mod triage;
 
 pub use archive::{purge_deadline, ArchiveStore, PurgedRuns};
 pub use queue::{ReviewJob, ReviewQueue};
@@ -26,3 +27,4 @@ pub use reviewed::ReviewedPrs;
 pub use revisions::CommentRevisions;
 pub use store::Cache;
 pub use summaries::SummaryStore;
+pub use triage::{JobRow, PrMark, ReviewTriage};

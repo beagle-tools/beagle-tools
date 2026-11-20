@@ -28,6 +28,7 @@ const HELP_ROWS: &[(&str, &str)] = &[
     ),
     ("F", "follow: reloads stick to the bottom (tail -f)"),
     ("s", "hide / show the sidebar (full-width content)"),
+    beagle_tui::pane_resize::HELP,
     ("a", "show / hide archived incidents (dimmed)"),
     ("/", "search the incident: every tab, live highlight"),
     ("n / N", "next / previous search match"),

@@ -84,6 +84,22 @@ pub(super) fn search_status_line(search: &crate::ui::search::ContentSearch) -> L
 }
 
 pub(super) fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
+    if app.side.is_active() {
+        let line = Line::from(vec![
+            Span::styled(
+                format!("  {}", beagle_tui::pane_resize::HINT),
+                Style::default().fg(Color::Cyan),
+            ),
+            Span::styled(
+                app.status_line()
+                    .map(|m| format!("   {m}"))
+                    .unwrap_or_default(),
+                Style::default().fg(Color::Yellow),
+            ),
+        ]);
+        frame.render_widget(Paragraph::new(line), area);
+        return;
+    }
     if app.search_active() {
         frame.render_widget(Paragraph::new(filter_prompt_line(app)), area);
         return;
@@ -113,10 +129,10 @@ pub(super) fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     let mut spans = vec![Span::styled(
         match app.focus() {
             Focus::List => {
-                "  j/k select · enter open · ←/→ tabs · f filter · / search · T toolbox · R related · c copy · r reload · ? help · Q quit"
+                "  j/k select · enter open · ←/→ tabs · f filter · / search · T toolbox · R related · c copy · w resize · r reload · ? help · Q quit"
             }
             Focus::Content => {
-                "  j/k line · v select · y yank · ←/→ tabs · / search · F follow · s sidebar · c copy · b back · ? help · Q quit"
+                "  j/k line · v select · y yank · ←/→ tabs · / search · F follow · s sidebar · w resize · c copy · b back · ? help · Q quit"
             }
         },
         Style::default().fg(Color::DarkGray),

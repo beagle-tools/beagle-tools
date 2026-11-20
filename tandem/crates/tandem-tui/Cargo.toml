@@ -1,0 +1,33 @@
+[package]
+name = "tandem-tui"
+description = "Terminal review queue for Tandem: an agent reviews queued PRs, you triage the local comments, post and approve"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# A library only: `tandem-cli` links it, so `tandem-cli` / `beagle tandem`
+# with no arguments opens the TUI and its subcommands join tandem-cli's.
+[lib]
+name = "tandem_tui"
+path = "src/lib.rs"
+
+[dependencies]
+tandem-core.workspace = true
+tandem-github.workspace = true
+tandem-cache.workspace = true
+beagle-utils.workspace = true
+beagle-tui.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+tokio.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+dirs.workspace = true
+clap.workspace = true
+ratatui.workspace = true
+crossterm.workspace = true
+
+[lints]
+workspace = true

@@ -32,6 +32,11 @@ impl App {
         if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
             return Flow::Quit;
         }
+        if self.side.is_active() {
+            let total = self.side.last_total();
+            self.status = self.side.handle_key(key, total).status;
+            return Flow::Continue;
+        }
         if self.route_modal_key(key) {
             return Flow::Continue;
         }
@@ -76,6 +81,7 @@ impl App {
             KeyCode::Char('D') if self.focus == Focus::List => self.open_confirm_delete(),
             KeyCode::Char('b') => self.focus = Focus::List,
             KeyCode::Char('s') => self.toggle_sidebar(),
+            KeyCode::Char('w') => self.start_resize(),
             KeyCode::Char('a') => self.toggle_archived(),
             KeyCode::Char('E') => {
                 if let Some(flow) = self.edit_request() {
@@ -198,6 +204,15 @@ impl App {
             self.status = Some("sidebar hidden — s or b brings it back".to_owned());
         } else {
             self.status = Some("sidebar shown".to_owned());
+        }
+    }
+
+    /// `w`: resize the sidebar, unless it is hidden.
+    fn start_resize(&mut self) {
+        if self.sidebar_collapsed {
+            self.status = Some("sidebar hidden — s shows it, then w resizes it".to_owned());
+        } else {
+            self.side.start();
         }
     }
 
