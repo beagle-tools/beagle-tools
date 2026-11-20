@@ -62,15 +62,35 @@ pub async fn resolve_workspace(
     Ok(resolve(&state, &repo.slug(), configured.as_deref()))
 }
 
+/// Bound on `gh repo clone` (a blobless clone of a large repo).
+const GH_CLONE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(600);
+/// Bound on any other `gh` call here (`gh pr checkout`).
+const GH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
+
 async fn run_gh(args: &[&str], dir: Option<&std::path::Path>) -> Result<(), TandemError> {
-    let mut cmd = tokio::process::Command::new("gh");
-    cmd.env("PATH", augmented_path()).args(args);
+    let gh = beagle_utils::process::which("gh").unwrap_or_else(|| "gh".into());
+    let mut cmd = tokio::process::Command::new(gh);
+    cmd.env("PATH", augmented_path())
+        .args(args)
+        .kill_on_drop(true);
     if let Some(dir) = dir {
         cmd.current_dir(dir);
     }
-    let output = cmd
-        .output()
+    let timeout = if args.starts_with(&["repo", "clone"]) {
+        GH_CLONE_TIMEOUT
+    } else {
+        GH_TIMEOUT
+    };
+    // On expiry the future is dropped, which kills gh (kill_on_drop).
+    let output = tokio::time::timeout(timeout, cmd.output())
         .await
+        .map_err(|_| {
+            TandemError::Config(format!(
+                "`gh {}` timed out after {}s — is GitHub reachable?",
+                args.iter().take(2).copied().collect::<Vec<_>>().join(" "),
+                timeout.as_secs()
+            ))
+        })?
         .map_err(|e| TandemError::Config(format!("failed to run gh: {e}")))?;
     if !output.status.success() {
         return Err(TandemError::Config(format!(

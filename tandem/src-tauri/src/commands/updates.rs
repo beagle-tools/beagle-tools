@@ -59,7 +59,13 @@ fn feed_err(context: &str, e: impl std::fmt::Display) -> TandemError {
 #[tauri::command]
 pub async fn list_app_releases() -> Result<Vec<AppRelease>, TandemError> {
     let url = format!("https://api.github.com/repos/{RELEASES_REPO}/releases?per_page=50");
-    let response = reqwest::Client::new()
+    // Bounded: a stalled connection must not leave the updater spinning.
+    let client = reqwest::Client::builder()
+        .connect_timeout(std::time::Duration::from_secs(10))
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| feed_err("couldn't set up the HTTP client", e))?;
+    let response = client
         .get(&url)
         .header("User-Agent", "tandem-app")
         .header("Accept", "application/vnd.github+json")

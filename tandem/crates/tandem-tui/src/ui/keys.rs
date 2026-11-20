@@ -322,7 +322,11 @@ impl App {
         let Some(url) = self.selected().map(|r| r.pr.url()) else {
             return;
         };
-        if let Err(e) = std::process::Command::new("open").arg(&url).spawn() {
+        // Detached but reaped (killed if it hangs past 10 s).
+        if let Err(e) = beagle_utils::process::spawn_bounded(
+            std::process::Command::new("open").arg(&url),
+            std::time::Duration::from_secs(10),
+        ) {
             self.error(format!("open {url}: {e}"));
         }
     }

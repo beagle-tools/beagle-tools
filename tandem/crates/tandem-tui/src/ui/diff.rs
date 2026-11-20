@@ -4,8 +4,7 @@
 //! once per (PR, commit, width) and is cached — scrolling only slices.
 //! The delta approach is the recap TUI's.
 
-use std::io::Write as _;
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 use ratatui::style::{Color, Style};
 use ratatui::text::Line;
@@ -89,25 +88,18 @@ fn render_delta(raw: &str, width: u16) -> Option<Rendered> {
 }
 
 fn run_delta(raw: &str, width: u16) -> Option<String> {
-    let mut child = Command::new("delta")
-        .args(["--side-by-side", "--paging=never", "--width"])
+    let mut cmd = Command::new("delta");
+    cmd.args(["--side-by-side", "--paging=never", "--width"])
         .arg(width.max(40).to_string())
-        .env("PATH", beagle_utils::process::augmented_path())
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .ok()?;
-    // Feed stdin from a thread so a large diff can't deadlock against a
-    // full stdout pipe.
-    let mut stdin = child.stdin.take()?;
-    let input = raw.to_owned();
-    let writer = std::thread::spawn(move || {
-        let _ = stdin.write_all(input.as_bytes()); // delta exiting early shows below
-    });
-    let out = child.wait_with_output().ok()?;
-    // A writer that failed (delta exited early) shows as delta's status.
-    let _ = writer.join();
+        .env("PATH", beagle_utils::process::augmented_path());
+    // Stdin is fed from a helper thread (no deadlock on a big diff); a
+    // delta that hangs past 10 s falls back to the plain view.
+    let out = beagle_utils::process::output_with_input_and_timeout(
+        &mut cmd,
+        raw.as_bytes(),
+        std::time::Duration::from_secs(10),
+    )
+    .ok()?;
     out.status
         .success()
         .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
