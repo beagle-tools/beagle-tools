@@ -211,10 +211,11 @@ export type RunnerKind =
   | { kind: "grok_headless" }
   | { kind: "custom"; command: string };
 
-export type AuthMode =
-  | { kind: "cli_session" }
-  | { kind: "api_key"; env_var: string }
-  | { kind: "endpoint"; base_url: string; env_var: string | null };
+// The runner's own CLI login is the only mode; specs saved with the removed
+// `api_key` / `endpoint` modes load as this (see tandem-core `AuthMode`).
+export interface AuthMode {
+  kind: "cli_session";
+}
 
 export interface AgentSpec {
   name: string;

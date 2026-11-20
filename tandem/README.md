@@ -61,8 +61,10 @@ sequenceDiagram
 
 - **Cache-first**: the UI renders instantly from SQLite, background syncs
   refresh from GitHub, and sync state is always visible.
-- **Bring your own AI**: reuse a CLI login (claude/codex), supply an API
-  key, or point at a custom endpoint. Configure everything in-app.
+- **Bring your own AI**: each agent runs a CLI you are already logged in
+  to (claude, codex, grok, or a custom command); extra environment for it
+  (a key, a custom endpoint variable) goes in the agent's env. Configure
+  everything in-app.
 - **Agents know they're reviewing**: each run gets a context block (PR,
   diff, rules) and a simple contract — emit
   `{"type":"tandem_comment", ...}` lines — inspired by
