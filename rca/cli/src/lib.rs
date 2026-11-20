@@ -32,7 +32,6 @@ pub mod config;
 pub mod error;
 pub mod fuzzy;
 pub mod handoff;
-pub mod links;
 pub mod model;
 pub mod notify;
 pub mod prs;

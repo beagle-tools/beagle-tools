@@ -160,7 +160,7 @@ fn is_linear_id(s: &str) -> bool {
 #[must_use]
 pub fn scan_pr_urls(text: &str) -> Vec<String> {
     let mut prs = Vec::new();
-    for url in crate::links::extract_urls(text) {
+    for url in beagle_tui::links::extract_urls(text) {
         if (url.contains("/pull/") || url.contains("/merge_requests/")) && !prs.contains(&url) {
             prs.push(url);
         }

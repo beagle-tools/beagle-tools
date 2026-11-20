@@ -8,9 +8,6 @@ use ratatui::DefaultTerminal;
 use crate::app::App;
 use crate::tmux;
 
-/// Bound on `open` (it hands off to the browser and returns at once).
-pub(crate) const OPEN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
-
 /// `y` — put the highlighted link on the clipboard. For a markdown path that
 /// is the point: paste it at another agent and it can read the write-up.
 pub(crate) fn copy_selected_link(app: &mut App) {
@@ -49,15 +46,9 @@ pub(crate) fn open_selected_link(terminal: &mut DefaultTerminal, app: &mut App) 
         }
         return Ok(());
     }
-    let ok = beagle_utils::process::output_with_timeout(
-        std::process::Command::new("open").arg(&target),
-        OPEN_TIMEOUT,
-    )
-    .is_ok_and(|o| o.status.success());
-    let msg = if ok {
-        format!("opened {target}")
-    } else {
-        format!("could not open {target}")
+    let msg = match beagle_tui::links::open_url(&target) {
+        Ok(()) => format!("opened {target}"),
+        Err(e) => format!("could not open {target}: {e}"),
     };
     app.set_status(&msg);
     Ok(())
