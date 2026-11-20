@@ -128,6 +128,11 @@ fn runner_command(spec: &AgentSpec, model: Option<&str>) -> String {
         }
     }
     if spec.runner == Runner::Codex {
+        if let Some(mode) = spec.sandbox.flag() {
+            // The data dir is where a run hands output to the next stage, so
+            // it stays writable inside the sandbox.
+            let _ = write!(cmd, " --sandbox {mode} --add-dir \"$AGENTD_DATA_DIR\"");
+        }
         cmd.push_str(" -");
     }
     cmd

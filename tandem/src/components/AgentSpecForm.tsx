@@ -212,7 +212,7 @@ export function SpecForm(props: {
       <label className="flex flex-col gap-1">
         <span className="text-muted">
           network allowlist (one URL per line — pre-filled with your runner's provider endpoints;
-          enforced by the v2 Docker+squid sandbox, see docs/SANDBOXING.md)
+          not enforced yet: the planned v2 sandbox will enforce it, see docs/SANDBOXING.md)
         </span>
         <textarea
           value={spec.network_allowlist.join("\n")}

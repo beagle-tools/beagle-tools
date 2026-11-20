@@ -4,7 +4,8 @@ use serde::Deserialize;
 
 use crate::paths::expand_tilde;
 use crate::types::{
-    AgentSpec, ConcurrencyPolicy, Isolation, NotifyPolicy, ProjectSpec, Runner, ScheduleTz,
+    AgentSpec, CodexSandbox, ConcurrencyPolicy, Isolation, NotifyPolicy, ProjectSpec, Runner,
+    ScheduleTz,
 };
 use crate::CoreError;
 
@@ -62,6 +63,8 @@ struct RawAgentManifest {
     concurrency: Option<ConcurrencyPolicy>,
     #[serde(default)]
     isolation: Option<Isolation>,
+    #[serde(default)]
+    sandbox: Option<CodexSandbox>,
     #[serde(default)]
     enabled: Option<bool>,
     entrypoint: Option<bool>,
@@ -294,6 +297,7 @@ fn load_agent_file(path: &Path, project: &str) -> Result<AgentSpec, CoreError> {
         notify_icon_failure: resolve_opt(base, raw.notify_icon_failure.as_ref())?,
         concurrency: raw.concurrency.unwrap_or_default(),
         isolation: raw.isolation.unwrap_or_default(),
+        sandbox: raw.sandbox.unwrap_or_default(),
         enabled: raw.enabled.unwrap_or(true),
         entrypoint: raw.entrypoint,
         triggers: raw.triggers.unwrap_or_default(),

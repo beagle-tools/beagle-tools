@@ -28,6 +28,9 @@ timeout_minutes: 5
 max_concurrent: 2       # optional: at most this many runs of THIS agent
 triggers: [report]      # optional: the agents (same project) it may start —
                         # documentation the views draw, not enforcement
+sandbox: workspace-write # optional, codex only: --sandbox read-only |
+                        # workspace-write (writes limited to the workdir and the
+                        # run's data dir, no network); default off
 ```
 
 One directory per project; see [`manifests/`](manifests/) for examples,

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 mod enums;
 
 pub use enums::{
-    ConcurrencyPolicy, Isolation, NotifyPolicy, RunState, Runner, ScheduleTz, Trigger,
+    CodexSandbox, ConcurrencyPolicy, Isolation, NotifyPolicy, RunState, Runner, ScheduleTz, Trigger,
 };
 
 /// A project groups related agents — the "namespace". One directory of
@@ -127,6 +127,9 @@ pub struct AgentSpec {
     #[serde(default)]
     /// Whether runs get their own git worktree.
     pub isolation: Isolation,
+    #[serde(default)]
+    /// codex runs only: the `--sandbox` mode (off unless set).
+    pub sandbox: CodexSandbox,
     #[serde(default = "default_true")]
     /// `false` keeps the agent loaded but never schedules it. Defaults to true.
     pub enabled: bool,

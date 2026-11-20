@@ -1,7 +1,7 @@
 use chrono::{TimeZone, Utc};
 
 use super::*;
-use crate::types::{ConcurrencyPolicy, Isolation, Runner, Trigger};
+use crate::types::{CodexSandbox, ConcurrencyPolicy, Isolation, Runner, Trigger};
 
 fn spec(name: &str, schedule: Option<&str>, entrypoint: Option<bool>) -> AgentSpec {
     AgentSpec {
@@ -34,6 +34,7 @@ fn spec(name: &str, schedule: Option<&str>, entrypoint: Option<bool>) -> AgentSp
         timeout_minutes: 30,
         concurrency: ConcurrencyPolicy::Forbid,
         isolation: Isolation::None,
+        sandbox: CodexSandbox::Off,
         enabled: true,
         entrypoint,
         triggers: Vec::new(),

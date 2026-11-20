@@ -7,7 +7,7 @@
 
 use std::path::PathBuf;
 use std::process::Stdio;
-use tandem_core::agent::{AgentSpec, RunEvent, RunEventKind, RunStatus};
+use tandem_core::agent::{AgentSpec, RunEvent, RunEventKind, RunStatus, RunnerKind};
 use tandem_core::{Result, TandemError};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
@@ -121,7 +121,13 @@ async fn run_process(
     cancel_rx: oneshot::Receiver<()>,
     comments_path: &PathBuf,
 ) -> Result<RunStatus> {
-    let cmd = build_command(&req.spec);
+    let mut cmd = build_command(&req.spec);
+    if matches!(req.spec.runner, RunnerKind::CodexHeadless) {
+        // The comments file lives in the run dir, outside codex's workspace.
+        let at = cmd.args.len().saturating_sub(1); // before the trailing `-`
+        let dir = req.run_dir.to_string_lossy().into_owned();
+        cmd.args.splice(at..at, ["--add-dir".to_owned(), dir]);
+    }
     let workdir = req.workdir.clone().unwrap_or_else(|| req.run_dir.clone());
 
     let mut command = Command::new(&cmd.program);
@@ -285,7 +291,7 @@ fn spawn_line_reader(
 mod tests {
     use super::*;
     use std::collections::BTreeMap;
-    use tandem_core::agent::{AuthMode, RunnerKind};
+    use tandem_core::agent::AuthMode;
 
     fn spec_with_command(command: &str) -> AgentSpec {
         AgentSpec {

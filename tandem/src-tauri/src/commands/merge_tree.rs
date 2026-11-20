@@ -1,5 +1,6 @@
 //! Preparing a PR checkout for conflict resolution, and pushing the
-//! result. The agent runs sandboxed and can't reach the network, so
+//! result. The agent may not be able to reach the network (codex runs in
+//! its workspace-write sandbox) and has no GitHub credentials either way, so
 //! Tandem does the fetching and merging: by the time a run starts, the
 //! base commits are present and the conflict markers are real files on
 //! disk it can edit.

@@ -97,7 +97,7 @@ pub fn describe_params(specs: &[ParamSpec]) -> String {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use agent_core::types::{ConcurrencyPolicy, Isolation, Runner};
+    use agent_core::types::{CodexSandbox, ConcurrencyPolicy, Isolation, Runner};
 
     fn temp_store(tag: &str) -> Store {
         let path =
@@ -137,6 +137,7 @@ mod tests {
             timeout_minutes: 30,
             concurrency: ConcurrencyPolicy::Forbid,
             isolation: Isolation::None,
+            sandbox: CodexSandbox::Off,
             enabled: true,
             entrypoint: None,
             triggers: Vec::new(),
