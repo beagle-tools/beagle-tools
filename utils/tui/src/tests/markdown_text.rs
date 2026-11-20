@@ -170,3 +170,27 @@ fn to_text_keeps_one_line_per_source_line() {
     let lines: Vec<Line<'static>> = to_lines(plain).into_iter().map(|d| d.line).collect();
     assert_eq!(to_text(plain).lines, lines);
 }
+
+#[test]
+fn placeholders_are_dimmed_only_when_asked() {
+    let source = "<Filled in when the task closes.>\nreal text";
+    let plain = to_text(source);
+    assert_ne!(plain.lines[0].style.fg, Some(Color::DarkGray));
+    let dimmed = to_text_with(
+        source,
+        Options {
+            dim_placeholders: true,
+        },
+    );
+    assert_eq!(dimmed.lines.len(), 2, "one line per source line");
+    assert_eq!(
+        line_text(&dimmed.lines[0]),
+        "<Filled in when the task closes.>"
+    );
+    assert_eq!(dimmed.lines[0].style.fg, Some(Color::DarkGray));
+    assert!(dimmed.lines[0]
+        .style
+        .add_modifier
+        .contains(Modifier::ITALIC));
+    assert_ne!(dimmed.lines[1].style.fg, Some(Color::DarkGray));
+}

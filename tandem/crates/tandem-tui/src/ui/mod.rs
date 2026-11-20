@@ -8,7 +8,6 @@
 
 mod diff;
 mod keys;
-mod markdown;
 mod tabs;
 mod term;
 mod view;

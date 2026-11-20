@@ -1,6 +1,7 @@
 //! The three tab bodies. Each records how far it can scroll in
 //! `app.max_scroll`, so keys can clamp without knowing the layout.
 
+use beagle_tui::markdown;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -10,7 +11,7 @@ use tandem_core::github::ReviewVerdict;
 use tandem_core::review::{CommentSeverity, CommentStatus, LocalComment};
 
 use super::view::verdict_style;
-use super::{markdown, App, Loaded};
+use super::{App, Loaded};
 use crate::state::Stage;
 use crate::verdict::Verdict;
 
@@ -81,7 +82,7 @@ pub fn summary(frame: &mut Frame<'_>, app: &mut App, area: Rect) {
         lines.push(Line::default());
         match &l.summary {
             Some(s) => {
-                let mut body = markdown::render(&s.body);
+                let mut body = markdown::to_text(&s.body).lines;
                 if let (Some(v), Some(first)) = (Verdict::from_summary(&s.body), body.first_mut()) {
                     *first = first.clone().patch_style(verdict_style(v));
                 }
@@ -295,7 +296,7 @@ fn detail(l: &Loaded, c: &LocalComment) -> Vec<Line<'static>> {
         lines.push(Line::styled("Dismissed (x to restore).", dim()));
     }
     lines.push(Line::default());
-    lines.extend(markdown::render(&c.body));
+    lines.extend(markdown::to_text(&c.body).lines);
     if let Some(fix) = &c.suggestion {
         lines.push(Line::default());
         lines.push(Line::styled(
@@ -315,7 +316,7 @@ fn detail(l: &Loaded, c: &LocalComment) -> Vec<Line<'static>> {
             "── history (local, never posted) ──",
             Style::default().fg(Color::Magenta),
         ));
-        lines.extend(markdown::render(&reply.body));
+        lines.extend(markdown::to_text(&reply.body).lines);
     }
     lines
 }

@@ -12,6 +12,14 @@ use ratatui::text::{Line, Span, Text};
 
 use crate::wrap::DocLine;
 
+/// Opt-in renderer behaviour. The default renders every tool the same way.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Options {
+    /// Dim a line that is only an unfilled `<placeholder>` (scout's task
+    /// templates), so it reads as "still to do".
+    pub dim_placeholders: bool,
+}
+
 /// Renders markdown `source` into styled, wrap-tagged lines.
 ///
 /// Never fails and never panics: unrecognized syntax falls through as plain
@@ -19,7 +27,7 @@ use crate::wrap::DocLine;
 /// code. Single-line HTML comments (`<!-- … -->`) are hidden.
 #[must_use]
 pub fn to_lines(source: &str) -> Vec<DocLine> {
-    render(source, true)
+    render(source, true, Options::default())
 }
 
 /// Renders markdown `source` into styled [`Text`] with exactly one output
@@ -28,15 +36,21 @@ pub fn to_lines(source: &str) -> Vec<DocLine> {
 /// comments are kept, as plain text.
 #[must_use]
 pub fn to_text(source: &str) -> Text<'static> {
+    to_text_with(source, Options::default())
+}
+
+/// [`to_text`] with [`Options`].
+#[must_use]
+pub fn to_text_with(source: &str, options: Options) -> Text<'static> {
     Text::from(
-        render(source, false)
+        render(source, false, options)
             .into_iter()
             .map(|doc| doc.line)
             .collect::<Vec<_>>(),
     )
 }
 
-fn render(source: &str, hide_comments: bool) -> Vec<DocLine> {
+fn render(source: &str, hide_comments: bool, options: Options) -> Vec<DocLine> {
     let mut lines: Vec<DocLine> = Vec::with_capacity(source.lines().count());
     let mut in_code_fence = false;
     let mut lang = String::new();
@@ -69,7 +83,7 @@ fn render(source: &str, hide_comments: bool) -> Vec<DocLine> {
         if hide_comments && trimmed.starts_with("<!--") && trimmed.trim_end().ends_with("-->") {
             continue;
         }
-        lines.push(DocLine::prose(render_line(raw)));
+        lines.push(DocLine::prose(render_line(raw, options)));
     }
     lines
 }
@@ -86,7 +100,7 @@ fn fence_rule(corner: &str, lang: &str) -> Line<'static> {
     Line::styled(label, dim)
 }
 
-fn render_line(raw: &str) -> Line<'static> {
+fn render_line(raw: &str, options: Options) -> Line<'static> {
     let trimmed = raw.trim_start();
     let indent = raw.len() - trimmed.len();
 
@@ -145,6 +159,14 @@ fn render_line(raw: &str) -> Line<'static> {
         ];
         spans.extend(inline_spans(rest, Style::default()));
         return Line::from(spans);
+    }
+    if options.dim_placeholders && trimmed.starts_with('<') && trimmed.trim_end().ends_with('>') {
+        return Line::styled(
+            raw.to_owned(),
+            Style::default()
+                .fg(Color::DarkGray)
+                .add_modifier(Modifier::ITALIC),
+        );
     }
     Line::from(inline_spans(raw, Style::default()))
 }
