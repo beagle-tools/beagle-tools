@@ -74,6 +74,20 @@ Most rules are enforced by tooling. The configuration is shared, and
 14. **Shared code goes in `utils/`** (`beagle-utils`), and only when two or
     more apps need it. Domain types and app error enums stay in their app. See
     `utils/README.md`.
+15. **One beagle folder for configs and stores.** Every tool behind `beagle`
+    finds its files the same way:
+    - Config: `$XDG_CONFIG_HOME/beagle/<tool>.toml` (so
+      `~/.config/beagle/<tool>.toml`), honouring `XDG_CONFIG_HOME`.
+    - Store root, first match wins: `--root` flag → `$BEAGLE_<TOOL>_ROOT` →
+      the tool's marker file walking up from the working directory (like
+      `.beagle`) → `root` in the config → the nearest ancestor holding the
+      tool's store directory → the tool's default.
+    - A config that fails to parse warns (naming the file and the error) and
+      the tool runs on defaults; it never refuses to start.
+    - Today's paths and variables (`~/.config/scout/`, `$SCOUT_ROOT`,
+      `.scout-store`, `~/.config/tandem-tui/config.yaml`, …) keep working as
+      fallbacks after the new ones, so no existing setup breaks. Moving a
+      tool onto this is its own change, with a migration note.
 
 ## 2. Rust
 
