@@ -31,7 +31,10 @@ impl Write for Duplex {
 }
 
 fn send(raw: &str) -> (Option<String>, String) {
-    let ctx = Ctx::new(Token::parse(TOKEN).unwrap());
+    let ctx = Ctx::new(
+        Token::parse(TOKEN).unwrap(),
+        crate::router::tests::unavailable(),
+    );
     let mut conn = Duplex {
         input: Cursor::new(raw.as_bytes().to_vec()),
         output: Vec::new(),

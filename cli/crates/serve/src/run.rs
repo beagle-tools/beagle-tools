@@ -10,6 +10,7 @@ use crate::cli::{self, Command, ServeOptions};
 use crate::config;
 use crate::error::{Error, Result};
 use crate::router::Ctx;
+use crate::stores::Stores;
 use crate::{server, tailscale, tls};
 
 /// Entry point behind [`crate::run`].
@@ -84,8 +85,12 @@ fn serve(opts: &ServeOptions) -> Result<()> {
         )
     };
     let listener = TcpListener::bind(addr).map_err(|source| Error::Bind { addr, source })?;
+    let stores = Stores::resolve();
     eprintln!("beagle serve: listening on {url} (bound to {addr})");
-    server::serve(&listener, &Arc::new(Ctx::new(token)), tls.as_ref());
+    for line in stores.describe() {
+        eprintln!("beagle serve:   {line}");
+    }
+    server::serve(&listener, &Arc::new(Ctx::new(token, stores)), tls.as_ref());
     Ok(())
 }
 

@@ -35,6 +35,16 @@ pub use error::{Error, Result};
 /// One line for `beagle help`.
 pub const ABOUT: &str = "watch agent work as projects of small, ordered tasks";
 
+/// The store `beagle scout` uses when run from this process without
+/// `--root`: `$SCOUT_ROOT`, the nearest `.scout-store`, `root` in
+/// `~/.config/scout/config.toml`, else `~/.scout`.
+///
+/// # Errors
+/// [`Error::NoHome`] when nothing names a store and there is no home.
+pub fn default_root() -> Result<std::path::PathBuf> {
+    app::default_root()
+}
+
 /// Runs `beagle scout` with the arguments after `scout` (`--help` prints
 /// the usage). Returns 2 on a usage error, 1 when the command fails.
 pub fn run(args: Vec<std::ffi::OsString>) -> std::process::ExitCode {

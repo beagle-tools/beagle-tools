@@ -156,6 +156,11 @@ fn dispatch(invocation: cli::Invocation) -> Result<()> {
     Ok(())
 }
 
+/// The store `beagle scout` uses from this process, with no `--root`.
+pub(crate) fn default_root() -> Result<PathBuf> {
+    resolve_root(None)
+}
+
 /// The store this command uses; see [`root::resolve`] for the order.
 fn resolve_root(explicit: Option<PathBuf>) -> Result<PathBuf> {
     root::current(explicit).map(|(path, _)| path)
