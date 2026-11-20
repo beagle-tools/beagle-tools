@@ -111,9 +111,12 @@ toolbox.md, systems/*.md   agent context at the store root (`beagle rca init`)
 
 - Lifecycle: `investigating → fixing → review → agent → final-review → finished`.
   Special tags: `skip-final-review` and `security` (`model/mod.rs`).
-- Store root resolution: `--root` → nearest `.beagle` walking up (git-style)
-  → global config `root` → nearest ancestor containing `rcas/` → cwd.
-  `$BEAGLE_CONFIG` skips `.beagle` discovery.
+- Store root resolution: `--root` → `$BEAGLE_RCA_ROOT` → nearest `.beagle`
+  walking up (git-style) → global config `root` → nearest ancestor
+  containing `rcas/` → cwd. `$BEAGLE_CONFIG` names the config file and skips
+  `.beagle` discovery. The global config is `~/.config/beagle/rca.toml`,
+  else the older `~/.config/beagle/config.toml` (`config/dirs.rs`, over
+  `beagle_tui::config`). A broken config warns and rca runs on defaults.
 
 ## TUI rules
 

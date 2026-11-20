@@ -26,7 +26,7 @@ src/session/          recorded agent sessions: hook payload → JSONL event, lis
 src/watch/            `beagle scout watch`: follow a recording, render it, spot scout calls
 src/hooks/            `beagle scout hook install|uninstall|status`: edit ~/.claude/settings.json
 src/editor.rs         $VISUAL / $EDITOR launch
-src/config.rs         ~/.config/scout/config.toml (notification settings), defaults on error
+src/config.rs         ~/.config/beagle/scout.toml (or the old ~/.config/scout/config.toml), defaults on error
 src/autopause.rs      `[auto] pause_after`: pause working tasks that went quiet
 src/transcript/       Claude transcript → scout entries (parse); incremental sync (sync)
 src/transcript_view/  render sessions (Session tab, `beagle scout session show`), ANSI both ways
@@ -41,8 +41,10 @@ assets/               scout-dog.png (Noto Emoji, Apache-2.0; see assets/NOTICE)
 ## Rules
 
 - The on-disk format (README "On disk"), store resolution (`src/app/root.rs`:
-  `--root`, `$SCOUT_ROOT`, `.scout-store`, config `root`, `~/.scout`),
-  `~/.config/scout/config.toml` and the CLI are the agents' API. Changing
+  `--root`, `$BEAGLE_SCOUT_ROOT` then `$SCOUT_ROOT`, `.scout-store`, config
+  `root`, `~/.scout`), the config (`~/.config/beagle/scout.toml`, else the
+  older `~/.config/scout/config.toml`; names in `config::DIRS`, resolved by
+  `beagle_tui::config`) and the CLI are the agents' API. Changing
   any of them means updating the skills, the README and this file together.
 - The skills are compiled into the binary; editing a `SKILL.md` changes the
   binary. Reinstall with `beagle scout skill install` after building.

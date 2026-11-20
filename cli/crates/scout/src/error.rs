@@ -67,7 +67,7 @@ pub enum Error {
     #[error("no session: run this from inside Claude Code, or pass --session <id>")]
     NoSession,
     /// No store root could be derived.
-    #[error("no home directory: set SCOUT_ROOT or pass --root")]
+    #[error("no home directory: set BEAGLE_SCOUT_ROOT or pass --root")]
     NoHome,
     /// The editor could not be launched.
     #[error("could not run the editor {command:?}: {source}")]

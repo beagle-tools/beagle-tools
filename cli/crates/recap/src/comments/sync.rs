@@ -85,7 +85,7 @@ pub fn spawn_sync(store: Store) {
             return;
         }
         loop {
-            let config = crate::config::load_or_default();
+            let config = crate::config::load_quietly();
             let now = crate::store::now_unix().to_string();
             let _ = sync_all(&store, &config.comments, &now); // recorded in error_path
             std::thread::sleep(SYNC_INTERVAL);
@@ -96,7 +96,7 @@ pub fn spawn_sync(store: Store) {
 /// One sync pass now, in the background (the TUI's `r`).
 pub fn spawn_sync_once(store: Store) {
     std::thread::spawn(move || {
-        let config = crate::config::load_or_default();
+        let config = crate::config::load_quietly();
         let now = crate::store::now_unix().to_string();
         let _ = sync_all(&store, &config.comments, &now); // recorded in error_path
     });

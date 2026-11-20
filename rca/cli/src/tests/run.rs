@@ -48,3 +48,15 @@ fn the_help_speaks_the_unified_spelling() {
         assert!(line.starts_with("    beagle rca"), "{line}");
     }
 }
+
+#[test]
+fn a_broken_config_warns_and_rca_still_starts() {
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("rca.toml");
+    std::fs::write(&path, "rooot = \"/x\"\n").unwrap();
+    let (config, warning) = config_or_warning(config::load(&path));
+    assert!(config.is_none());
+    let warning = warning.unwrap();
+    assert!(warning.contains("rca.toml"), "{warning}");
+    assert!(warning.contains("using defaults"), "{warning}");
+}

@@ -25,7 +25,12 @@ pub const THROTTLE_SECS: u32 = 30;
 /// Store-location variables copied from the installing shell into the
 /// agent's environment, so the service reads the stores the shell's
 /// `beagle` commands do.
-pub const PASSED_ENV: [&str; 7] = [
+pub const PASSED_ENV: [&str; 12] = [
+    "BEAGLE_SCOUT_ROOT",
+    "BEAGLE_RECAP_ROOT",
+    "BEAGLE_STANDUP_ROOT",
+    "BEAGLE_RCA_ROOT",
+    "BEAGLE_TANDEM_ROOT",
     "SCOUT_ROOT",
     "RECAP_ROOT",
     "STANDUP_ROOT",

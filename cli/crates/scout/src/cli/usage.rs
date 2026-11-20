@@ -53,7 +53,7 @@ USAGE
   beagle scout version | help
 
 A <task> is its number (3), id (03-add-allowlist), or slug (add-allowlist).
-The store is --root, else $SCOUT_ROOT, else the nearest folder above you with
-a .scout-store file (see `init`), else `root` in ~/.config/scout/config.toml,
-else ~/.scout.
+The store is --root, else $BEAGLE_SCOUT_ROOT (or $SCOUT_ROOT), else the nearest
+folder above you with a .scout-store file (see `init`), else `root` in
+~/.config/beagle/scout.toml (or ~/.config/scout/config.toml), else ~/.scout.
 ";

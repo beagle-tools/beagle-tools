@@ -12,9 +12,10 @@ keep that picture true, at all times, and write it so someone who does not
 know the stack can follow it.
 
 Everything lives in plain files under the store (`beagle scout root` prints
-which one: `--root`, else `$SCOUT_ROOT`, else the nearest folder with a
-`.scout-store` file, else `root` in `~/.config/scout/config.toml`, else
-`~/.scout`). Drive it through the `beagle scout` CLI — it
+which one: `--root`, else `$BEAGLE_SCOUT_ROOT` (or the older `$SCOUT_ROOT`),
+else the nearest folder with a `.scout-store` file, else `root` in
+`~/.config/beagle/scout.toml` (or the older `~/.config/scout/config.toml`),
+else `~/.scout`). Drive it through the `beagle scout` CLI — it
 validates input, numbers tasks, stamps times, and logs every change.
 
 ```text

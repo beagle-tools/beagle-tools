@@ -113,9 +113,12 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
   above, so `make dev` never touches the installed app's data. The window
   title also says "Tandem Dev".
 - The review TUI (same in debug builds): its own store at `<data dir>/tandem-tui/cache.sqlite3`
-  (`$TANDEM_TUI_DB`) — never the app's, whose drain would race the
-  reviewer — and an optional `~/.config/tandem-tui/config.yaml`
-  (`$TANDEM_TUI_CONFIG`; `github_user`, `kick`). The reviewer's contract
+  (`$BEAGLE_TANDEM_ROOT`/config `root` name its folder; `$TANDEM_TUI_DB`
+  still names the file) — never the app's, whose drain would race the
+  reviewer — and an optional `~/.config/beagle/tandem.toml`
+  (`$TANDEM_TUI_CONFIG`; `github_user`, `kick`, `root`; the older
+  `~/.config/tandem-tui/config.yaml` is the fallback; a broken file warns
+  and the defaults apply). The reviewer's contract
   is in `docs/CLI.md` ("The review TUI"); an example agentd job is
   `workflows/manifests/demo/review-queue.yaml`.
 

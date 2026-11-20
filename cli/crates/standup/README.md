@@ -47,9 +47,12 @@ beagle standup path [DATE]     # where it lives
 ## Where reports live
 
 In a `standups/` directory under a store root, one folder per date. The root
-is `--root DIR`, else `$STANDUP_ROOT`, else `root = "…"` in
-`~/.config/standup/config.toml`, else the nearest parent directory that has
-`standups/`, else the current directory.
+is `--root DIR`, else `$BEAGLE_STANDUP_ROOT` (or the older `$STANDUP_ROOT`),
+else `root = "…"` in `~/.config/beagle/standup.toml` (the older
+`~/.config/standup/config.toml` is still read while the new file doesn't
+exist), else the nearest parent directory that has `standups/`, else the
+current directory. A config file that doesn't parse prints a warning and
+standup runs on defaults.
 
 ## Keys
 

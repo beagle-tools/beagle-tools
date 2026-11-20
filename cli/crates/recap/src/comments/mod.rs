@@ -33,7 +33,7 @@ pub use local::{
 pub use need::{marks, need, unix_of, Marks, Need, QUIET_SECS};
 pub use sync::{pending, spawn_sync, spawn_sync_once, sync_all, Pending, SYNC_INTERVAL};
 
-/// What to ignore, from `[comments]` in `~/.config/recap/config.toml`:
+/// What to ignore, from `[comments]` in `~/.config/beagle/recap.toml`:
 ///
 /// ```toml
 /// [comments]

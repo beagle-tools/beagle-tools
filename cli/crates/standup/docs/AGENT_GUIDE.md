@@ -55,8 +55,9 @@ The **store root** is a folder containing `standups/`. It is chosen in this
 order, first match wins:
 
 1. `--root DIR`
-2. `$STANDUP_ROOT`
-3. `root = "…"` in `~/.config/standup/config.toml`
+2. `$BEAGLE_STANDUP_ROOT` (then the older `$STANDUP_ROOT`)
+3. `root = "…"` in `~/.config/beagle/standup.toml` (or the older
+   `~/.config/standup/config.toml`; a broken file warns and is skipped)
 4. the nearest folder at or above the working directory that has `standups/`
 5. the working directory itself
 
