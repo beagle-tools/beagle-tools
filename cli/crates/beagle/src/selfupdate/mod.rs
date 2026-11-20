@@ -220,8 +220,28 @@ fn install(version: Option<Version>, exe: &Path) -> Result<(), String> {
         .update_to(version, exe)
         .map_err(|e| format!("update failed: {e}"))?;
     println!("✓ beagle {version} installed at {}", exe.display());
-    println!("  `beagle rca skill status` checks the agent skills it bundles");
+    offer_skill_refresh(exe);
     Ok(())
+}
+
+/// After an update, offers to refresh every tool's agent skills: runs the
+/// NEW binary's `beagle setup --only rca-skills,scout-skills` (this process
+/// still holds the old skills), which asks per step on a terminal. Piped
+/// output only prints the command. Best effort: never fails the update.
+fn offer_skill_refresh(exe: &Path) {
+    let command = "beagle setup --only rca-skills,scout-skills";
+    if !std::io::stdin().is_terminal() {
+        println!("  `{command}` refreshes the agent skills it bundles");
+        return;
+    }
+    println!("  refreshing the agent skills it bundles (`{command}`) …");
+    let ran = beagle_utils::process::status_with_timeout(
+        std::process::Command::new(exe).args(["setup", "--only", "rca-skills,scout-skills"]),
+        std::time::Duration::from_secs(300),
+    );
+    if !ran.is_ok_and(|s| s.success()) {
+        println!("  skills not refreshed — run `{command}`");
+    }
 }
 
 fn brew_upgrade() -> Result<(), String> {
@@ -234,6 +254,10 @@ fn brew_upgrade() -> Result<(), String> {
     )
     .map_err(|e| format!("couldn't run brew: {e}"))?;
     if status.success() {
+        // brew replaced the Cellar binary; the `beagle` on PATH is the new one.
+        if let Some(beagle) = beagle_utils::process::which("beagle") {
+            offer_skill_refresh(&beagle);
+        }
         Ok(())
     } else {
         Err(format!(

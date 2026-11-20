@@ -37,9 +37,10 @@ The terminal tools ship as **one binary, `beagle`** ([`cli/`](cli/README.md)): `
 
 ```sh
 brew install beagle-tools/tap/beagle
+beagle setup                  # every tool's one-time steps: agent skills, scout hooks + store
+beagle doctor                 # checks gh, beagle-agentd, tmux, skills and hooks
 beagle help                   # every tool it holds
-beagle rca skill install      # the /beagle skills for Claude Code and Codex
-beagle update                 # later: update every tool at once
+beagle update                 # later: update every tool at once (and refresh the skills)
 ```
 
 Tarballs and `cargo install`: [`cli/README.md`](cli/README.md). Coming from the standalone rca

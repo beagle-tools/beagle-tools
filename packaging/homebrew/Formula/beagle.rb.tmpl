@@ -37,9 +37,12 @@ class Beagle < Formula
 
   def caveats
     <<~EOS
+      Run `beagle setup` once: it installs every tool's agent skills, scout's
+      session hooks and its store (each step asks first; `--yes` runs all).
       Every tool is a subcommand: `beagle help` lists them (`beagle rca`,
       `beagle scout`, `beagle tandem`, …). `brew upgrade beagle` updates
-      them all; `beagle doctor` finds old standalone binaries to remove.
+      them all; `beagle doctor` checks the setup (gh, beagle-agentd, tmux,
+      skills, hooks) and finds old standalone binaries to remove.
     EOS
   end
 
