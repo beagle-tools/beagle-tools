@@ -52,7 +52,8 @@ Read the doc for the stage you are in:
    metadata. Use neutral examples (`acme/widgets`, `ABC-123`,
    `tracker.example.com`) and make integrations configurable instead of
    hard-coding a destination. `scripts/check-affiliation.sh` enforces this
-   from patterns kept outside the repo.
+   from patterns kept outside the repo. No personal email either: commit
+   with your GitHub noreply address (`scripts/check-commit-email.sh`).
 7. **Every PR carries a `release:*` label** when it changes an app:
    `release:patch` (the default), `release:minor` or `release:major`. Merging
    to `main` releases only the apps the PR changed, as
