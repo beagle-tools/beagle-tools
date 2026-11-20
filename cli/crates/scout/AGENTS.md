@@ -19,7 +19,7 @@ src/cli/              argument parsing and the usage text — pure, no filesyste
 src/model.rs          Slug, ProjectStatus/TaskStatus, frontmatter structs
 src/frontmatter.rs    `+++` TOML frontmatter split/parse/render
 src/store/            the on-disk store: list/load (mod), mutations (mutate), file helpers
-src/markdown.rs       the Markdown subset → ratatui Text
+src/markdown.rs       Markdown via beagle_tui::markdown (placeholders dimmed) + the section splitter
 src/skill.rs          the /scout and /scout-build skills, embedded with include_str!
 src/session/          recorded agent sessions: hook payload → JSONL event, list, pick
 src/watch/            `beagle scout watch`: follow a recording, render it, spot scout calls
