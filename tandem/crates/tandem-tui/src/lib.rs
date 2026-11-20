@@ -25,7 +25,7 @@ use std::path::PathBuf;
 use std::process::{ExitCode, Stdio};
 
 use clap::Subcommand;
-use tandem_cache::Cache;
+use tandem_cache::{Cache, ReviewTriage};
 use tandem_core::{Result, TandemError};
 
 use crate::config::Config;
@@ -109,6 +109,19 @@ pub fn run(command: Command, program: &str) -> Result<ExitCode> {
                     eprintln!("{warning}");
                 }
             }
+            let last_claim = cache
+                .list_review_jobs()?
+                .into_iter()
+                .filter_map(|j| j.started_at)
+                .max();
+            if let Some(warning) = idle_warning(
+                !config.kick.is_empty(),
+                last_claim,
+                chrono::Utc::now(),
+                program,
+            ) {
+                eprintln!("{warning}");
+            }
         }
         Command::Claim { out, agent } => {
             let claimed = block_on(async {
@@ -183,6 +196,36 @@ fn block_on<F: std::future::Future>(future: F) -> Result<F::Output> {
     Ok(rt.block_on(future))
 }
 
+/// How recently a reviewer must have claimed a PR for `add` to trust that
+/// one is running.
+const REVIEWER_ACTIVE_HOURS: i64 = 24;
+
+/// The warning `add` prints when nothing looks set to work the queue: no
+/// `kick` configured and no claim in [`REVIEWER_ACTIVE_HOURS`]. `None` when a
+/// kick is configured or a reviewer claimed something recently.
+pub(crate) fn idle_warning(
+    kick_configured: bool,
+    last_claim: Option<chrono::DateTime<chrono::Utc>>,
+    now: chrono::DateTime<chrono::Utc>,
+    program: &str,
+) -> Option<String> {
+    if kick_configured
+        || last_claim.is_some_and(|t| now - t < chrono::Duration::hours(REVIEWER_ACTIVE_HOURS))
+    {
+        return None;
+    }
+    let config = config::config_path().map_or_else(
+        || "the review TUI config".to_owned(),
+        |p| p.display().to_string(),
+    );
+    Some(format!(
+        "warning: nothing may review this — no `kick` command is set in {config} and no \
+         reviewer has claimed a PR in the last 24 hours. Set `kick:` (e.g. an agentd job), \
+         or run a reviewer that calls `{program} claim`. (`{program} app-review` queues for \
+         the Tandem desktop app instead.)"
+    ))
+}
+
 /// Starts the reviewer now (the config's `kick`), detached; best effort —
 /// a scheduled reviewer picks the PR up anyway. Returns a warning when it
 /// could not start.
@@ -201,3 +244,7 @@ pub(crate) fn kick(config: &Config) -> Option<String> {
         Err(e) => Some(format!("could not start the reviewer ({program}): {e}")),
     }
 }
+
+#[cfg(test)]
+#[path = "lib_tests.rs"]
+mod tests;

@@ -54,9 +54,10 @@ pub const TOOLS: &[Tool] = &[
 ];
 
 /// `beagle tandem`: tandem-cli under the name the user typed, so its help
-/// and errors say `beagle tandem` and its `update` defers to ours.
+/// and errors say `beagle tandem`, its `update` defers to ours, and
+/// `--version` prints beagle's version.
 fn tandem(args: Vec<OsString>) -> ExitCode {
-    tandem_cli::run_as("beagle tandem", args)
+    tandem_cli::run_hosted("beagle tandem", env!("CARGO_PKG_VERSION"), args)
 }
 
 /// The tool called `name`, if there is one.

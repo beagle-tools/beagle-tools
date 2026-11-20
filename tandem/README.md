@@ -128,8 +128,8 @@ queue a review for Tandem to run with your agent config. See
 [`docs/CLI.md`](docs/CLI.md).
 
 ```sh
-tandem-cli queue | jq -r '.[] | "\(.repo.owner)/\(.repo.name) \(.number)"'
-tandem-cli review --repo acme/widgets --pr 123
+tandem-cli app-queue | jq -r '.[] | "\(.repo.owner)/\(.repo.name) \(.number)"'
+tandem-cli app-review --repo acme/widgets --pr 123
 ```
 
 ## In the terminal: the review TUI
