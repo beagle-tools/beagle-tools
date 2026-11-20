@@ -209,7 +209,7 @@ pub struct ArchivedPr {
     pub pull_request: PullRequest,
     /// When Tandem moved the PR into the archive.
     pub archived_at: DateTime<Utc>,
-    /// Hard purge deadline: 11:59:59 PM EST on the third day after
+    /// Hard purge deadline: 11:59:59 PM US Eastern on the third day after
     /// archival. All cached data for the PR is deleted after this.
     pub purge_after: DateTime<Utc>,
 }

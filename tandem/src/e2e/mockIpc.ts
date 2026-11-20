@@ -169,6 +169,8 @@ function reviewCommand(cmd: string, a: Args): unknown {
       return "run-e2e";
     case "conflict_resolution_state":
       return { unresolved: [], ready: false };
+    case "conflict_resolution_diff":
+      return "";
     default:
       return undefined;
   }

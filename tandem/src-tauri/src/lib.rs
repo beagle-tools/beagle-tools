@@ -29,7 +29,7 @@ pub fn run() {
             tauri::Manager::app_handle(app).plugin(tauri_plugin_updater::Builder::new().build())?;
             let state = AppState::init()?;
             // Startup housekeeping: purge archive entries past their
-            // 3-day EST deadline (and their run dirs).
+            // 3-day US Eastern deadline (and their run dirs).
             if let Ok(mut cache) = state.cache.try_lock() {
                 if let Err(e) = commands::prs::purge_expired_data(&mut cache, &state.dirs)
                 {
@@ -94,6 +94,7 @@ pub fn run() {
             conflicts::start_conflict_resolution,
             conflicts::start_conflict_fix,
             conflicts::conflict_resolution_state,
+            conflicts::conflict_resolution_diff,
             github_write::push_conflict_resolution,
             github_write::post_comment_to_github,
             github_write::approve_pr,
