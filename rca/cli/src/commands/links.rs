@@ -30,7 +30,7 @@ pub(crate) fn run_pr_list(root: Option<PathBuf>, id: &RcaId) -> Result<(), Error
     let gh = crate::prs::gh_available();
     for url in &meta.prs {
         match gh.then(|| crate::prs::state_of(url)).flatten() {
-            Some(state) => println!("{} {:<8} {url}", state.glyph(), state.label()),
+            Some(state) => println!("{} {:<8} {url}", crate::prs::glyph(state), state.as_str()),
             None => println!("  {:<8} {url}", "-"),
         }
     }

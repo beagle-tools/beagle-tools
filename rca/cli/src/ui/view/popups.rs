@@ -44,7 +44,7 @@ pub(super) fn draw_links(frame: &mut Frame, app: &App, area: Rect) {
             let mut spans = Vec::new();
             if let Some(state) = app.pr_state(url) {
                 spans.push(Span::styled(
-                    format!(" {} {} ", state.glyph(), state.label()),
+                    format!(" {} {} ", crate::prs::glyph(state), state.as_str()),
                     Style::default().fg(pr_color(state)),
                 ));
             } else {

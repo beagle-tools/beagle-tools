@@ -84,24 +84,12 @@ const GH_VIEW_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
 /// auth problem costs you disk, never a write-up. The error text is handed
 /// back so the daemon can surface it instead of failing silently.
 fn pr_outcome(url: &str, now: chrono::DateTime<Utc>) -> (PrOutcome, Option<String>) {
-    let gh = beagle_utils::process::which("gh").unwrap_or_else(|| "gh".into());
-    let mut cmd = beagle_utils::process::command(gh);
-    cmd.args(["pr", "view", url, "--json", "state,mergedAt,closedAt"]);
-    let out = match beagle_utils::process::output_with_timeout(&mut cmd, GH_VIEW_TIMEOUT) {
-        Ok(o) => o,
-        Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
-            return (
-                PrOutcome::Unknown,
-                Some(format!("{e} — is GitHub reachable?")),
-            )
-        }
-        Err(e) => return (PrOutcome::Unknown, Some(format!("gh not runnable: {e}"))),
+    let args = ["pr", "view", url, "--json", "state,mergedAt,closedAt"];
+    let out = match beagle_utils::gh::run(&args, GH_VIEW_TIMEOUT) {
+        Ok(out) => out,
+        Err(e) => return (PrOutcome::Unknown, Some(e.to_string())),
     };
-    if !out.status.success() {
-        let err = String::from_utf8_lossy(&out.stderr).trim().to_owned();
-        return (PrOutcome::Unknown, Some(err));
-    }
-    let Ok(json) = serde_json::from_slice::<serde_json::Value>(&out.stdout) else {
+    let Ok(json) = serde_json::from_str::<serde_json::Value>(&out) else {
         return (
             PrOutcome::Unknown,
             Some("gh returned unparseable json".to_owned()),

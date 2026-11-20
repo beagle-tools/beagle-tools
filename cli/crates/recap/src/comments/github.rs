@@ -156,12 +156,7 @@ pub fn is_rate_limit(message: &str) -> bool {
 pub const RATE_LIMIT_WAIT: Duration = Duration::from_secs(30);
 
 fn gh(args: &[&str]) -> std::result::Result<String, String> {
-    let out = crate::gh::run_gh(args, crate::gh::GH_TIMEOUT)?;
-    if out.status.success() {
-        Ok(String::from_utf8_lossy(&out.stdout).into_owned())
-    } else {
-        Err(String::from_utf8_lossy(&out.stderr).trim().to_owned())
-    }
+    beagle_utils::gh::run(args, crate::gh::GH_TIMEOUT).map_err(|e| e.to_string())
 }
 
 /// Fetches one PR's threads, waiting [`RATE_LIMIT_WAIT`] and retrying once

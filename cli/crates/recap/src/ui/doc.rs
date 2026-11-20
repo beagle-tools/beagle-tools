@@ -23,6 +23,26 @@ pub fn state_color(state: PrState) -> Color {
     }
 }
 
+/// Upper-case label for a PR state (`DRAFT`, `OPEN`, …).
+#[must_use]
+pub fn state_label(state: PrState) -> &'static str {
+    match state {
+        PrState::Draft => "DRAFT",
+        PrState::Open => "OPEN",
+        PrState::Merged => "MERGED",
+        PrState::Closed => "CLOSED",
+    }
+}
+
+/// Group heading for a PR state in the PR list.
+#[must_use]
+pub fn state_heading(state: PrState) -> &'static str {
+    match state {
+        PrState::Draft => "DRAFTS",
+        other => state_label(other),
+    }
+}
+
 fn link(label: &str, key: &str, url: &str) -> DocLine {
     beagle_tui::doc::link(&format!("{label:<6} "), 0, key, url)
 }
@@ -36,7 +56,7 @@ pub fn summary(recap: &Recap) -> Vec<DocLine> {
     let mut meta = vec![
         Span::styled("● ", Style::default().fg(color)),
         Span::styled(
-            state.label(),
+            state_label(state),
             Style::default().fg(color).add_modifier(Modifier::BOLD),
         ),
         Span::styled(format!("  ·  {}#{}", m.repo, m.number), dim()),

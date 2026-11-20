@@ -234,7 +234,7 @@ fn pr_line(prs: &[(String, Option<crate::prs::PrState>)]) -> Line<'static> {
         let label = crate::prs::short_label(url);
         match state {
             Some(state) => spans.push(Span::styled(
-                format!("{} {label} {}", state.glyph(), state.label()),
+                format!("{} {label} {}", crate::prs::glyph(*state), state.as_str()),
                 Style::default().fg(pr_color(*state)),
             )),
             None => spans.push(Span::styled(label, Style::default().fg(Color::Gray))),

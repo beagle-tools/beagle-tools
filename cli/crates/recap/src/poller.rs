@@ -19,11 +19,11 @@ use crate::model::PrState;
 /// How often the poller re-queries `gh`.
 pub const POLL_INTERVAL: Duration = Duration::from_mins(3);
 
-/// The `--json` fields one status query asks for.
 /// Bound on one `gh pr view` status poll; a hung `gh` skips that PR this
 /// round (its last status stays on screen) instead of stalling the poller.
 const POLL_GH_TIMEOUT: Duration = Duration::from_secs(20);
 
+/// The `--json` fields one status query asks for.
 const FIELDS: &str = "state,isDraft,reviewDecision,statusCheckRollup,updatedAt,mergedAt";
 
 /// Where a PR's reviews stand.
@@ -138,17 +138,15 @@ pub fn parse_status_json(json: &str) -> Option<PrStatus> {
 /// Queries one PR's status via `gh`. `None` on any failure.
 #[must_use]
 pub fn status_of(url: &str) -> Option<PrStatus> {
-    let out = crate::gh::run_gh(&["pr", "view", url, "--json", FIELDS], POLL_GH_TIMEOUT).ok()?;
-    if !out.status.success() {
-        return None;
-    }
-    parse_status_json(&String::from_utf8_lossy(&out.stdout))
+    let json =
+        beagle_utils::gh::run(&["pr", "view", url, "--json", FIELDS], POLL_GH_TIMEOUT).ok()?;
+    parse_status_json(&json)
 }
 
 /// Whether the `gh` CLI is installed and runnable.
 #[must_use]
 pub fn gh_available() -> bool {
-    crate::gh::run_gh(&["--version"], POLL_GH_TIMEOUT).is_ok_and(|o| o.status.success())
+    beagle_utils::gh::available(POLL_GH_TIMEOUT)
 }
 
 /// Polls every URL once, in order. PRs whose status can't be read are left

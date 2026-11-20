@@ -73,7 +73,7 @@ fn draw_header(frame: &mut Frame<'_>, app: &App, area: Rect) {
                 Style::default().add_modifier(Modifier::BOLD),
             ));
             spans.push(Span::styled(
-                r.state().label(),
+                super::doc::state_label(r.state()),
                 Style::default().fg(state_color(r.state())),
             ));
             if let Some(status) = app.selected_status() {
@@ -103,7 +103,7 @@ fn draw_items(frame: &mut Frame<'_>, app: &App, area: Rect) {
         .enumerate()
         .map(|(i, entry)| match entry {
             super::ListEntry::Header(state, count) => {
-                let label = format!("── {} · {count} ", state.heading());
+                let label = format!("── {} · {count} ", super::doc::state_heading(state));
                 let fill = "─".repeat(width.saturating_sub(label.chars().count()) + 2);
                 ListItem::new(Line::from(vec![
                     Span::styled(

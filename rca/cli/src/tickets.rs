@@ -98,8 +98,7 @@ fn github_linked_prs(url: &str, cfg: PlatformConfig) -> Result<Vec<String>> {
         .ok_or_else(|| tool_err(format!("`{url}` is not a GitHub issue")))?;
     let path = format!("repos/{owner}/{repo}/issues/{number}/timeline");
     let json = match cfg.mode {
-        AccessMode::Cli => run(
-            "gh",
+        AccessMode::Cli => beagle_utils::gh::run(
             &[
                 "api",
                 &path,
@@ -107,7 +106,9 @@ fn github_linked_prs(url: &str, cfg: PlatformConfig) -> Result<Vec<String>> {
                 "-H",
                 "Accept: application/vnd.github+json",
             ],
-        )?,
+            LOOKUP_TIMEOUT,
+        )
+        .map_err(|e| tool_err(format!("`gh` failed: {e}")))?,
         AccessMode::Api => {
             let token = cfg
                 .token

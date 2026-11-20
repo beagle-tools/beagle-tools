@@ -4,11 +4,8 @@
 //! existing `gh auth`. Parsing is a pure function so it's tested without
 //! the network.
 
-use std::io;
-use std::process::Output;
 use std::time::Duration;
 
-use beagle_utils::process;
 use serde::Deserialize;
 
 use crate::error::{Error, Result};
@@ -86,41 +83,18 @@ pub(crate) const GH_TIMEOUT: Duration = Duration::from_secs(30);
 /// Bound on a `gh api --paginate` call, which makes several requests.
 pub(crate) const GH_PAGINATED_TIMEOUT: Duration = Duration::from_secs(60);
 
-/// Runs `gh args`, resolved through the augmented PATH (so a GUI- or
-/// launchd-started process finds it), bounded by `timeout`.
-///
-/// # Errors
-/// An actionable message: a timeout reads
-/// "`gh pr view` timed out after 30s — is GitHub reachable?".
-pub(crate) fn run_gh(args: &[&str], timeout: Duration) -> std::result::Result<Output, String> {
-    let program = process::which("gh").unwrap_or_else(|| "gh".into());
-    let mut cmd = process::command(program);
-    cmd.args(args);
-    process::output_with_timeout(&mut cmd, timeout).map_err(|e| match e.kind() {
-        io::ErrorKind::TimedOut => format!("{e} — is GitHub reachable?"),
-        io::ErrorKind::NotFound => format!("{e} (is the GitHub CLI installed?)"),
-        _ => e.to_string(),
-    })
-}
-
+/// Runs `gh args` through [`beagle_utils::gh`] (augmented `PATH`, bounded),
+/// with the longer bound for `--paginate`.
 fn gh(args: &[&str]) -> Result<String> {
     let timeout = if args.contains(&"--paginate") {
         GH_PAGINATED_TIMEOUT
     } else {
         GH_TIMEOUT
     };
-    let out = run_gh(args, timeout).map_err(|message| Error::Tool {
+    beagle_utils::gh::run(args, timeout).map_err(|e| Error::Tool {
         tool: "gh",
-        message,
-    })?;
-    if out.status.success() {
-        Ok(String::from_utf8_lossy(&out.stdout).into_owned())
-    } else {
-        Err(Error::Tool {
-            tool: "gh",
-            message: String::from_utf8_lossy(&out.stderr).trim().to_owned(),
-        })
-    }
+        message: e.to_string(),
+    })
 }
 
 /// Fetches the PR's metadata and its unified diff.

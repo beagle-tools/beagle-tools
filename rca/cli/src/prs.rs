@@ -6,48 +6,23 @@
 //! never broken.
 
 use std::collections::HashMap;
-use std::process::Command;
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
 use std::thread;
 use std::time::Duration;
 
+pub use beagle_utils::gh::PrState;
+
 /// How often the poller re-queries `gh` for PR states.
 pub const POLL_INTERVAL: Duration = Duration::from_secs(5 * 60);
 
-/// Where a pull request stands.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PrState {
-    /// Open and ready for review.
-    Open,
-    /// Open, but marked draft.
-    Draft,
-    /// Merged — the fix has landed.
-    Merged,
-    /// Closed without merging.
-    Closed,
-}
-
-impl PrState {
-    /// One-cell status glyph.
-    #[must_use]
-    pub fn glyph(self) -> &'static str {
-        match self {
-            Self::Open => "○",
-            Self::Draft => "◌",
-            Self::Merged => "✓",
-            Self::Closed => "✗",
-        }
-    }
-
-    /// Lowercase label for display.
-    #[must_use]
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::Open => "open",
-            Self::Draft => "draft",
-            Self::Merged => "merged",
-            Self::Closed => "closed",
-        }
+/// One-cell status glyph for a PR state.
+#[must_use]
+pub fn glyph(state: PrState) -> &'static str {
+    match state {
+        PrState::Open => "○",
+        PrState::Draft => "◌",
+        PrState::Merged => "✓",
+        PrState::Closed => "✗",
     }
 }
 
@@ -73,58 +48,21 @@ pub fn short_label(url: &str) -> String {
     short
 }
 
-/// Parses `gh pr view --json state,isDraft` output into a [`PrState`].
-#[must_use]
-pub fn parse_state_json(json: &str) -> Option<PrState> {
-    #[derive(serde::Deserialize)]
-    #[serde(rename_all = "camelCase")]
-    struct Raw {
-        state: String,
-        #[serde(default)]
-        is_draft: bool,
-    }
-    let raw: Raw = serde_json::from_str(json).ok()?;
-    match raw.state.as_str() {
-        "OPEN" if raw.is_draft => Some(PrState::Draft),
-        "OPEN" => Some(PrState::Open),
-        "MERGED" => Some(PrState::Merged),
-        "CLOSED" => Some(PrState::Closed),
-        _ => None,
-    }
-}
-
 /// Bound on one `gh pr view` poll.
 const GH_POLL_TIMEOUT: Duration = Duration::from_secs(20);
 
 /// Queries one PR's state via `gh`. `None` on any failure — a PR whose
-/// state can't be determined renders as a plain link.
+/// state can't be determined renders as a plain link. A hung gh skips this
+/// PR for the round; the last state stays shown.
 #[must_use]
 pub fn state_of(url: &str) -> Option<PrState> {
-    let mut cmd = gh()?;
-    cmd.args(["pr", "view", url, "--json", "state,isDraft"]);
-    // A hung gh skips this PR for the round; the last state stays shown.
-    let output = beagle_utils::process::output_with_timeout(&mut cmd, GH_POLL_TIMEOUT).ok()?;
-    if !output.status.success() {
-        return None;
-    }
-    parse_state_json(&String::from_utf8_lossy(&output.stdout))
+    beagle_utils::gh::pr_state(url, None, GH_POLL_TIMEOUT).ok()
 }
 
 /// Whether the `gh` CLI is installed and runnable.
 #[must_use]
 pub fn gh_available() -> bool {
-    gh().is_some_and(|mut gh| {
-        beagle_utils::process::output_with_timeout(gh.arg("--version"), GH_POLL_TIMEOUT)
-            .is_ok_and(|output| output.status.success())
-    })
-}
-
-/// A `gh` command resolved on the augmented `PATH` (Homebrew, `~/.local/bin`,
-/// the login shell's `PATH`), with that `PATH` passed to the child too.
-/// `None` when `gh` is not installed. A bundled desktop app inherits only the
-/// minimal system `PATH`, so a bare `Command::new("gh")` never finds it there.
-fn gh() -> Option<Command> {
-    beagle_utils::process::which("gh").map(beagle_utils::process::command)
+    beagle_utils::gh::available(GH_POLL_TIMEOUT)
 }
 
 /// Spawns the background poller. It receives URL-set updates on `urls_rx`
