@@ -2,6 +2,9 @@
 
 use std::fmt;
 
+/// Lowercase hex digits, indexed by nibble.
+const HEX_DIGITS: &[u8; 16] = b"0123456789abcdef";
+
 /// Hex characters in a token: 32 random bytes.
 pub const TOKEN_HEX_LEN: usize = 64;
 
@@ -20,6 +23,25 @@ impl Token {
                 .bytes()
                 .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b));
         valid.then(|| Self(raw.to_owned()))
+    }
+
+    /// A new random token: 32 bytes from the operating system's CSPRNG
+    /// (through rustls's ring provider, already linked for TLS).
+    ///
+    /// # Errors
+    /// [`crate::Error::Tls`] in the unlikely case the system RNG fails.
+    pub fn generate() -> crate::Result<Self> {
+        let mut bytes = [0u8; TOKEN_HEX_LEN / 2];
+        rustls::crypto::ring::default_provider()
+            .secure_random
+            .fill(&mut bytes)
+            .map_err(|_| crate::Error::Tls("the system random number generator failed".into()))?;
+        let mut hex = String::with_capacity(TOKEN_HEX_LEN);
+        for b in bytes {
+            hex.push(char::from(HEX_DIGITS[usize::from(b >> 4)]));
+            hex.push(char::from(HEX_DIGITS[usize::from(b & 0xf)]));
+        }
+        Ok(Self(hex))
     }
 
     /// The token text (secret: never log it).
@@ -94,6 +116,14 @@ mod tests {
         let wrong = GOOD.replace('0', "1");
         assert!(!token.authorizes(Some(&format!("Bearer {wrong}"))));
         assert!(!token.authorizes(Some(&format!("Bearer {}", &GOOD[..10]))));
+    }
+
+    #[test]
+    fn generated_tokens_are_valid_and_differ() {
+        let a = Token::generate().unwrap();
+        let b = Token::generate().unwrap();
+        assert_eq!(Token::parse(a.as_str()), Some(a.clone()));
+        assert_ne!(a, b);
     }
 
     #[test]
