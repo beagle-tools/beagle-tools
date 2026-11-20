@@ -41,6 +41,7 @@ Terminal-UI pieces shared by the beagle TUIs (`beagle rca`, `beagle scout`,
 | `config`    | `AppDirs`: store root from `--root` → `$<APP>_ROOT` → config → ancestor → cwd  |
 | `version_picker` | The interactive `version list` picker over an `update::Channel`'s releases |
 | `pane_resize` | `SideResize`: the shared `w` resize mode for a side pane's width (limits, reset, keys) |
+| `keymap`    | `STANDARD`: the standard TUI keymap as data, which every TUI's keymap test walks (mirrored in `standards/tui-standards.json`) |
 
 ### The side-pane resize standard
 

@@ -203,6 +203,14 @@ and writes to GitHub in another:
 - **Tab always cycles tabs.** Where a screen has two focusable panes, focus
   moves with `Enter` (in) and `Esc` (out), not `Tab`.
 - agenttop is out of scope for now, as for `w`.
+- **Enforced in CI.** The table is data in `beagle_tui::keymap::STANDARD`,
+  mirrored in `standards/tui-standards.json`. Each TUI's
+  `*_follows_the_standard_keymap` test walks that data with an exhaustive
+  `match`, so a rebind fails `cargo test` and a new job fails to compile
+  until every TUI handles it (or says why it does not apply). `make
+  standards` checks this table against the JSON, and that every crate
+  depending on `beagle-tui` is registered there as a TUI (with its test) or
+  as not a TUI. Change the table, the JSON and `STANDARD` together.
 
 ## 3. TypeScript / React
 

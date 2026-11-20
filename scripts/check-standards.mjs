@@ -5,6 +5,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkTuiStandards } from "./ci/tui-standards.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p) => readFileSync(join(root, p), "utf8");
@@ -167,6 +168,9 @@ for (const app of FRONTENDS) {
     }
   }
 }
+
+// The TUI keymap: doc table ⇄ standards/tui-standards.json ⇄ every TUI.
+for (const e of checkTuiStandards(read, files)) fail(e);
 
 if (errors.length) {
   for (const e of errors) console.error(`FAIL: ${e}`);
