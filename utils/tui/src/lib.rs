@@ -19,12 +19,14 @@
 //! ```
 
 pub mod ansi;
+pub mod chrome;
 pub mod clipboard;
 pub mod config;
 pub mod delta;
 pub mod doc;
 pub mod docview;
 pub mod error;
+pub mod fuzzy;
 pub mod keymap;
 pub mod links;
 pub mod markdown;

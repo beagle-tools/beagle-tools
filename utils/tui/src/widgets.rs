@@ -1,10 +1,11 @@
 //! Drawing pieces every app's view uses: pane borders, centred overlays,
-//! the key-help sheet, and the document pane with its line cursor.
+//! and the document pane with its line cursor. The help sheet and footer
+//! are in [`crate::chrome`].
 
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph};
+use ratatui::text::Line;
+use ratatui::widgets::{Block, Paragraph};
 use ratatui::Frame;
 
 use crate::docview::DocView;
@@ -48,46 +49,6 @@ pub fn centered(area: Rect, width: u16, height: u16) -> Rect {
         width,
         height,
     }
-}
-
-/// The key-help overlay: one `(keys, what they do)` row per entry.
-pub fn draw_help(frame: &mut Frame<'_>, help: &[(&str, &str)]) {
-    let key_width = help
-        .iter()
-        .map(|(k, _)| k.chars().count())
-        .max()
-        .unwrap_or(0);
-    let row_width = help
-        .iter()
-        .map(|(_, d)| key_width + 3 + d.chars().count())
-        .max()
-        .unwrap_or(0);
-    let rect = centered(
-        frame.area(),
-        u16::try_from(row_width + 4).unwrap_or(u16::MAX),
-        u16::try_from(help.len() + 2).unwrap_or(u16::MAX),
-    );
-    let lines: Vec<Line<'static>> = help
-        .iter()
-        .map(|(k, d)| {
-            Line::from(vec![
-                Span::styled(
-                    format!(" {k:<key_width$}  "),
-                    Style::default().fg(Color::Cyan),
-                ),
-                Span::raw((*d).to_owned()),
-            ])
-        })
-        .collect();
-    frame.render_widget(Clear, rect);
-    frame.render_widget(
-        Paragraph::new(lines).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title(" keys · any key closes "),
-        ),
-        rect,
-    );
 }
 
 /// Draws a document pane: `lines` (normally [`DocView::visible`]) inside

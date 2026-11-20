@@ -30,7 +30,7 @@ mod cli;
 mod commands;
 pub mod config;
 pub mod error;
-pub mod fuzzy;
+pub use beagle_tui::fuzzy;
 pub mod handoff;
 pub mod model;
 pub mod notify;

@@ -212,6 +212,15 @@ and writes to GitHub in another:
   depending on `beagle-tui` is registered there as a TUI (with its test) or
   as not a TUI. Change the table, the JSON and `STANDARD` together.
 
+**One help sheet and one footer.** Every TUI draws its `?` help with
+`beagle_tui::chrome::draw_help` (yellow keys in a rounded box, "any key
+closes"; a TUI that filters help passes `HelpFilter`) and its footer with
+`chrome::draw_footer` / `footer_line`: the resize hint while resizing, else
+a status message coloured by `Tone` (info yellow, `✓` ok, `✗` error, `⟳`
+busy), else the dim key hints. Extra spans (a FOLLOW badge, a warning) may
+be added around `footer_line`. `make standards` fails a registered TUI that
+draws either itself.
+
 ## 3. TypeScript / React
 
 ### Compiler and lint

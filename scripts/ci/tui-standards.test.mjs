@@ -2,7 +2,7 @@
 // drift (doc table, unregistered TUI crate, keymap test that ignores the
 // shared data) fails.
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -12,10 +12,13 @@ import { checkTuiStandards, docKeymapRows } from "./tui-standards.mjs";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const readReal = (p) => readFileSync(join(root, p), "utf8");
 const data = JSON.parse(readReal("standards/tui-standards.json"));
-const realFiles = [
-  ...Object.keys(data.tuis).map((d) => `${d}/Cargo.toml`),
-  ...Object.values(data.tuis),
-];
+/** Every file under `dir` (repo-relative). */
+const walk = (dir) =>
+  readdirSync(join(root, dir)).flatMap((name) => {
+    const rel = `${dir}/${name}`;
+    return statSync(join(root, rel)).isDirectory() ? walk(rel) : [rel];
+  });
+const realFiles = Object.keys(data.tuis).flatMap((d) => [`${d}/Cargo.toml`, ...walk(`${d}/src`)]);
 
 /** `read` over the real repo with some files replaced. */
 const readWith = (overrides) => (p) => (p in overrides ? overrides[p] : readReal(p));
@@ -55,4 +58,13 @@ test("a keymap test that does not walk the shared data fails", () => {
   const read = readWith({ [testFile]: "#[test]\nfn rca_follows_the_standard_keymap() {}\n" });
   assert.match(checkTuiStandards(read, realFiles).join("\n"), new RegExp(`${testFile}: needs`));
   assert.ok(dir);
+});
+
+test("a TUI that draws its own help or footer fails", () => {
+  const dir = "tandem/crates/tandem-tui";
+  const view = `${dir}/src/ui/view.rs`;
+  const own = readReal(view).replaceAll("chrome::draw_help(", "draw_help(").replaceAll("chrome::draw_footer(", "draw_footer(");
+  const errors = checkTuiStandards(readWith({ [view]: own }), realFiles).join("\n");
+  assert.match(errors, /tandem-tui: draw the \? help with beagle_tui::chrome::draw_help/);
+  assert.match(errors, /tandem-tui: draw the footer with beagle_tui::chrome::draw_footer/);
 });

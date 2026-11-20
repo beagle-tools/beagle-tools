@@ -57,7 +57,7 @@ fn both_screens_render_the_working_task() {
     assert!(tasks.contains("01 Map the request path"));
     assert!(tasks.contains("1 Task"));
     app.help = true;
-    assert!(render(&mut app).contains("any key closes this"));
+    assert!(render(&mut app).contains("any key closes"));
 }
 
 /// Drawing only the visible lines must look exactly like drawing them

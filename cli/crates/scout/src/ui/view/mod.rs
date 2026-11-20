@@ -6,10 +6,10 @@ use std::time::{Duration, SystemTime};
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::{
-    Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap,
-};
+use ratatui::widgets::{Block, BorderType, Borders, List, ListItem, ListState, Paragraph, Wrap};
 use ratatui::Frame;
+
+use beagle_tui::chrome::{self, HelpFilter, Tone};
 
 use crate::model::{ProjectStatus, TaskStatus};
 use crate::store::{Project, Task};
@@ -45,7 +45,7 @@ pub(super) fn draw(frame: &mut Frame<'_>, app: &mut App) {
     }
     draw_status_bar(frame, app, bar);
     if app.help {
-        draw_help(frame);
+        chrome::draw_help(frame, HELP, HelpFilter::Off);
     }
 }
 
@@ -252,39 +252,30 @@ fn render_list(
 // ── chrome ──────────────────────────────────────────────────────────────
 
 fn draw_status_bar(frame: &mut Frame<'_>, app: &App, area: Rect) {
+    let hints = match (app.screen, app.focus) {
+        (Screen::Projects, _) => {
+            "j/k select · enter open · ctrl-d/u scroll · E edit · w resize · ? help · q quit"
+        }
+        (Screen::Tasks, Focus::List) => {
+            "j/k select · enter read · tab/1-5 tabs · b back · F follow · E edit · w resize · ? help · q quit"
+        }
+        (Screen::Tasks, Focus::Content) => {
+            "j/k scroll · space page · g/G top/bottom · tab/1-5 tabs · b back · F follow · E edit · ? help"
+        }
+    };
+    let line = chrome::footer_line(
+        hints,
+        app.status.as_deref().map(|s| (s, Tone::Info)),
+        app.side.is_active(),
+    );
     let mut spans = Vec::new();
     if app.follow {
         spans.push(Span::styled(
             " FOLLOW ",
             Style::default().fg(Color::Black).bg(Color::Cyan),
         ));
-        spans.push(Span::raw(" "));
     }
-    if app.side.is_active() {
-        spans.push(Span::styled(
-            beagle_tui::pane_resize::HINT,
-            Style::default().fg(Color::Cyan),
-        ));
-        spans.push(Span::raw("  "));
-    }
-    if let Some(message) = &app.status {
-        spans.push(Span::styled(
-            message.clone(),
-            Style::default().fg(Color::Yellow),
-        ));
-    } else {
-        let hints = match (app.screen, app.focus) {
-            _ if app.side.is_active() => "",
-            (Screen::Projects, _) => "j/k select · enter open · ctrl-d/u scroll · E edit · w resize · ? help · q quit",
-            (Screen::Tasks, Focus::List) => {
-                "j/k select · enter read · tab/1-5 tabs · b back · F follow · E edit · w resize · ? help · q quit"
-            }
-            (Screen::Tasks, Focus::Content) => {
-                "j/k scroll · space page · g/G top/bottom · tab/1-5 tabs · b back · F follow · E edit · ?"
-            }
-        };
-        spans.push(Span::styled(hints, dim()));
-    }
+    spans.extend(line.spans);
     if !app.warnings.is_empty() {
         spans.push(Span::styled(
             format!(
@@ -295,46 +286,6 @@ fn draw_status_bar(frame: &mut Frame<'_>, app: &App, area: Rect) {
         ));
     }
     frame.render_widget(Paragraph::new(Line::from(spans)), area);
-}
-
-fn draw_help(frame: &mut Frame<'_>) {
-    let keys_width = HELP
-        .iter()
-        .map(|(k, _)| k.chars().count())
-        .max()
-        .unwrap_or(0);
-    let mut lines: Vec<Line<'static>> = HELP
-        .iter()
-        .map(|(keys, what)| {
-            Line::from(vec![
-                Span::styled(
-                    format!(" {keys:<keys_width$}  "),
-                    Style::default().fg(Color::Yellow),
-                ),
-                Span::raw(*what),
-            ])
-        })
-        .collect();
-    lines.push(Line::default());
-    lines.push(Line::styled(" any key closes this", dim()));
-    let area = frame.area();
-    let height = u16::try_from(lines.len() + 2)
-        .unwrap_or(u16::MAX)
-        .min(area.height);
-    let width = 84.min(area.width);
-    let popup = Rect {
-        x: area.x + (area.width - width) / 2,
-        y: area.y + (area.height - height) / 2,
-        width,
-        height,
-    };
-    frame.render_widget(Clear, popup);
-    frame.render_widget(
-        Paragraph::new(lines)
-            .block(pane_block(" keys ".to_owned(), true))
-            .wrap(Wrap { trim: false }),
-        popup,
-    );
 }
 
 fn pane_block(title: String, focused: bool) -> Block<'static> {
