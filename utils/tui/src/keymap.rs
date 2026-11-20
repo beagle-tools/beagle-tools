@@ -62,8 +62,8 @@ pub const STANDARD: &[Binding] = &[
     Binding {
         job: Job::OpenBack,
         name: "Open / back",
-        keys: &["Enter", "Esc"],
-        doc: "`Enter`, `l` or `→` open; `Esc`, `b`, `h` or `←` back",
+        keys: &["Enter", "Esc", "b"],
+        doc: "`Enter` open; `Esc` or `b` back (`h`/`l` and arrows stay free per TUI)",
     },
     Binding {
         job: Job::Tabs,

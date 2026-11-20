@@ -42,6 +42,9 @@ fn rca_follows_the_standard_keymap() {
                 assert_eq!(app.focus(), Focus::Content, "Enter opens");
                 press(&mut app, keys[1]);
                 assert_eq!(app.focus(), Focus::List, "Esc goes back");
+                press(&mut app, keys[0]);
+                press(&mut app, keys[2]);
+                assert_eq!(app.focus(), Focus::List, "b goes back");
             }
             Job::Tabs => {
                 let first = app.tab();

@@ -42,7 +42,7 @@ fn w_resizes_the_sidebar_within_its_limits() {
     assert_eq!(app.side.width(120), app.side.limits().min);
     assert!(app.status.as_deref().unwrap().contains("narrowest"));
     // Keys that act elsewhere (delete, quit) do nothing while resizing.
-    press(&mut app, KeyCode::Char('D'));
+    press(&mut app, KeyCode::Char('d'));
     assert!(app.side.is_active());
     press(&mut app, KeyCode::Char('0'));
     assert_eq!(app.side.width(120), SIDEBAR_WIDTH);

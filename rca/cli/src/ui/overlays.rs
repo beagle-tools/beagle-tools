@@ -39,7 +39,7 @@ pub(crate) struct RelatedItem {
 /// What an [`AttachPrompt`] attaches on enter.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum AttachKind {
-    /// A remediation PR (`P`).
+    /// A remediation PR (`u`).
     Pr,
     /// A tracking ticket (`I`).
     Ticket,
@@ -63,7 +63,7 @@ impl AttachKind {
     }
 }
 
-/// State of the `P`/`I` attach prompt: the workspace the reference will be
+/// State of the `u`/`I` attach prompt: the workspace the reference will be
 /// attached to, what kind it is, and the text being typed. Pinned by id at
 /// open time.
 #[derive(Debug)]
@@ -78,7 +78,7 @@ pub(crate) struct AttachPrompt {
     pub input: String,
 }
 
-/// State of the `D` delete confirmation popup: the workspace it will
+/// State of the `d` delete confirmation popup: the workspace it will
 /// delete if confirmed. Pinned by id at open time, so a selection change
 /// underneath (e.g. a reload) can never redirect the delete.
 #[derive(Debug)]

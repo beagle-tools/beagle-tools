@@ -62,8 +62,8 @@ fn shift_d_confirms_before_deleting_and_only_y_deletes() {
     let doomed = app.selected_rca().expect("selected").id.clone();
     let dir = app.store.workspace_dir(&doomed);
 
-    // D opens the confirmation; the list is untouched until an answer.
-    press(&mut app, KeyCode::Char('D'));
+    // d opens the confirmation; the list is untouched until an answer.
+    press(&mut app, KeyCode::Char('d'));
     assert!(app.confirm_delete.is_some(), "popup open");
     assert_eq!(app.rcas.len(), 2);
 
@@ -80,7 +80,7 @@ fn shift_d_confirms_before_deleting_and_only_y_deletes() {
     assert_eq!(app.rcas.len(), 2);
 
     // D then y deletes and reloads.
-    press(&mut app, KeyCode::Char('D'));
+    press(&mut app, KeyCode::Char('d'));
     press(&mut app, KeyCode::Char('y'));
     assert!(app.confirm_delete.is_none());
     assert!(!dir.exists(), "workspace directory removed");
@@ -92,25 +92,25 @@ fn shift_d_confirms_before_deleting_and_only_y_deletes() {
 }
 
 #[test]
-fn shift_d_is_list_only_and_esc_cancels() {
+fn d_is_list_only_and_esc_cancels() {
     let mut app = app_with(1);
 
-    // Content focus: D is not a delete trigger while reading.
+    // Content focus: d is not a delete trigger while reading.
     press(&mut app, KeyCode::Enter);
-    press(&mut app, KeyCode::Char('D'));
+    press(&mut app, KeyCode::Char('d'));
     assert!(app.confirm_delete.is_none(), "no popup from content focus");
 
     // Back on the list, esc closes the popup without deleting.
     press(&mut app, KeyCode::Esc);
-    press(&mut app, KeyCode::Char('D'));
+    press(&mut app, KeyCode::Char('d'));
     assert!(app.confirm_delete.is_some());
     press(&mut app, KeyCode::Esc);
     assert!(app.confirm_delete.is_none());
     assert_eq!(app.rcas.len(), 1);
 
-    // Nothing selected: D says so instead of opening an empty popup.
+    // Nothing selected: d says so instead of opening an empty popup.
     let mut empty = app_with(0);
-    press(&mut empty, KeyCode::Char('D'));
+    press(&mut empty, KeyCode::Char('d'));
     assert!(empty.confirm_delete.is_none());
     assert!(empty
         .status_line()

@@ -1,5 +1,5 @@
 //! Key handling for the small editing overlays: the `t` status picker,
-//! `#` tags editor, `P`/`I` attach prompt, and `D` delete confirmation.
+//! `#` tags editor, `u`/`I` attach prompt, and `d` delete confirmation.
 //! Each writes through the store and refreshes the list on success.
 
 use crossterm::event::KeyCode;
@@ -214,7 +214,7 @@ impl App {
         self.tags_editor.as_ref()
     }
 
-    /// Opens the `P` (PR) or `I` (ticket) attach prompt for the selected
+    /// Opens the `u` (PR) or `I` (ticket) attach prompt for the selected
     /// incident.
     pub(crate) fn open_attach_prompt(&mut self, kind: AttachKind) {
         let Some(rca) = self.selected_rca() else {
@@ -286,7 +286,7 @@ impl App {
         self.attach_prompt.as_ref()
     }
 
-    /// Opens the `D` delete confirmation for the selected incident. The
+    /// Opens the `d` delete confirmation for the selected incident. The
     /// delete itself only happens on an explicit `y` — see
     /// [`Self::handle_confirm_delete_key`].
     pub(crate) fn open_confirm_delete(&mut self) {

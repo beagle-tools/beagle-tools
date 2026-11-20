@@ -200,7 +200,7 @@ and writes to GitHub in another:
 | Job | Keys |
 | --- | --- |
 | Move | `j`/`k` or `↑`/`↓`, `g`/`G` top/bottom, `ctrl-d`/`ctrl-u` page |
-| Open / back | `Enter`, `l` or `→` open; `Esc`, `b`, `h` or `←` back |
+| Open / back | `Enter` open; `Esc` or `b` back (`h`/`l` and arrows stay free per TUI) |
 | Tabs | `Tab`, `]` and `[` cycle tabs (and `1`–`9` jump) |
 | Help / quit | `?` help; `q` and `Q` quit; any key closes help |
 | Reload | `r` |
@@ -213,7 +213,12 @@ and writes to GitHub in another:
 - **GitHub writes** use an uppercase letter that means the same write in
   every tool, **always ask to confirm (`y`/`n`)**, and are never reused for a
   harmless action: `A` approve, `M` merge, `P` post/publish, `D` ready↔draft,
-  `X` close.
+  `X` close. `make standards` fails a TUI whose source binds one of these
+  capitals unless `standards/tui-standards.json` declares that write for
+  it under `tui_github_writes`. Other actions use lowercase keys (rca:
+  `m` agents, `u` attach a PR, `d` delete; recap: `s` the archive).
+- **`h`/`l` and the arrow keys are free** for each TUI's own use (panning
+  in recap and standup, tabs in rca); open is `Enter`, back is `Esc` or `b`.
 - **Tab always cycles tabs.** Where a screen has two focusable panes, focus
   moves with `Enter` (in) and `Esc` (out), not `Tab`.
 - agenttop is out of scope for now, as for `w`.

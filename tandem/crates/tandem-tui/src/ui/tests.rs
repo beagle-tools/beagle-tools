@@ -262,6 +262,9 @@ fn tandem_follows_the_standard_keymap() {
                 assert_eq!(app.focus, Focus::Content, "Enter");
                 app.handle_key(keys[1]);
                 assert_eq!(app.focus, Focus::List, "Esc");
+                app.handle_key(keys[0]);
+                app.handle_key(keys[2]);
+                assert_eq!(app.focus, Focus::List, "b");
             }
             Job::Tabs => {
                 for (k, want) in keys.iter().zip([Tab::Diff, Tab::Comments, Tab::Diff]) {

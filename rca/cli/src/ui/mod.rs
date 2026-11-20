@@ -152,9 +152,9 @@ pub struct App {
     finder: Option<finder::Finder>,
     /// The `S` settings overlay; `Some` while open.
     settings: Option<SettingsOverlay>,
-    /// The `P`/`I` attach prompt (PR or ticket); `Some` while typing.
+    /// The `u`/`I` attach prompt (PR or ticket); `Some` while typing.
     attach_prompt: Option<overlays::AttachPrompt>,
-    /// The `D` delete confirmation popup; `Some` while it awaits y/n.
+    /// The `d` delete confirmation popup; `Some` while it awaits y/n.
     confirm_delete: Option<overlays::ConfirmDelete>,
     /// The `t` status picker; `Some` while open.
     status_picker: Option<overlays::StatusPicker>,

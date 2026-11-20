@@ -47,9 +47,9 @@ impl App {
             return self.handle_agents_key(key);
         }
         match key.code {
-            // `A` switches to the agents screen; see `handle_agents_key` for the
-            // way back.
-            KeyCode::Char('A') => self.toggle_screen(),
+            // `m` switches to the agents screen; see `handle_agents_key` for the
+            // way back. (Capital letters are reserved for GitHub writes.)
+            KeyCode::Char('m') => self.toggle_screen(),
             // `q` and `Q` quit, as in every beagle TUI (`docs/CODING_STANDARDS.md`
             // "Terminal UIs"). Ctrl-C is handled above.
             KeyCode::Char('q' | 'Q') => return Flow::Quit,
@@ -62,7 +62,7 @@ impl App {
             KeyCode::Char('R') => self.open_related(),
             KeyCode::Char('V') => self.verify_final_review(),
             KeyCode::Char('t') => self.open_status_picker(),
-            KeyCode::Char('P') => self.open_attach_prompt(super::overlays::AttachKind::Pr),
+            KeyCode::Char('u') if !ctrl => self.open_attach_prompt(super::overlays::AttachKind::Pr),
             KeyCode::Char('I') => self.open_attach_prompt(super::overlays::AttachKind::Ticket),
             KeyCode::Char('#') => self.open_tags_editor(),
             KeyCode::Char('!') => self.open_errors(),
@@ -76,10 +76,10 @@ impl App {
                 self.filter_input = super::FilterInput::Facets;
                 self.focus = Focus::List;
             }
-            // Shift-D, list focus only: deleting is a list-management
-            // action, and the guard keeps a stray D while reading content
-            // from opening a destructive prompt.
-            KeyCode::Char('D') if self.focus == Focus::List => self.open_confirm_delete(),
+            // `d`, list focus only: deleting is a list-management action,
+            // and the guard keeps a stray d while reading content from
+            // opening a destructive prompt (which still asks y/n).
+            KeyCode::Char('d') if !ctrl && self.focus == Focus::List => self.open_confirm_delete(),
             KeyCode::Char('b') => self.focus = Focus::List,
             KeyCode::Char('s') => self.toggle_sidebar(),
             KeyCode::Char('w') => self.start_resize(),

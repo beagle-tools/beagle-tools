@@ -179,7 +179,7 @@ impl App {
 
     pub(super) fn unarchive_selected(&mut self) {
         if self.shelf != Shelf::Archived {
-            self.status = Some("U restores from the archive — press A to open it".to_owned());
+            self.status = Some("U restores from the archive — press s to open it".to_owned());
             return;
         }
         let Some(id) = self.selected_row().map(|r| r.id.clone()) else {
@@ -203,7 +203,7 @@ impl App {
         self.tab = Tab::Summary;
         self.reload();
         self.status = Some(match self.shelf {
-            Shelf::Archived => "the archive — U restores · A goes back".to_owned(),
+            Shelf::Archived => "the archive — U restores · s goes back".to_owned(),
             Shelf::Active => "back to your PRs".to_owned(),
         });
     }

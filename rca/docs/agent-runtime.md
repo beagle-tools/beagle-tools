@@ -47,7 +47,7 @@ $EDITOR ~/.config/beagle/agents.toml        # see the format below
 # 3. Autostart it (launchd on macOS, systemd --user on Linux).
 beagle rca agent install
 
-# 4. Watch it: press `A` in the beagle TUI, or click "Agents" in the desktop app.
+# 4. Watch it: press `m` in the beagle TUI, or click "Agents" in the desktop app.
 beagle rca agent status                          # or a one-shot from the shell
 ```
 
@@ -128,7 +128,7 @@ runs a single tick per agent and exits (handy for a manual end-to-end).
 Both UIs have a dedicated **Agents screen**, separate from the RCA browser, that
 never disturbs it:
 
-- **TUI** — press `A` (`A`/`Esc` to go back). `j`/`k` select an agent, `x`
+- **TUI** — press `m` (`m`/`Esc` to go back). `j`/`k` select an agent, `x`
   starts/stops it, `Enter` opens its latest session log, `e` edits `agents.toml`
   and reloads. It shows daemon health, each agent's running/paused state, active
   sessions, last tick, and recent outcomes, auto-refreshing every ~2s.

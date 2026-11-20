@@ -1,7 +1,7 @@
 {
   "keymap": [
     {"job": "Move", "keys": ["j", "k", "g", "G", "ctrl-d", "ctrl-u"], "doc": "`j`/`k` or `↑`/`↓`, `g`/`G` top/bottom, `ctrl-d`/`ctrl-u` page"},
-    {"job": "Open / back", "keys": ["Enter", "Esc"], "doc": "`Enter`, `l` or `→` open; `Esc`, `b`, `h` or `←` back"},
+    {"job": "Open / back", "keys": ["Enter", "Esc", "b"], "doc": "`Enter` open; `Esc` or `b` back (`h`/`l` and arrows stay free per TUI)"},
     {"job": "Tabs", "keys": ["Tab", "]", "["], "doc": "`Tab`, `]` and `[` cycle tabs (and `1`–`9` jump)"},
     {"job": "Help / quit", "keys": ["?", "q", "Q"], "doc": "`?` help; `q` and `Q` quit; any key closes help"},
     {"job": "Reload", "keys": ["r"], "doc": "`r`"},
@@ -18,6 +18,10 @@
     {"key": "D", "action": "ready↔draft"},
     {"key": "X", "action": "close"}
   ],
+  "tui_github_writes": {
+    "cli/crates/recap": ["D", "M", "X"],
+    "tandem/crates/tandem-tui": ["A", "P"]
+  },
   "tuis": {
     "rca/cli": "rca/cli/src/ui/tests/keys_standard.rs",
     "cli/crates/recap": "cli/crates/recap/src/tests/ui_keymap.rs",

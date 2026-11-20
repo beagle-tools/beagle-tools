@@ -67,7 +67,7 @@ pub(super) fn draw_agents(frame: &mut Frame, app: &App, area: Rect) {
     }
     lines.push(Line::from(""));
     lines.push(Line::styled(
-        "  j/k select · x start/stop · enter log · e edit config · A/esc back",
+        "  j/k select · x start/stop · enter log · e edit config · m/esc back",
         Style::default().fg(Color::DarkGray),
     ));
     let block = pane_block(" agents ".to_owned(), false);

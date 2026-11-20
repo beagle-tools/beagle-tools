@@ -1,4 +1,4 @@
-//! The agents screen (`A`): daemon status from the background poller,
+//! The agents screen (`m`): daemon status from the background poller,
 //! selection, and start/stop over the `beagle-agentd` control socket.
 
 use super::{App, Screen};
