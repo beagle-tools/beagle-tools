@@ -3,7 +3,7 @@ name = "beagle-tui"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.79"
-license = "MIT"
+license = "Apache-2.0"
 description = "Terminal-UI pieces shared by the beagle-tools TUIs: markdown/ANSI rendering, a scrolling document pane, widgets and store-root discovery."
 publish = false
 

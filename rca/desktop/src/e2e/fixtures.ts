@@ -23,6 +23,7 @@ export const LISTING: Listing = {
       tags: ["deploy"],
       prs: [],
       archived: false,
+      has_commands: false,
     },
     {
       id: CHECKOUT_ID,
@@ -34,6 +35,7 @@ export const LISTING: Listing = {
       tags: [],
       prs: [PR_URL],
       archived: false,
+      has_commands: true,
     },
   ],
   broken: [],
@@ -59,6 +61,12 @@ traffic needed. We rolled the change back and checkout recovered fully.
 
 1. Checkout requests began timing out under normal peak traffic.
 2. The connection pool had been reduced below what peak checkout needs.
+`,
+    "commands.md": `# Commands
+
+\`\`\`bash
+curl -s https://checkout.example.com/healthz/pool
+\`\`\`
 `,
   },
   [CACHE_ID]: {

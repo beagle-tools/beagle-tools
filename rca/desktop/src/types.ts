@@ -17,6 +17,8 @@ export interface Workspace {
   tags: string[];
   prs: string[];
   archived: boolean;
+  /** Whether the workspace has the opt-in `commands.md` (its tab shows). */
+  has_commands: boolean;
 }
 
 /** A workspace directory that exists on disk but could not load. */

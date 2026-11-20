@@ -23,6 +23,9 @@ with you in control.
 | <img src="docs/assets/tandem-logo.svg" alt="" width="32">    | Tandem             | Review GitHub PRs with Claude/Codex riding along; agent comments stay local until you post                                 | macOS, Linux, Windows desktop                        | [`tandem/`](tandem/README.md)       |
 | <img src="docs/assets/beagle-logo.png" alt="" width="32">    | Beagle (RCA)       | An agent investigates an incident and writes the RCA; a TUI/desktop app renders it live; a daemon can ship the fix as a PR | CLI/TUI (macOS, Linux), desktop, daemon, static site | [`rca/`](rca/README.md)             |
 | <img src="docs/assets/agentdesk-logo.svg" alt="" width="32"> | agentd + Agentdesk | Schedule coding agents from YAML manifests; each run in its own tmux session, recorded in SQLite                           | macOS                                                | [`workflows/`](workflows/README.md) |
+|                                                              | scout              | Watch agent work live as projects of small, ordered tasks (`beagle scout`)                                                 | CLI/TUI (macOS, Linux)                               | [`cli/crates/scout/`](cli/crates/scout/README.md) |
+|                                                              | recap              | PR recaps: the diff plus a plain-language write-up of what it fixes and why (`beagle recap`)                               | CLI/TUI (macOS, Linux)                               | [`cli/crates/recap/`](cli/crates/recap/README.md) |
+|                                                              | standup            | Standup reports: one overview, then a short write-up per ticket (`beagle standup`)                                         | CLI/TUI (macOS, Linux)                               | [`cli/crates/standup/`](cli/crates/standup/README.md) |
 
 Underneath them, [`utils/`](utils/README.md) (`beagle-utils`) holds the Rust helpers two or more
 apps share.
@@ -107,12 +110,15 @@ beagle rca new <slug> --title "..."
 beagle rca                # open the TUI against ./rcas
 ```
 
-**agentd** — with the [demo manifests](workflows/manifests/) in `~/.config/agentd/manifests/`:
+**agentd** — copy the [demo manifests](workflows/manifests/) into place (their scripts are
+referenced from there), then run the free, script-only `writeup` job:
 
 ```sh
+mkdir -p ~/.config/agentd/manifests
+cp -R workflows/manifests/demo ~/.config/agentd/manifests/
 agentctl apply
 agentctl get agents
-agentctl -j hello -p name=you
+agentctl -j writeup
 agenttop
 ```
 

@@ -2,17 +2,19 @@
 
 import type { JSX } from "react";
 
-import { TABS } from "../lib/sections";
+import type { Section } from "../lib/sections";
 
 interface TabBarProps {
+  /** This workspace's tabs (`tabsFor`). */
+  tabs: readonly Section[];
   activeFile: string;
   onSelect: (file: string) => void;
 }
 
-export function TabBar({ activeFile, onSelect }: TabBarProps): JSX.Element {
+export function TabBar({ tabs, activeFile, onSelect }: TabBarProps): JSX.Element {
   return (
     <div className="tab-bar" role="tablist">
-      {TABS.map((section, index) => (
+      {tabs.map((section, index) => (
         <button
           key={section.file}
           type="button"

@@ -17,6 +17,12 @@ and `beagle rca skill install` installs them.
 The issue → PR → release flow these drive is in
 [`docs/SDLC.md`](../docs/SDLC.md).
 
+**Not here:** scout's own skills, `scout` and `scout-build`, live with the
+crate that embeds them, in
+[`cli/crates/scout/skills/`](../cli/crates/scout/skills/), and install with
+`beagle scout skill install`. `scripts/skills/install.sh`
+only installs the skills in this directory.
+
 ## Install
 
 ```sh

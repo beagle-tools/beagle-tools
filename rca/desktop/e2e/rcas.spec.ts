@@ -32,6 +32,15 @@ test("opens a workspace and renders its sections", async ({ page }) => {
   await expect(page.getByText(/connection pool had been reduced/)).toBeVisible();
 });
 
+test("shows the Commands tab only for a workspace that has commands.md", async ({ page }) => {
+  await page.getByRole("button", { name: /Cache stampede/ }).click();
+  await expect(page.getByRole("tab", { name: /Commands/ })).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Checkout timeouts/ }).click();
+  await page.getByRole("tab", { name: /Commands/ }).click();
+  await expect(page.getByText(/healthz\/pool/)).toBeVisible();
+});
+
 test("renders diagrams", async ({ page }) => {
   await page.getByRole("button", { name: /Checkout timeouts/ }).click();
   await page.getByRole("tab", { name: /Diagrams/ }).click();

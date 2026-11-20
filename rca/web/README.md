@@ -16,8 +16,8 @@ static site in `dist/` you can deploy anywhere.
 Publish an incident from the CLI:
 
 ```sh
-beagle publish <slug>     # sets published = true, stamps published_at
-beagle unpublish <slug>   # makes it private again
+beagle rca publish <slug>     # sets published = true, stamps published_at
+beagle rca unpublish <slug>   # makes it private again
 ```
 
 ## Develop

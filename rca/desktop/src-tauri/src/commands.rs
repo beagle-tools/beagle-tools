@@ -53,7 +53,17 @@ pub fn list_workspaces() -> Result<dto::Listing> {
     let listing = store.list_all()?;
     Ok(dto::Listing {
         root: store.root().display().to_string(),
-        workspaces: listing.summaries.iter().map(dto::Workspace::from).collect(),
+        workspaces: listing
+            .summaries
+            .iter()
+            .map(|rca| dto::Workspace {
+                has_commands: store
+                    .workspace_dir(&rca.id)
+                    .join(SectionKind::Commands.file_name())
+                    .is_file(),
+                ..dto::Workspace::from(rca)
+            })
+            .collect(),
         broken: listing
             .broken
             .into_iter()

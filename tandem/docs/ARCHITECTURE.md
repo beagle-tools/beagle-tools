@@ -48,6 +48,8 @@ SHA changes. Local comments/agent runs are indexed by (repo, number).
    instructions + PR description + raw diff. Fed via stdin to:
    - claude: `claude -p --output-format stream-json --verbose [...]`
    - codex: `codex exec --json --skip-git-repo-check -`
+   - grok: `grok --output-format streaming-json -p <prompt>` (Grok Build
+     takes the prompt as an argument; it has no stdin mode)
    - custom: `sh -c <command>`
 3. Runner streams events; `{"type":"tandem_comment"}` lines (stdout or the
    `$TANDEM_COMMENTS_FILE` drop-box) become `LocalComment`s tied to the
@@ -70,6 +72,7 @@ SHA changes. Local comments/agent runs are indexed by (repo, number).
 
 - JSON-blob columns in SQLite (indexed keys only) — schema agility while
   domain types settle.
-- No syntax highlighting in the differ yet (roadmap).
+- Syntax highlighting in the differ is client-side (`src/lib/highlight.ts`),
+  per line, so a hunk never needs the whole file.
 - One SQLite connection behind a mutex — fine at current scale.
 - PAT lives in the settings file (0600), not the keychain yet (roadmap).
