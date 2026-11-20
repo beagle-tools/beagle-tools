@@ -1,4 +1,5 @@
-//! Case-insensitive subsequence fuzzy matching for the incident filter.
+//! Case-insensitive subsequence fuzzy matching: rca's incident filter and
+//! finder, and the help sheet's filter.
 //!
 //! Small on purpose: the corpus is a handful of workspace titles, not a code
 //! search index. Scoring rewards consecutive runs and word-boundary hits so

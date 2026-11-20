@@ -7,6 +7,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Padding, Paragraph};
 use ratatui::Frame;
 
+use beagle_tui::chrome::{self, HelpFilter, Tone};
 use beagle_tui::widgets::{self, border_style, truncate, LIST_HIGHLIGHT};
 
 use super::badges::{badges, comment_badges, tab_title};
@@ -40,7 +41,7 @@ pub(super) fn draw(frame: &mut Frame<'_>, app: &mut App) {
     draw_content(frame, app, main);
     draw_footer(frame, app, footer);
     if app.help {
-        widgets::draw_help(frame, HELP);
+        chrome::draw_help(frame, HELP, HelpFilter::Off);
     }
     if let Some(confirm) = &app.confirm {
         draw_confirm(frame, confirm);
@@ -264,35 +265,26 @@ fn empty_state(app: &App) -> Vec<Line<'static>> {
 }
 
 fn draw_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    let line = if app.side.is_active() {
-        Line::from(vec![
-            Span::styled(
-                format!(" {}", beagle_tui::pane_resize::HINT),
-                Style::default().fg(Color::Cyan),
-            ),
-            Span::styled(
-                app.status
-                    .as_ref()
-                    .map(|s| format!("   {s}"))
-                    .unwrap_or_default(),
-                Style::default().fg(Color::Yellow),
-            ),
-        ])
-    } else if let Some(busy) = &app.busy {
-        Line::styled(format!(" ⟳ {busy}…"), Style::default().fg(Color::Cyan))
-    } else if let Some(status) = &app.status {
-        Line::styled(format!(" {status}"), Style::default().fg(Color::Yellow))
-    } else if let Some(err) = &app.comments_error {
-        Line::styled(
-            format!(" ⚠ comments sync failed — {err} (recaps/.comments-error.txt)"),
-            Style::default().fg(Color::Red),
-        )
-    } else {
-        let hints = match app.shelf {
-            Shelf::Active => " j/k move · enter/esc focus · tab/1/2/3 summary/diff/comments · o PR · i copy id · D ready · M merge · X close · a archive · A archive view · w resize · ? help · q quit",
-            Shelf::Archived => " ARCHIVE · j/k move · 1/2 summary/diff · U restore · A back to PRs · w resize · ? help · q quit",
-        };
-        Line::styled(hints, Style::default().fg(Color::DarkGray))
+    let hints = match app.shelf {
+        Shelf::Active => "j/k move · enter/esc focus · tab/1/2/3 summary/diff/comments · o PR · i copy id · D ready · M merge · X close · a archive · A archive view · w resize · ? help · q quit",
+        Shelf::Archived => "ARCHIVE · j/k move · 1/2 summary/diff · U restore · A back to PRs · w resize · ? help · q quit",
     };
-    frame.render_widget(Paragraph::new(line), area);
+    let sync_error = app
+        .comments_error
+        .as_ref()
+        .map(|err| format!("⚠ comments sync failed — {err} (recaps/.comments-error.txt)"));
+    let busy = app.busy.as_ref().map(|b| format!("{b}…"));
+    let status = if let Some(b) = &busy {
+        Some((b.as_str(), Tone::Busy))
+    } else if let Some(s) = &app.status {
+        Some((s.as_str(), Tone::Info))
+    } else {
+        sync_error.as_deref().map(|e| (e, Tone::Error))
+    };
+    let status = if app.side.is_active() {
+        app.status.as_deref().map(|s| (s, Tone::Info))
+    } else {
+        status
+    };
+    chrome::draw_footer(frame, area, hints, status, app.side.is_active());
 }

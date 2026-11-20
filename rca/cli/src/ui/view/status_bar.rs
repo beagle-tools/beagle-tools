@@ -1,6 +1,7 @@
 //! The bottom status bar: the filter prompt, in-content search state, or
 //! the transient status message plus key hints.
 
+use beagle_tui::chrome::{self, Tone};
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
@@ -84,59 +85,44 @@ pub(super) fn search_status_line(search: &crate::ui::search::ContentSearch) -> L
 }
 
 pub(super) fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
-    if app.side.is_active() {
-        let line = Line::from(vec![
-            Span::styled(
-                format!("  {}", beagle_tui::pane_resize::HINT),
-                Style::default().fg(Color::Cyan),
-            ),
-            Span::styled(
-                app.status_line()
-                    .map(|m| format!("   {m}"))
-                    .unwrap_or_default(),
-                Style::default().fg(Color::Yellow),
-            ),
-        ]);
-        frame.render_widget(Paragraph::new(line), area);
-        return;
+    // Filter mode and the in-content search own the line (a transient
+    // status message still gets its one beat over a search).
+    if !app.side.is_active() {
+        if app.search_active() {
+            frame.render_widget(Paragraph::new(filter_prompt_line(app)), area);
+            return;
+        }
+        if let (None, Some(search)) = (app.status_line(), app.content_search()) {
+            frame.render_widget(Paragraph::new(search_status_line(search)), area);
+            return;
+        }
     }
-    if app.search_active() {
-        frame.render_widget(Paragraph::new(filter_prompt_line(app)), area);
-        return;
-    }
-    // A status message gets the whole line — sharing it with the key hints
-    // truncated messages into uselessness. It disappears on the next
-    // keypress, so the hints are only ever hidden for one beat.
-    if let Some(message) = app.status_line() {
-        let (symbol, color) = if message.contains("failed") {
-            ("  ✗ ", Color::LightRed)
+    // Otherwise the shared footer: resize hint, else a status message (the
+    // whole line — it disappears on the next keypress), else key hints.
+    let hints = match app.focus() {
+        Focus::List => {
+            "j/k select · enter open · ←/→ tabs · f filter · / search · T toolbox · R related · c copy · w resize · r reload · ? help · q quit"
+        }
+        Focus::Content => {
+            "j/k line · v select · y yank · ←/→ tabs · / search · F follow · s sidebar · w resize · c copy · b back · ? help · q quit"
+        }
+    };
+    let status = app.status_line().map(|m| {
+        let tone = if app.side.is_active() {
+            Tone::Info
+        } else if m.contains("failed") {
+            Tone::Error
         } else {
-            ("  ✓ ", Color::LightGreen)
+            Tone::Ok
         };
-        let line = Line::from(vec![
-            Span::styled(symbol, Style::default().fg(color)),
-            Span::styled(message.to_owned(), Style::default().fg(color)),
-        ]);
+        (m, tone)
+    });
+    let line = chrome::footer_line(hints, status, app.side.is_active());
+    if app.side.is_active() || status.is_some() {
         frame.render_widget(Paragraph::new(line), area);
         return;
     }
-    // In-content search owns the hint line while it exists; a transient
-    // status message (handled above) still gets its one beat.
-    if let Some(search) = app.content_search() {
-        frame.render_widget(Paragraph::new(search_status_line(search)), area);
-        return;
-    }
-    let mut spans = vec![Span::styled(
-        match app.focus() {
-            Focus::List => {
-                "  j/k select · enter open · ←/→ tabs · f filter · / search · T toolbox · R related · c copy · w resize · r reload · ? help · q quit"
-            }
-            Focus::Content => {
-                "  j/k line · v select · y yank · ←/→ tabs · / search · F follow · s sidebar · w resize · c copy · b back · ? help · q quit"
-            }
-        },
-        Style::default().fg(Color::DarkGray),
-    )];
+    let mut spans = line.spans;
     if app.follow() {
         spans.push(Span::styled(
             "  ·  following (esc exits)",

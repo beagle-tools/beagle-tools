@@ -76,5 +76,19 @@ export function checkTuiStandards(read, files) {
       );
     }
   }
+  // 4. Every registered TUI draws its help sheet and footer with the shared
+  //    beagle_tui::chrome pieces (one look in every tool).
+  for (const [dir, testFile] of Object.entries(data.tuis)) {
+    const sources = files
+      .filter((f) => f.startsWith(`${dir}/src/`) && f.endsWith(".rs") && f !== testFile)
+      .filter((f) => !f.includes("/tests/"))
+      .map((f) => read(f));
+    if (!sources.some((t) => t.includes("chrome::draw_help("))) {
+      errors.push(`${dir}: draw the ? help with beagle_tui::chrome::draw_help`);
+    }
+    if (!sources.some((t) => t.includes("chrome::draw_footer(") || t.includes("chrome::footer_line("))) {
+      errors.push(`${dir}: draw the footer with beagle_tui::chrome::draw_footer (or footer_line)`);
+    }
+  }
   return errors;
 }

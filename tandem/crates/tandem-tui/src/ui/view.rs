@@ -2,7 +2,7 @@
 //! bodies are in [`super::tabs`]. Pure apart from recording how far the
 //! current tab can scroll.
 
-use beagle_tui::pane_resize;
+use beagle_tui::chrome::{self, HelpFilter, Tone};
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -28,7 +28,7 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App) {
     }
     draw_footer(frame, app, footer);
     match &app.mode {
-        Mode::Help => draw_help(frame),
+        Mode::Help => chrome::draw_help(frame, HELP, HelpFilter::Off),
         Mode::Confirm(action) => draw_confirm(frame, app, action),
         Mode::Normal | Mode::Input(_) => {}
     }
@@ -172,37 +172,29 @@ fn draw_content(frame: &mut Frame<'_>, app: &mut App, area: Rect) {
 }
 
 fn draw_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    if app.pane.is_active() {
+    if let Mode::Input(text) = &app.mode {
         let line = Line::from(vec![
+            Span::styled(" queue PR: ", Style::default().fg(Color::Cyan)),
+            Span::raw(format!("{text}█")),
             Span::styled(
-                format!(" {}", pane_resize::HINT),
-                Style::default().fg(Color::Cyan),
-            ),
-            Span::styled(
-                app.status
-                    .as_ref()
-                    .map(|(m, _)| format!("   {m}"))
-                    .unwrap_or_default(),
-                Style::default().fg(Color::Yellow),
+                "   Enter queue · Esc cancel",
+                Style::default().fg(Color::DarkGray),
             ),
         ]);
         frame.render_widget(Paragraph::new(line), area);
         return;
     }
-    let line = match (&app.mode, &app.status) {
-        (Mode::Input(text), _) => Line::from(vec![
-            Span::styled(" queue PR: ", Style::default().fg(Color::Cyan)),
-            Span::raw(format!("{text}█")),
-            Span::styled("   Enter queue · Esc cancel", Style::default().fg(Color::DarkGray)),
-        ]),
-        (_, Some((msg, true))) => Line::styled(format!(" {msg}"), Style::default().fg(Color::Red)),
-        (_, Some((msg, false))) => Line::styled(format!(" {msg}"), Style::default().fg(Color::Green)),
-        (_, None) => Line::styled(
-            " a queue · Enter open · z zoom · w resize · P post · A approve · m gone-through · e re-review · r refresh · ? help · q quit",
-            Style::default().fg(Color::DarkGray),
-        ),
-    };
-    frame.render_widget(Paragraph::new(line), area);
+    let status = app.status.as_ref().map(|(m, error)| {
+        let tone = if *error { Tone::Error } else { Tone::Ok };
+        (m.as_str(), tone)
+    });
+    chrome::draw_footer(
+        frame,
+        area,
+        "a queue · Enter open · z zoom · w resize · P post · A approve · m gone-through · e re-review · r refresh · ? help · q quit",
+        status,
+        app.pane.is_active(),
+    );
 }
 
 fn centered(area: Rect, width: u16, height: u16) -> Rect {
@@ -214,27 +206,6 @@ fn centered(area: Rect, width: u16, height: u16) -> Rect {
         width: w,
         height: h,
     }
-}
-
-fn draw_help(frame: &mut Frame<'_>) {
-    let lines: Vec<Line<'_>> = HELP
-        .iter()
-        .map(|(keys, what)| {
-            Line::from(vec![
-                Span::styled(format!("{keys:>22}  "), Style::default().fg(Color::Cyan)),
-                Span::raw(*what),
-            ])
-        })
-        .collect();
-    let height = u16::try_from(lines.len())
-        .unwrap_or(u16::MAX)
-        .saturating_add(2);
-    let area = centered(frame.area(), 76, height);
-    frame.render_widget(Clear, area);
-    frame.render_widget(
-        Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title(" Keys ")),
-        area,
-    );
 }
 
 fn draw_confirm(frame: &mut Frame<'_>, app: &App, action: &Action) {
