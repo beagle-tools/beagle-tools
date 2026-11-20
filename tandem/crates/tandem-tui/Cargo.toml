@@ -16,7 +16,7 @@ path = "src/lib.rs"
 tandem-core.workspace = true
 tandem-github.workspace = true
 tandem-cache.workspace = true
-beagle-utils.workspace = true
+beagle-utils = { workspace = true, features = ["gh"] }
 beagle-tui.workspace = true
 serde.workspace = true
 serde_json.workspace = true

@@ -206,12 +206,9 @@ pub fn merge_plan(check: &MergeCheck, repo: &RepoSettings) -> Result<MergePlan, 
 }
 
 fn gh(args: &[&str]) -> Result<String, String> {
-    let out = crate::gh::run_gh(args, crate::gh::GH_TIMEOUT).map_err(|e| format!("gh: {e}"))?;
-    if out.status.success() {
-        Ok(String::from_utf8_lossy(&out.stdout).trim().to_owned())
-    } else {
-        Err(String::from_utf8_lossy(&out.stderr).trim().to_owned())
-    }
+    beagle_utils::gh::run(args, crate::gh::GH_TIMEOUT)
+        .map(|out| out.trim().to_owned())
+        .map_err(|e| e.to_string())
 }
 
 /// Reads a PR's live mergeability and its repo's merge settings, and plans

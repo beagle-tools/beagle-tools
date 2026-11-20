@@ -223,74 +223,10 @@ pub fn unix_seconds(ts: &str) -> Option<i64> {
     Some(days * 86_400 + hour * 3600 + mi * 60 + sec - offset)
 }
 
-/// A PR's state. Parsed at the boundary — from GitHub's `state` + `isDraft`
-/// fields, and as a lowercase enum in `recap.toml` — never from a label.
-///
-/// The declaration order **is** the PR list's order: drafts, open, merged,
-/// closed (`Ord` is derived from it).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum PrState {
-    /// Open, but marked draft.
-    Draft,
-    /// Open, ready for review.
-    Open,
-    /// Merged.
-    Merged,
-    /// Closed without merging.
-    Closed,
-}
-
-impl PrState {
-    /// Every state, in list order.
-    pub const ALL: [Self; 4] = [Self::Draft, Self::Open, Self::Merged, Self::Closed];
-
-    /// Maps GitHub's PR fields (`state`: `OPEN` / `MERGED` / `CLOSED`, plus
-    /// `isDraft`) to a state. `None` for anything GitHub doesn't document.
-    #[must_use]
-    pub fn from_github(state: &str, is_draft: bool) -> Option<Self> {
-        match (state, is_draft) {
-            ("OPEN", true) => Some(Self::Draft),
-            ("OPEN", false) => Some(Self::Open),
-            ("MERGED", _) => Some(Self::Merged),
-            ("CLOSED", _) => Some(Self::Closed),
-            _ => None,
-        }
-    }
-
-    /// Upper-case label for the TUI.
-    #[must_use]
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::Draft => "DRAFT",
-            Self::Open => "OPEN",
-            Self::Merged => "MERGED",
-            Self::Closed => "CLOSED",
-        }
-    }
-
-    /// Group heading for the PR list.
-    #[must_use]
-    pub fn heading(self) -> &'static str {
-        match self {
-            Self::Draft => "DRAFTS",
-            Self::Open => "OPEN",
-            Self::Merged => "MERGED",
-            Self::Closed => "CLOSED",
-        }
-    }
-}
-
-impl fmt::Display for PrState {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::Draft => "draft",
-            Self::Open => "open",
-            Self::Merged => "merged",
-            Self::Closed => "closed",
-        })
-    }
-}
+/// A PR's state, shared with the other tools: parsed from GitHub's `state`
+/// and `isDraft` fields, and stored as a lowercase word in `recap.toml`. Its
+/// declaration order (drafts, open, merged, closed) is the PR list's order.
+pub use beagle_utils::gh::PrState;
 
 /// A ticket id at the start of a PR title (`ABC-123: …`, `OPS-4177 …`).
 #[must_use]

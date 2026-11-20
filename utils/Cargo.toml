@@ -14,6 +14,8 @@ path = "src/lib.rs"
 [features]
 default = []
 tracing = ["dep:tracing", "dep:tracing-subscriber"]
+# The GitHub CLI (`gh`): bounded runs and PR state, parsed from its JSON.
+gh = ["dep:serde", "dep:serde_json"]
 # Self-update against GitHub releases (`update`): parses the releases feed.
 update = ["dep:serde", "dep:serde_json"]
 

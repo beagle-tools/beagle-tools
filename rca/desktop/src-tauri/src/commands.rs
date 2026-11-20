@@ -178,7 +178,7 @@ pub async fn pr_states(urls: Vec<String>) -> Result<HashMap<String, String>> {
         }
         urls.iter()
             .filter_map(|url| {
-                beagle::prs::state_of(url).map(|state| (url.clone(), state.label().to_owned()))
+                beagle::prs::state_of(url).map(|state| (url.clone(), state.as_str().to_owned()))
             })
             .collect()
     })

@@ -9,7 +9,7 @@ repository = "https://github.com/beagle-tools/beagle-tools"
 
 [dependencies]
 beagle-tui = { path = "../../utils/tui" }
-beagle-utils = { path = "../../utils", features = ["update"] }
+beagle-utils = { path = "../../utils", features = ["gh", "update"] }
 crossterm = "0.28"
 notify = "7"
 ratatui = { version = "0.29", features = ["unstable-rendered-line-info"] }

@@ -12,7 +12,6 @@ use tandem_core::github::{PrDetail, PrState};
 use tandem_core::review::{DiffSide, LocalComment};
 use tandem_core::{Result, TandemError};
 use tandem_github::{GithubAuth, GithubClient, GithubConfig, NewInlineComment};
-use tokio::process::Command;
 
 use crate::config::Config;
 use crate::pr_ref::PrRef;
@@ -36,26 +35,26 @@ pub async fn connect(config: &Config) -> Result<GithubClient> {
 const GH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 
 async fn token_for(user: &str) -> Result<String> {
-    let gh = beagle_utils::process::which("gh").unwrap_or_else(|| "gh".into());
-    let mut cmd = Command::new(gh);
-    cmd.env("PATH", beagle_utils::process::augmented_path())
-        .args(["auth", "token", "-u", user])
-        .kill_on_drop(true);
-    // Bounded: on expiry the future is dropped, which kills gh.
-    let out = tokio::time::timeout(GH_TIMEOUT, cmd.output())
-        .await
-        .map_err(|_| {
-            TandemError::Auth(format!(
-                "`gh auth token -u {user}` timed out after {}s — is GitHub reachable?",
-                GH_TIMEOUT.as_secs()
-            ))
-        })?
-        .map_err(|e| TandemError::Auth(format!("failed to run `gh auth token -u {user}`: {e}")))?;
-    let token = String::from_utf8_lossy(&out.stdout).trim().to_owned();
-    if !out.status.success() || token.is_empty() {
+    let owned = user.to_owned();
+    // `beagle_utils::gh` is blocking (bounded, killed on expiry), so it runs
+    // off the runtime's thread.
+    let out = tokio::task::spawn_blocking(move || {
+        beagle_utils::gh::run(&["auth", "token", "-u", &owned], GH_TIMEOUT)
+    })
+    .await
+    .map_err(|e| TandemError::Auth(format!("`gh auth token -u {user}` did not finish: {e}")))?;
+    let token = match out {
+        Ok(stdout) => stdout.trim().to_owned(),
+        Err(beagle_utils::gh::Error::Failed(stderr)) => {
+            return Err(TandemError::Auth(format!(
+                "`gh auth token -u {user}` failed — is {user} logged in to gh? ({stderr})"
+            )))
+        }
+        Err(e) => return Err(TandemError::Auth(format!("`gh auth token -u {user}`: {e}"))),
+    };
+    if token.is_empty() {
         return Err(TandemError::Auth(format!(
-            "`gh auth token -u {user}` failed — is {user} logged in to gh? ({})",
-            String::from_utf8_lossy(&out.stderr).trim()
+            "`gh auth token -u {user}` printed no token — is {user} logged in to gh?"
         )));
     }
     Ok(token)

@@ -7,7 +7,7 @@ repository.workspace = true
 description = "Daemon that reconciles agent manifests into the store, schedules cron runs, and supervises tmux-hosted runs"
 
 [dependencies]
-beagle-utils = { workspace = true, features = ["tracing"] }
+beagle-utils = { workspace = true, features = ["gh", "tracing"] }
 agent-core = { workspace = true }
 anyhow = { workspace = true }
 chrono = { workspace = true }

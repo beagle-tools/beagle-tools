@@ -16,6 +16,7 @@ Small, dependency-free helpers shared by the apps in this monorepo
 | `duration` | Compact human durations (`1h2m`) and single-unit ages (`3m`)               |
 | `fs`       | Atomic writes (temp sibling + fsync + rename), optional reads              |
 | `notify`   | AppleScript string escaping                                                |
+| `gh`       | The GitHub CLI: `run`/`output` on the augmented `PATH` under a timeout, actionable errors, `PrState` + `pr_state` — only with the `gh` feature |
 | `log`      | `tracing` subscriber init — only with the `tracing` feature                |
 | `update`   | Self-update from GitHub releases: a `Channel` (repo, tag prefix, tarball), version parsing, release listing via `curl`, download + sha256 verify + atomic swap — only with the `update` feature |
 
