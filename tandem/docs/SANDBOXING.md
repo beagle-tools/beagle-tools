@@ -35,13 +35,11 @@ Design sketch:
    the same way they do today (stdin + files in the run dir).
 2. **Egress via squid only.** The container has no direct network. Its
    only route is a squid sidecar; squid's ACL is generated from
-   `AgentSpec.network_allowlist` (plus the provider endpoint implied by
-   the spec's `AuthMode`). Deny by default, log every request — the
+   `AgentSpec.network_allowlist` (plus the runner's provider endpoint). Deny by default, log every request — the
    squid access log becomes part of the run's log bundle in the UI.
 3. **Credentials.** API keys are injected as env vars into the container
    only (never written into the image or run dir). CLI-session auth
-   (claude/codex login state) is mounted read-only, and only when the
-   spec's auth mode asks for it.
+   (claude/codex login state), the only auth mode, is mounted read-only.
 4. **Runner images.** Small base images with the claude/codex CLIs
    preinstalled; custom-command specs can name their own image.
 5. **UX.** The agent editor's network-allowlist field switches from

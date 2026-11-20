@@ -29,24 +29,19 @@ pub enum RunnerKind {
     },
 }
 
-/// How the runner reaches its model provider.
+/// How the runner reaches its model provider: always the CLI's own login.
+///
+/// Earlier builds also offered `api_key` and `endpoint` modes that nothing
+/// ever read. They are gone; a saved spec that still names one (or any
+/// other unknown kind) loads as [`AuthMode::CliSession`], which is what
+/// those specs actually ran with. To give a runner a key or a custom
+/// endpoint, set the CLI's own variables in [`AgentSpec::env`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind")]
 pub enum AuthMode {
     /// Reuse the CLI's own login (claude / codex already authenticated).
+    #[serde(other)]
     CliSession,
-    /// API key exposed to the process via `env_var`.
-    ApiKey {
-        /// Name of the environment variable the runner reads the key from.
-        env_var: String,
-    },
-    /// Custom OpenAI-compatible/other endpoint.
-    Endpoint {
-        /// Base URL of the provider's API, exported to the runner.
-        base_url: String,
-        /// Variable holding the API key for `base_url`, if it needs one.
-        env_var: Option<String>,
-    },
 }
 
 /// A configured agent reviewer. Everything here is user-editable in the
@@ -188,3 +183,7 @@ pub struct AgentRun {
 fn default_purpose() -> String {
     "pr review".to_owned()
 }
+
+#[cfg(test)]
+#[path = "agent_tests.rs"]
+mod tests;
