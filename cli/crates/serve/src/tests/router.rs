@@ -18,6 +18,7 @@ pub(crate) fn unavailable() -> Stores {
         rca: Err("none in tests".into()),
         recap: Err("none in tests".into()),
         standup: Err("none in tests".into()),
+        tandem: Err("none in tests".into()),
     }
 }
 

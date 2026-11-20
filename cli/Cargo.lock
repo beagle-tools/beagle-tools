@@ -180,6 +180,8 @@ dependencies = [
  "rustls-pki-types",
  "serde",
  "serde_json",
+ "tandem-cache",
+ "tandem-tui",
  "tempfile",
  "thiserror 2.0.21",
  "time",

@@ -38,6 +38,20 @@ impl Cache {
         })
     }
 
+    /// Open an existing database read-only: the file is never created,
+    /// no migration runs and every write fails. For readers that must not
+    /// change the store (`beagle serve`). A store written by an older
+    /// build may lack newer tables; reads of those fail with "no such
+    /// table".
+    pub fn open_read_only(path: &Path) -> Result<Self> {
+        let conn = Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(cache_err)?;
+        Ok(Self {
+            conn,
+            env_store: crate::agent_env::EnvStore::beside(path),
+        })
+    }
+
     /// In-memory cache for tests.
     pub fn open_in_memory() -> Result<Self> {
         let conn = Connection::open_in_memory().map_err(cache_err)?;

@@ -16,6 +16,7 @@ mod gh;
 mod ingest;
 mod jobs;
 mod pr_ref;
+pub mod read;
 mod state;
 mod ui;
 mod verdict;

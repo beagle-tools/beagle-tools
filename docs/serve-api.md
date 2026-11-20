@@ -547,12 +547,14 @@ nested), as the TUI's Summary and Comments tabs show them.
       "path": "src/hooks.rs",
       "line": 88,
       "end_line": null,
-      "severity": "warning",
+      "severity": "issue",
       "status": "open",
       "posted": false,
       "author": "claude",
+      "tag": "correctness",
       "body": "This retries without a cap …",
       "suggestion": null,
+      "created_at": "2026-11-19T08:19:00Z",
       "replies": []
     }
   ]
@@ -560,4 +562,7 @@ nested), as the TUI's Summary and Comments tabs show them.
 ```
 
 `summary` is `null` before a review has run. `title`, `url`, `state` and
-`author` are `null` until the PR's details have been fetched.
+`author` are `null` until the PR's details have been fetched. `severity`:
+`info` | `suggestion` | `issue` | `blocker`. `status`: `open` | `accepted` |
+`rejected` | `resolved` | `archived`. Replies have the same keys (their own
+`replies` is always `[]`). A PR with no store yet is `404`.
