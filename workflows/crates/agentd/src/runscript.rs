@@ -15,7 +15,7 @@ use agent_core::types::Isolation;
 use agent_core::types::{AgentSpec, Run, Runner};
 use anyhow::{bail, Context, Result};
 
-use crate::runenv::{env_exports, purpose_brief, run_context, JobPurpose};
+use crate::runenv::{env_exports, purpose_brief, run_context, write_env_file, JobPurpose};
 use beagle_utils::shell::quote as shell_quote;
 
 /// Prepended to every run: hold the Mac awake until the run's own shell
@@ -68,10 +68,12 @@ pub(crate) fn build_run_script(
             run_script(spec, model, &sources, log)
         }
     };
-    Ok(format!(
-        "{KEEP_AWAKE}{}{body}",
-        env_exports(spec, run, &data_dir, root, purpose)?
-    ))
+    // Values (often secrets) go in a 0600 file the run sources and removes,
+    // never on the tmux `sh -c` line where `ps` would show them.
+    let env = env_exports(spec, run, &data_dir, root, purpose)?;
+    let env_file = data_dir.join("run.env");
+    write_env_file(&env_file, &env.body)?;
+    Ok(format!("{KEEP_AWAKE}{}{body}", env.shell(&env_file)))
 }
 
 /// The runner CLI invocation, with the model flag quoted when present. The

@@ -107,7 +107,7 @@ fn main() -> Result<()> {
     }
     // The no-push-to-main guard. Runs still start without it, so say so
     // as an error: the GitHub branch protection is then the only guard.
-    if let Err(e) = gitguard::install() {
+    if let Err(e) = gitguard::install(&agent_core::guard::protected_orgs()) {
         tracing::error!(error = %e, "could not install the git push guard");
     }
     let mut store = Store::open_default().context("failed to open state store")?;

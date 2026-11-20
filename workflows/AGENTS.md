@@ -72,8 +72,9 @@ assets/notify/      notification icons; one notifier app is built per png
   holds `ui.yaml` (`ticket_url`, `investigations_dir`, `hidden_projects` —
   one reader, `agent_core::ui::UiConfig`) and `agentd.yaml`
   (`protected_orgs` for the git guard, `agent_core::guard`). Both ignore
-  unknown keys and default to empty: no org is protected and no
-  investigations dir exists unless configured. Never hard-code an org,
+  unknown keys and default to empty: the git guard then protects
+  `main`/`master` on every remote (`protected_orgs` only narrows it), and
+  no investigations dir exists unless configured. Never hard-code an org,
   tracker or path a user would configure.
 - **Data dirs live a week; logs 4h.** A step's data dir is its handover, so
   `agent_core::resume` (agentctl `resume`, agenttop `R`, Agentdesk

@@ -137,15 +137,38 @@ fn env_exports_carry_identity_and_parent_links() {
         None,
     )
     .unwrap();
-    assert!(exports.contains("AGENTD_RUN_ID='child-1'"));
-    assert!(exports.contains("AGENTD_PROJECT='demo'"));
-    assert!(exports.contains("AGENTD_DATA_DIR='/state/data/child-1'"));
-    assert!(exports.contains("AGENTD_PARENT_RUN_ID='root-9'"));
-    assert!(exports.contains("AGENTD_PARENT_DATA_DIR='/state/data/root-9'"));
-    assert!(exports.contains("NOTES_ROOT='/stores/notes'"));
-    assert!(exports.contains(".cargo/bin"));
+    let body = &exports.body;
+    assert!(body.contains("export AGENTD_RUN_ID='child-1'"));
+    assert!(body.contains("export AGENTD_PROJECT='demo'"));
+    assert!(body.contains("export AGENTD_DATA_DIR='/state/data/child-1'"));
+    assert!(body.contains("export AGENTD_PARENT_RUN_ID='root-9'"));
+    assert!(body.contains("export AGENTD_PARENT_DATA_DIR='/state/data/root-9'"));
+    assert!(body.contains("export NOTES_ROOT='/stores/notes'"));
+    // The guard's policy is in the hook file, not the run's environment.
+    assert!(!body.contains("AGENTD_PROTECTED_ORGS"));
+    // Values never reach the inline prefix (and so never `ps`).
+    let shell = exports.shell(Path::new("/state/data/child-1/run.env"));
+    assert!(!shell.contains("/stores/notes"), "{shell}");
+    assert!(
+        shell.contains(". '/state/data/child-1/run.env'; rm -f '/state/data/child-1/run.env'; ")
+    );
+    assert!(shell.contains(".cargo/bin"));
     // User-installed CLIs live here; a run without it could not find them.
-    assert!(exports.contains(".local/bin"));
+    assert!(shell.contains(".local/bin"));
+}
+
+#[test]
+fn the_env_file_is_private_to_the_user() {
+    use std::os::unix::fs::PermissionsExt as _;
+    let dir = std::env::temp_dir().join(format!("agentd-envfile-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let file = dir.join("run.env");
+    crate::runenv::write_env_file(&file, "export A='1'\n").unwrap();
+    crate::runenv::write_env_file(&file, "export A='2'\n").unwrap();
+    let mode = std::fs::metadata(&file).unwrap().permissions().mode() & 0o777;
+    assert_eq!(mode, 0o600);
+    assert_eq!(std::fs::read_to_string(&file).unwrap(), "export A='2'\n");
+    let _ = std::fs::remove_dir_all(&dir);
 }
 
 #[test]

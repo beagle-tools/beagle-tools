@@ -13,8 +13,8 @@
 //!
 //! Each repo is split by the branch the write hit: a push's refspec, a PR's
 //! `--head`, else the checkout's current branch (the caller resolves that).
-//! A push to `main`/`master` on a protected org (see [`crate::guard`]; none
-//! unless configured) is flagged `⚠ PUSHED TO MAIN` — the git guard
+//! A push to `main`/`master` on a guarded repo (see [`crate::guard`]: every
+//! repo unless `protected_orgs` narrows it) is flagged `⚠ PUSHED TO MAIN` — the git guard
 //! (agentd's `gitguard`) should have refused it, so seeing one means a hole.
 //!
 //! Pure: [`writes_in`] parses; resolving a local checkout to `owner/name`
@@ -256,11 +256,12 @@ pub fn writes_in(command: &str, workdir: &Path) -> Vec<Write> {
     out
 }
 
-/// Is this a push to one of the `protected` orgs' `main`/`master`?
+/// Is this a push to a guarded `main`/`master`? Every repo is guarded when
+/// `protected` is empty (the default), else only those orgs' repos.
 #[must_use]
 pub fn is_protected_main(repo: &str, branch: Option<&str>, protected: &[String]) -> bool {
     let org = repo.split('/').next().unwrap_or("");
-    protected.iter().any(|p| p.eq_ignore_ascii_case(org))
+    (protected.is_empty() || protected.iter().any(|p| p.eq_ignore_ascii_case(org)))
         && matches!(branch, Some("main" | "master"))
 }
 

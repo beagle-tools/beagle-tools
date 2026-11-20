@@ -1,5 +1,5 @@
-//! Per-run environment and prompt context: the `export` prefix every run
-//! script gets, and the literal "Run context" section appended to LLM
+//! Per-run environment and prompt context: the environment every run
+//! script sources from a 0600 file, and the literal "Run context" section appended to LLM
 //! prompts (scoped tool rules deny `$VAR` expansions, so LLM params must be
 //! literal text, not environment variables).
 
@@ -94,52 +94,87 @@ pub(crate) fn purpose_brief(run: &Run, purpose: &JobPurpose) -> Option<String> {
     Some(out)
 }
 
-/// `export` prefix exposing the run's identity and context to the process:
-/// `AGENTD_RUN_ID`/`PROJECT`/`AGENT`/`DATA_DIR`; for triggered runs
-/// `AGENTD_PARENT_RUN_ID`/`PARENT_DATA_DIR`; `AGENTD_PARAM_<K>` for each
-/// `--param`; `AGENTD_DB` when `database: true`; plus the manifest's `env:`
-/// map. `~/.cargo/bin` and `~/.local/bin` are prepended to PATH: the daemon
-/// runs under launchd, whose PATH has neither, so without them a run cannot
-/// call `agentctl` or a user-installed CLI like `beagle`.
+/// A run's environment, split so values never reach the process table:
+/// [`RunEnv::body`] goes into a 0600 file the run sources (and deletes),
+/// [`RunEnv::shell`] is the inline prefix (PATH and sourcing only).
+pub(crate) struct RunEnv {
+    /// `export K='v'` lines, plus the git guard's hooksPath appended to the
+    /// user's own `GIT_CONFIG_*` entries.
+    pub(crate) body: String,
+    /// PATH set-up and the secrets file, before the body is sourced.
+    prefix: String,
+}
+
+impl RunEnv {
+    /// The run script's prefix: PATH, the secrets file, then `file` (the
+    /// body, written by [`write_env_file`]) sourced and removed.
+    pub(crate) fn shell(&self, file: &Path) -> String {
+        let file = shell_quote(&file.to_string_lossy());
+        format!("{}. {file}; rm -f {file}; ", self.prefix)
+    }
+}
+
+/// Writes `body` to `path` readable by the owner only (0600), replacing any
+/// earlier file.
+pub(crate) fn write_env_file(path: &Path, body: &str) -> Result<()> {
+    use std::io::Write as _;
+    use std::os::unix::fs::OpenOptionsExt as _;
+    let _ = std::fs::remove_file(path);
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(path)
+        .with_context(|| format!("create {}", path.display()))?;
+    file.write_all(body.as_bytes())
+        .with_context(|| format!("write {}", path.display()))
+}
+
+/// The run's environment: `AGENTD_RUN_ID`/`PROJECT`/`AGENT`/`DATA_DIR`; for
+/// triggered runs `AGENTD_PARENT_RUN_ID`/`PARENT_DATA_DIR`;
+/// `AGENTD_PARAM_<K>` for each `--param`; `AGENTD_DB` when `database: true`;
+/// the manifest's `env:` map; and the git guard's `core.hooksPath`.
+/// `~/.cargo/bin` and `~/.local/bin` are prepended to PATH: the daemon runs
+/// under launchd, whose PATH has neither, so without them a run cannot call
+/// `agentctl` or a user-installed CLI like `beagle`.
 pub(crate) fn env_exports(
     spec: &AgentSpec,
     run: &Run,
     data_dir: &Path,
     root: &str,
     purpose: Option<&JobPurpose>,
-) -> Result<String> {
+) -> Result<RunEnv> {
     let mut vars = vec![
-        format!("AGENTD_RUN_ID={}", shell_quote(&run.id)),
-        format!("AGENTD_PROJECT={}", shell_quote(&run.project)),
-        format!("AGENTD_AGENT={}", shell_quote(&run.agent)),
-        format!(
-            "AGENTD_DATA_DIR={}",
-            shell_quote(&data_dir.to_string_lossy())
+        ("AGENTD_RUN_ID".to_owned(), run.id.clone()),
+        ("AGENTD_PROJECT".to_owned(), run.project.clone()),
+        ("AGENTD_AGENT".to_owned(), run.agent.clone()),
+        (
+            "AGENTD_DATA_DIR".to_owned(),
+            data_dir.to_string_lossy().into_owned(),
         ),
+        ("AGENTD_ROOT_RUN_ID".to_owned(), root.to_owned()),
     ];
-    vars.push(format!("AGENTD_ROOT_RUN_ID={}", shell_quote(root)));
     // The job's job-purpose.md, for a script that wants to point at it.
     if let Some(purpose) = purpose {
-        vars.push(format!(
-            "AGENTD_JOB_PURPOSE={}",
-            shell_quote(&purpose.path.to_string_lossy())
+        vars.push((
+            "AGENTD_JOB_PURPOSE".to_owned(),
+            purpose.path.to_string_lossy().into_owned(),
         ));
     }
     // The standard logger, for script stages: `. "$AGENTD_LOG_SH"`, then
     // log_info / log_step / log_ok / log_warn / log_error.
     if let Ok(log_sh) = crate::loglib::path() {
-        vars.push(format!(
-            "AGENTD_LOG_SH={}",
-            shell_quote(&log_sh.to_string_lossy())
+        vars.push((
+            "AGENTD_LOG_SH".to_owned(),
+            log_sh.to_string_lossy().into_owned(),
         ));
     }
     if let Some(parent) = &run.parent_run_id {
-        vars.push(format!("AGENTD_PARENT_RUN_ID={}", shell_quote(parent)));
+        vars.push(("AGENTD_PARENT_RUN_ID".to_owned(), parent.clone()));
         if let Some(dirs) = data_dir.parent() {
-            let parent_dir = dirs.join(parent);
-            vars.push(format!(
-                "AGENTD_PARENT_DATA_DIR={}",
-                shell_quote(&parent_dir.to_string_lossy())
+            vars.push((
+                "AGENTD_PARENT_DATA_DIR".to_owned(),
+                dirs.join(parent).to_string_lossy().into_owned(),
             ));
         }
     }
@@ -151,36 +186,31 @@ pub(crate) fn env_exports(
         if let Some(dir) = db.parent() {
             std::fs::create_dir_all(dir).context("create agent db dir")?;
         }
-        vars.push(format!("AGENTD_DB={}", shell_quote(&db.to_string_lossy())));
+        vars.push(("AGENTD_DB".to_owned(), db.to_string_lossy().into_owned()));
     }
     for (key, value) in param_pairs(run.params.as_deref()) {
-        vars.push(format!("AGENTD_PARAM_{key}={}", shell_quote(&value)));
+        vars.push((format!("AGENTD_PARAM_{key}"), value));
     }
     for (key, value) in &spec.env {
-        vars.push(format!("{key}={}", shell_quote(value)));
+        vars.push((key.clone(), value.clone()));
     }
-    // The git guard (see gitguard.rs): the orgs its pre-push hook protects
-    // (always set, so a run never inherits a stale list), and hooksPath for
-    // every git call, even one that bypasses the shim on PATH.
-    vars.push(format!(
-        "AGENTD_PROTECTED_ORGS={}",
-        shell_quote(&agent_core::guard::protected_orgs().join(" "))
-    ));
+    let mut body = String::new();
+    for (key, value) in &vars {
+        let _ = writeln!(body, "export {key}={}", shell_quote(value));
+    }
+    // The git guard (see gitguard.rs): hooksPath for every git call, even
+    // one that bypasses the shim on PATH — appended after the user's own
+    // GIT_CONFIG_* entries rather than replacing them.
     if let Ok(hooks) = crate::gitguard::hooks_dir() {
-        vars.push("GIT_CONFIG_COUNT=1".to_owned());
-        vars.push("GIT_CONFIG_KEY_0=core.hooksPath".to_owned());
-        vars.push(format!(
-            "GIT_CONFIG_VALUE_0={}",
-            shell_quote(&hooks.to_string_lossy())
-        ));
+        body.push_str(&git_config_append(&hooks));
     }
-    let mut out = String::new();
+    let mut prefix = String::new();
     if let Some(home) = std::env::var_os("HOME") {
         let home = PathBuf::from(home);
         let cargo_bin = home.join(".cargo/bin");
         let local_bin = home.join(".local/bin");
         let _ = write!(
-            out,
+            prefix,
             "export PATH={}:{}:\"$PATH\"; ",
             shell_quote(&cargo_bin.to_string_lossy()),
             shell_quote(&local_bin.to_string_lossy())
@@ -189,7 +219,7 @@ pub(crate) fn env_exports(
     // The git shim goes in front of everything (see gitguard.rs).
     if let Ok(bin) = crate::gitguard::bin_dir() {
         let _ = write!(
-            out,
+            prefix,
             "export PATH={}:\"$PATH\"; ",
             shell_quote(&bin.to_string_lossy())
         );
@@ -197,13 +227,24 @@ pub(crate) fn env_exports(
     // Secrets file first, so the manifest's explicit `env:` wins on clashes.
     if let Some(file) = &spec.env_file {
         let _ = write!(
-            out,
+            prefix,
             "set -a; . {}; set +a; ",
             shell_quote(&file.to_string_lossy())
         );
     }
-    let _ = write!(out, "export {}; ", vars.join(" "));
-    Ok(out)
+    Ok(RunEnv { body, prefix })
+}
+
+/// Shell lines adding `core.hooksPath = hooks` as one more
+/// `GIT_CONFIG_KEY_n`/`VALUE_n` pair after any the environment already has.
+pub(crate) fn git_config_append(hooks: &Path) -> String {
+    format!(
+        "agentd_n=${{GIT_CONFIG_COUNT:-0}}\n\
+         export \"GIT_CONFIG_KEY_$agentd_n=core.hooksPath\" \"GIT_CONFIG_VALUE_$agentd_n=\"{}\n\
+         export GIT_CONFIG_COUNT=$((agentd_n + 1))\n\
+         unset agentd_n\n",
+        shell_quote(&hooks.to_string_lossy())
+    )
 }
 
 /// Decode a run's `params` JSON object into (name, value) pairs, keeping the
