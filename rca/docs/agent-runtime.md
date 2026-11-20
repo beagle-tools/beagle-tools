@@ -153,5 +153,8 @@ A down daemon shows a clean offline banner in both — it never hangs the UI.
   `worktrees/<agent>/<rca>` (isolated checkouts).
 - **Auth** — the daemon is passive: it never triggers a login. It idle-skips a
   tick unless `gh auth status` and `claude --version` both succeed.
-- **RCA store root** — resolved from `$BEAGLE_AGENT_RCA_ROOT`, else the daemon's
-  working directory.
+- **RCA store root** — resolved like `beagle rca` does: `$BEAGLE_AGENT_RCA_ROOT`,
+  else `root` from the effective config (nearest `.beagle`, else the global
+  config), else the nearest directory with `rcas/`. `beagle rca agent install`
+  sets the service's working directory to the store it resolves, so the
+  daemon finds the same RCAs as the CLI (`agentd::store_root`).
