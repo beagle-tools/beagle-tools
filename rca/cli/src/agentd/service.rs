@@ -30,6 +30,10 @@ pub struct LaunchdConfig {
     /// `/usr/bin:/bin:/usr/sbin:/sbin`, so without this the daemon cannot
     /// find `gh`, `claude`, or anything Homebrew installed.
     pub path: String,
+    /// The daemon's working directory: the RCA store `beagle rca` resolved
+    /// at install time (see `agentd::store_root`). `None` leaves launchd's
+    /// default (`/`).
+    pub working_dir: Option<PathBuf>,
 }
 
 /// Escapes the five XML special characters for a plist `<string>`.
@@ -69,7 +73,7 @@ pub fn render_plist(config: &LaunchdConfig) -> String {
         <key>PATH</key>
         <string>{path}</string>
     </dict>
-    <key>StandardOutPath</key>
+{workdir}    <key>StandardOutPath</key>
     <string>{out}</string>
     <key>StandardErrorPath</key>
     <string>{err}</string>
@@ -79,6 +83,13 @@ pub fn render_plist(config: &LaunchdConfig) -> String {
         label = xml_escape(&config.label),
         program = xml_escape(&config.program.display().to_string()),
         path = xml_escape(&config.path),
+        workdir = config
+            .working_dir
+            .as_ref()
+            .map_or_else(String::new, |dir| format!(
+                "    <key>WorkingDirectory</key>\n    <string>{}</string>\n",
+                xml_escape(&dir.display().to_string())
+            )),
         out = xml_escape(&out_log.display().to_string()),
         err = xml_escape(&err_log.display().to_string()),
     )
@@ -88,7 +99,19 @@ pub fn render_plist(config: &LaunchdConfig) -> String {
 /// and starts it on login (`WantedBy=default.target`). `path` becomes the
 /// daemon's `PATH` (the user manager's default lacks `~/.local/bin` etc.).
 #[must_use]
-pub fn render_unit(program: &Path, path: &str) -> String {
+pub fn render_unit(program: &Path, path: &str, working_dir: Option<&Path>) -> String {
+    // systemd quoting: escape backslashes and quotes; `%` starts a specifier.
+    let quote = |s: &str| {
+        s.replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('%', "%%")
+    };
+    let workdir = working_dir.map_or_else(String::new, |dir| {
+        format!(
+            "WorkingDirectory=\"{}\"\n",
+            quote(&dir.display().to_string())
+        )
+    });
     format!(
         "[Unit]\n\
          Description=beagle agent daemon (beagle-agentd)\n\
@@ -97,6 +120,7 @@ pub fn render_unit(program: &Path, path: &str) -> String {
          [Service]\n\
          Type=simple\n\
          Environment=\"PATH={path}\"\n\
+         {workdir}\
          ExecStart={program}\n\
          Restart=always\n\
          RestartSec=5\n\
@@ -104,11 +128,7 @@ pub fn render_unit(program: &Path, path: &str) -> String {
          [Install]\n\
          WantedBy=default.target\n",
         program = program.display(),
-        // systemd quoting: escape backslashes and quotes; `%` starts a specifier.
-        path = path
-            .replace('\\', "\\\\")
-            .replace('"', "\\\"")
-            .replace('%', "%%"),
+        path = quote(path),
     )
 }
 
@@ -165,6 +185,12 @@ fn dispatch(
     }
 }
 
+/// The store `beagle rca` resolves here and now, which becomes the service's
+/// working directory. `None` (no usable answer) leaves the default.
+fn install_store_root() -> Option<PathBuf> {
+    crate::agentd::store_root().ok().filter(|dir| dir.is_dir())
+}
+
 // ---- macOS (launchd) ----
 
 fn launchd_install() -> Result<String, String> {
@@ -176,6 +202,7 @@ fn launchd_install() -> Result<String, String> {
         program,
         log_dir,
         path: beagle_utils::process::augmented_path(),
+        working_dir: install_store_root(),
     };
     let path = plist_path()?;
     if let Some(parent) = path.parent() {
@@ -254,7 +281,11 @@ fn systemd_install() -> Result<String, String> {
     }
     std::fs::write(
         &path,
-        render_unit(&program, &beagle_utils::process::augmented_path()),
+        render_unit(
+            &program,
+            &beagle_utils::process::augmented_path(),
+            install_store_root().as_deref(),
+        ),
     )
     .map_err(|err| format!("writing unit {}: {err}", path.display()))?;
     systemctl(&["daemon-reload"])?;

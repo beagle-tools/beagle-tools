@@ -15,6 +15,7 @@
 
 mod client;
 mod paths;
+mod root;
 mod service;
 
 use std::path::PathBuf;
@@ -25,6 +26,7 @@ pub use client::{
     fetch_status, reload_config, spawn_status_poller, start_agent, status, stop_agent,
 };
 pub use paths::{config_path, config_path_from, socket_path, state_dir};
+pub use root::{store_root, store_root_from};
 pub use service::{install, render_plist, render_unit, start, stop, uninstall, LaunchdConfig};
 
 #[cfg(test)]

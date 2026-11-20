@@ -12,6 +12,7 @@ fn plist_has_label_program_and_keepalive() {
         program: PathBuf::from("/usr/local/bin/beagle-agentd"),
         log_dir: PathBuf::from("/home/me/.local/state/beagle-agent/logs"),
         path: "/opt/homebrew/bin:/usr/bin".to_string(),
+        working_dir: None,
     });
 
     assert!(plist.contains("<string>com.beagle.agentd</string>"));
@@ -29,7 +30,11 @@ fn plist_has_label_program_and_keepalive() {
 
 #[test]
 fn unit_has_execstart_and_restart() {
-    let unit = render_unit(&PathBuf::from("/usr/local/bin/beagle-agentd"), "/usr/bin");
+    let unit = render_unit(
+        &PathBuf::from("/usr/local/bin/beagle-agentd"),
+        "/usr/bin",
+        None,
+    );
     assert!(unit.contains("ExecStart=/usr/local/bin/beagle-agentd"));
     assert!(unit.contains("Restart=always"));
     // Starts on login.
@@ -46,6 +51,7 @@ fn plist_sets_the_daemon_path_so_it_finds_gh_and_claude() {
         program: PathBuf::from("/opt/homebrew/bin/beagle-agentd"),
         log_dir: PathBuf::from("/tmp/logs"),
         path: "/opt/homebrew/bin:/Users/me/.local/bin:/usr/bin:/bin".to_string(),
+        working_dir: None,
     });
     assert!(
         plist.contains(
@@ -63,6 +69,7 @@ fn plist_escapes_xml_in_paths() {
         program: PathBuf::from("/Users/a&b/bin/beagle-agentd"),
         log_dir: PathBuf::from("/tmp/logs"),
         path: "/x<y>:/bin".to_string(),
+        working_dir: None,
     });
     assert!(plist.contains("<string>/Users/a&amp;b/bin/beagle-agentd</string>"));
     assert!(plist.contains("<string>/x&lt;y&gt;:/bin</string>"));
@@ -73,6 +80,7 @@ fn unit_sets_a_quoted_path_environment() {
     let unit = render_unit(
         &PathBuf::from("/usr/local/bin/beagle-agentd"),
         "/opt/homebrew/bin:/home/me/100%/bin:/usr/bin",
+        None,
     );
     assert!(
         unit.contains("Environment=\"PATH=/opt/homebrew/bin:/home/me/100%%/bin:/usr/bin\"\n"),
@@ -156,4 +164,51 @@ fn config_path_prefers_xdg_then_home() {
         Some(PathBuf::from("/home/me/.config/beagle/agents.toml"))
     );
     assert_eq!(config_path_from(None, None), None);
+}
+
+#[test]
+fn the_units_run_in_the_store_beagle_rca_resolved() {
+    let plist = render_plist(&LaunchdConfig {
+        label: "com.beagle.agentd".to_string(),
+        program: PathBuf::from("/opt/homebrew/bin/beagle-agentd"),
+        log_dir: PathBuf::from("/tmp/logs"),
+        path: "/usr/bin".to_string(),
+        working_dir: Some(PathBuf::from("/Users/me/rcas & co")),
+    });
+    assert!(
+        plist.contains("<key>WorkingDirectory</key>\n    <string>/Users/me/rcas &amp; co</string>"),
+        "{plist}"
+    );
+    let unit = render_unit(
+        &PathBuf::from("/usr/local/bin/beagle-agentd"),
+        "/usr/bin",
+        Some(&PathBuf::from("/home/me/my rcas")),
+    );
+    assert!(
+        unit.contains("WorkingDirectory=\"/home/me/my rcas\"\n"),
+        "{unit}"
+    );
+    // Without one, neither unit mentions it.
+    assert!(!render_unit(&PathBuf::from("/x"), "/usr/bin", None).contains("WorkingDirectory"));
+}
+
+#[test]
+fn the_daemon_store_follows_the_clis_order() {
+    let dir = std::env::temp_dir().join(format!("agentd-root-{}", std::process::id()));
+    let store = dir.join("store");
+    let deep = store.join("rcas").join("x");
+    std::fs::create_dir_all(&deep).expect("mkdir");
+    let env = Some(PathBuf::from("/from/env"));
+    let config = Some(PathBuf::from("/from/config"));
+    assert_eq!(
+        store_root_from(env.clone(), config.clone(), &deep),
+        PathBuf::from("/from/env")
+    );
+    assert_eq!(
+        store_root_from(None, config, &deep),
+        PathBuf::from("/from/config")
+    );
+    // No env, no config root: the nearest directory holding rcas/.
+    assert_eq!(store_root_from(None, None, &deep), store);
+    let _ = std::fs::remove_dir_all(&dir);
 }

@@ -366,10 +366,8 @@ fn state_dir() -> Result<PathBuf, String> {
     beagle::agentd::state_dir().ok_or_else(|| "HOME is not set".to_string())
 }
 
-/// The RCA store root: `$BEAGLE_AGENT_RCA_ROOT` if set, else the current dir.
+/// The RCA store root, resolved the way `beagle rca` resolves it (see
+/// [`beagle::agentd::store_root`]), so the daemon and the CLI agree.
 fn rca_root() -> Result<PathBuf, String> {
-    if let Some(root) = beagle_utils::paths::env_path("BEAGLE_AGENT_RCA_ROOT") {
-        return Ok(root);
-    }
-    std::env::current_dir().map_err(|err| format!("resolving current dir: {err}"))
+    beagle::agentd::store_root()
 }
