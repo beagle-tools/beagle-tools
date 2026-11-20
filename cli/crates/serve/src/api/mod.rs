@@ -2,7 +2,9 @@
 //! tool's own crate and returns JSON shaped as `docs/serve-api.md` says.
 
 pub mod rca;
+pub mod recap;
 pub mod scout;
+pub mod standup;
 
 use std::path::Path;
 use std::time::SystemTime;

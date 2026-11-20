@@ -9,7 +9,9 @@ publish = false
 
 [dependencies]
 beagle-rca.workspace = true
+beagle-recap.workspace = true
 beagle-scout.workspace = true
+beagle-standup.workspace = true
 beagle-utils.workspace = true
 # rustls (ring provider) is already in this workspace's lockfile through
 # reqwest; the server reuses it rather than adding a second TLS stack.

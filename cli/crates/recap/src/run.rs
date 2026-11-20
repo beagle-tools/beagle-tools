@@ -36,15 +36,7 @@ fn load_config() -> Result<config::Config, Error> {
 }
 
 fn store_for(root_flag: Option<&str>) -> Result<Store, Error> {
-    let config = load_config()?;
-    let env_root = config::DIRS.env_root();
-    let cwd = env::current_dir().map_err(|e| Error::io(".", e))?;
-    Ok(Store::new(config::resolve_root(
-        root_flag,
-        env_root.as_deref(),
-        &config,
-        &cwd,
-    )))
+    Ok(Store::new(config::root_for(root_flag)?))
 }
 
 /// `beagle recap new`: pull a PR and scaffold its recap.
