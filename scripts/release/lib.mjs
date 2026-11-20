@@ -32,8 +32,17 @@ const EMBEDDED_PREFIXES = {
  * Code outside `<app>/` that an app compiles in (path dependencies on
  * another app's crates). The `.md` exclusion still applies.
  */
-const LINKED_PREFIXES = {
-  cli: ["rca/cli/", "tandem/crates/tandem-cli/", "tandem/crates/tandem-core/"],
+export const LINKED_PREFIXES = {
+  // Every local crate `beagle` links (scripts/release/linked.test.mjs keeps
+  // this in step with the Cargo.toml files).
+  cli: [
+    "rca/cli/",
+    "tandem/crates/tandem-cli/",
+    "tandem/crates/tandem-core/",
+    "tandem/crates/tandem-tui/",
+    "tandem/crates/tandem-cache/",
+    "tandem/crates/tandem-github/",
+  ],
 };
 /** Manifests outside `<app>/` whose workspace settings a linked crate inherits. */
 const LINKED_FILES = { cli: new Set(["tandem/Cargo.toml"]) };
