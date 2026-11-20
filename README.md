@@ -181,6 +181,7 @@ make check                # exactly what CI runs (or make check-<app>)
 | [`docs/CODING_STANDARDS.md`](docs/CODING_STANDARDS.md) | The one set of rules every app follows                         |
 | [`docs/SDLC.md`](docs/SDLC.md)                         | Issue → PR → `gate` → merge → release                          |
 | [`docs/RELEASING.md`](docs/RELEASING.md)               | Per-app versions, tags, in-app updates and Homebrew            |
+| [`docs/serve-api.md`](docs/serve-api.md)               | `beagle serve`'s read-only HTTPS API for the phone app         |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md)                   | How to send a change                                           |
 
 ## Working with agents

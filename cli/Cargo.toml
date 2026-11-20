@@ -18,6 +18,7 @@ beagle-utils = { path = "../utils" }
 beagle-rca = { package = "beagle", path = "../rca/cli" }
 beagle-recap = { path = "crates/recap" }
 beagle-scout = { path = "crates/scout" }
+beagle-serve = { path = "crates/serve" }
 beagle-standup = { path = "crates/standup" }
 beagle-tui = { path = "../utils/tui" }
 tandem-cli = { path = "../tandem/crates/tandem-cli" }

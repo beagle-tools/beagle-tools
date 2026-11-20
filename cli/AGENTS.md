@@ -16,6 +16,7 @@ the tool.
 | `rca` | `beagle` (renamed `beagle-rca` in `Cargo.toml`) | `../rca/cli` — also builds the standalone rca binary until it is retired |
 | `recap` | `beagle-recap` | `crates/recap` |
 | `scout` | `beagle-scout` | `crates/scout` |
+| `serve` | `beagle-serve` | `crates/serve` — the tools' stores as a read-only HTTPS JSON API ([`../docs/serve-api.md`](../docs/serve-api.md)); it reads each store through that tool's crate |
 | `standup` | `beagle-standup` | `crates/standup` |
 | `tandem` | `tandem-cli` (linked through `run_as("beagle tandem", …)`) | `../tandem/crates/tandem-cli` — also ships inside the Tandem app |
 
