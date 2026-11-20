@@ -8,6 +8,7 @@ One command for every beagle-tools terminal tool. Install one binary,
 | `beagle rca` | Root-cause analysis workspaces: a live TUI plus commands for agents ([`../rca/`](../rca/README.md)) |
 | `beagle recap` | PR recaps: the diff plus a plain-language write-up ([`crates/recap/`](crates/recap/README.md)) |
 | `beagle scout` | Watch agent work as projects of small, ordered tasks ([`crates/scout/`](crates/scout/README.md)) |
+| `beagle serve` | Every tool's data, read-only over HTTPS on your Tailscale address, for the phone app ([`../docs/serve-api.md`](../docs/serve-api.md)) |
 | `beagle standup` | Standup reports: an overview, then a short write-up per ticket ([`crates/standup/`](crates/standup/README.md)) |
 | `beagle tandem` | Review PRs in a terminal queue (no arguments opens the TUI; `add`, `list`, `claim`, `ingest`, `fail`), read Tandem's local review data as JSON, and queue reviews ([`../tandem/docs/CLI.md`](../tandem/docs/CLI.md)) |
 

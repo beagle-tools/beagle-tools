@@ -15,6 +15,7 @@ path = "src/main.rs"
 beagle-rca.workspace = true
 beagle-recap.workspace = true
 beagle-scout.workspace = true
+beagle-serve.workspace = true
 beagle-standup.workspace = true
 beagle-tui.workspace = true
 beagle-utils = { workspace = true, features = ["update"] }
