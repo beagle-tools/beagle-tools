@@ -15,6 +15,7 @@ fn ctx() -> Ctx {
 pub(crate) fn unavailable() -> Stores {
     Stores {
         scout: Err("none in tests".into()),
+        rca: Err("none in tests".into()),
     }
 }
 

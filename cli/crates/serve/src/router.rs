@@ -56,6 +56,9 @@ pub fn handle(ctx: &Ctx, req: &Request) -> Response {
         ["v1", "version"] => Ok(api::version()),
         ["v1", "scout", rest @ ..] => api::root("scout", &ctx.stores.scout)
             .and_then(|root| api::scout::route(root, rest, req)),
+        ["v1", "rca", rest @ ..] => {
+            api::root("rca", &ctx.stores.rca).and_then(|root| api::rca::route(root, rest, req))
+        }
         _ => Err(api::ApiError::not_found(format!(
             "no endpoint {}",
             req.path

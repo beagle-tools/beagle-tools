@@ -171,6 +171,7 @@ dependencies = [
 name = "beagle-serve"
 version = "0.1.0"
 dependencies = [
+ "beagle",
  "beagle-scout",
  "beagle-utils",
  "rustls",

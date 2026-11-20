@@ -48,5 +48,6 @@ pub mod tz;
 pub mod ui;
 pub mod update;
 
+pub use cli::json::list as list_json;
 pub use error::Error;
-pub use run::{run, run_standalone, ABOUT};
+pub use run::{effective_root, run, run_standalone, ABOUT};
