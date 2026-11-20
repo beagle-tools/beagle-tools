@@ -42,6 +42,7 @@ fn spec(project: &str, name: &str) -> AgentSpec {
         enabled: true,
         entrypoint: None,
         triggers: Vec::new(),
+        allow_github_writes: false,
     }
 }
 

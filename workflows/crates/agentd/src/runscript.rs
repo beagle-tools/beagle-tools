@@ -15,6 +15,7 @@ use agent_core::types::Isolation;
 use agent_core::types::{AgentSpec, Run, Runner};
 use anyhow::{bail, Context, Result};
 
+use crate::gitguard::GH_WRITE_DENY;
 use crate::runenv::{env_exports, purpose_brief, run_context, write_env_file, JobPurpose};
 use beagle_utils::shell::quote as shell_quote;
 
@@ -102,8 +103,15 @@ fn runner_command(spec: &AgentSpec, model: Option<&str>) -> String {
         }
         // Deny rules take precedence over --allowedTools, which is the only
         // way to allow a command family minus its dangerous members.
-        if let Some(tools) = spec.disallowed_tools.as_deref().filter(|t| !t.is_empty()) {
-            let _ = write!(cmd, " --disallowedTools {}", shell_quote(&tools.join(",")));
+        // The GitHub write guard's deny rules come first (gitguard.rs),
+        // unless the manifest opts out.
+        let mut denied: Vec<String> = Vec::new();
+        if !spec.allow_github_writes {
+            denied.extend(GH_WRITE_DENY.iter().map(|s| (*s).to_owned()));
+        }
+        denied.extend(spec.disallowed_tools.iter().flatten().cloned());
+        if !denied.is_empty() {
+            let _ = write!(cmd, " --disallowedTools {}", shell_quote(&denied.join(",")));
         }
         if let Some(file) = &spec.append_system_prompt {
             // The file is read at run time by the shell, so edits apply to

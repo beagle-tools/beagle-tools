@@ -21,6 +21,14 @@
 //! The run's env also appends the hooksPath override to its `GIT_CONFIG_*`
 //! pairs, so a run whose shell rebuilds PATH still gets the hook. GitHub branch protection is the last
 //! line; this one makes the attempt fail locally, loudly, in the run's log.
+//!
+//! GitHub writes that are not pushes get the same treatment: `lib/ghguard/gh`
+//! (`assets/gh-shim.sh`) goes first on the PATH of every run whose manifest
+//! does not set `allow_github_writes: true`, and refuses `gh pr merge`,
+//! `gh pr review --approve` and any `gh api` call that is not a read.
+//! Claude runs also get matching `--disallowedTools` entries
+//! ([`GH_WRITE_DENY`]). The opt-out lives only in the manifest, never in
+//! the run's environment.
 
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
@@ -30,6 +38,24 @@ use anyhow::{Context, Result};
 
 const GITHOOK_SH: &str = include_str!("../assets/githook.sh");
 const GIT_SHIM_SH: &str = include_str!("../assets/git-shim.sh");
+const GH_SHIM_SH: &str = include_str!("../assets/gh-shim.sh");
+
+/// Claude `--disallowedTools` entries every run gets unless its manifest
+/// sets `allow_github_writes: true`: the writes the gh shim refuses,
+/// stopped before the shell runs them.
+pub(crate) const GH_WRITE_DENY: &[&str] = &[
+    "Bash(gh pr merge:*)",
+    "Bash(gh pr review --approve:*)",
+    "Bash(gh pr review -a:*)",
+    "Bash(gh api -X POST:*)",
+    "Bash(gh api -X PATCH:*)",
+    "Bash(gh api -X PUT:*)",
+    "Bash(gh api -X DELETE:*)",
+    "Bash(gh api --method POST:*)",
+    "Bash(gh api --method PATCH:*)",
+    "Bash(gh api --method PUT:*)",
+    "Bash(gh api --method DELETE:*)",
+];
 
 /// Every hook git can run on a client, bar `reference-transaction` (it
 /// fires on every ref update and would only slow runs down).
@@ -71,6 +97,12 @@ fn write_exec(path: &Path, body: &str) -> Result<()> {
         .with_context(|| format!("chmod {}", path.display()))
 }
 
+/// The directory holding the `gh` shim: first on PATH unless the job's
+/// manifest opts out of the GitHub write guard.
+pub(crate) fn gh_bin_dir() -> Result<PathBuf> {
+    Ok(lib_dir()?.join("ghguard"))
+}
+
 /// The hook dispatcher with the push policy baked in: `*` (every remote)
 /// when `protected` is empty, else the org names. Anything but
 /// `[A-Za-z0-9._-]` is dropped from a name, so config can never inject
@@ -94,20 +126,26 @@ pub(crate) fn hook_body(protected: &[String]) -> String {
 }
 
 /// Writes the hook dispatcher (with `protected` baked in, see
-/// [`hook_body`]) and the git shim into the state directory.
+/// [`hook_body`]), the git shim and the gh shim into the state directory.
 pub(crate) fn install(protected: &[String]) -> Result<()> {
     let hooks = hooks_dir()?;
     let bin = bin_dir()?;
-    for dir in [&hooks, &bin] {
+    let gh_bin = gh_bin_dir()?;
+    for dir in [&hooks, &bin, &gh_bin] {
         std::fs::create_dir_all(dir).with_context(|| format!("create {}", dir.display()))?;
     }
     let hook = hook_body(protected);
     for name in HOOKS {
         write_exec(&hooks.join(name), &hook)?;
     }
-    write_exec(&bin.join("git"), GIT_SHIM_SH)
+    write_exec(&bin.join("git"), GIT_SHIM_SH)?;
+    write_exec(&gh_bin.join("gh"), GH_SHIM_SH)
 }
 
 #[cfg(test)]
 #[path = "tests/gitguard.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tests/ghguard.rs"]
+mod gh_tests;

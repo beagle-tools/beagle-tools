@@ -38,6 +38,8 @@ fn spec(runner: Runner, model: Option<&str>) -> AgentSpec {
         enabled: true,
         entrypoint: None,
         triggers: Vec::new(),
+        // The bare runner shapes; the GitHub write guard has its own tests below.
+        allow_github_writes: true,
     }
 }
 
@@ -155,6 +157,32 @@ fn env_exports_carry_identity_and_parent_links() {
     assert!(shell.contains(".cargo/bin"));
     // User-installed CLIs live here; a run without it could not find them.
     assert!(shell.contains(".local/bin"));
+    // This spec opts out of the GitHub write guard: no gh shim on PATH.
+    assert!(!shell.contains("lib/ghguard"), "{shell}");
+    // By default the gh shim goes first on PATH.
+    with_env.allow_github_writes = false;
+    let guarded = env_exports(&with_env, &run, Path::new("/d"), "root-1", None).unwrap();
+    assert!(guarded
+        .shell(Path::new("/d/run.env"))
+        .contains("lib/ghguard'"));
+}
+
+#[test]
+fn claude_runs_deny_github_writes_unless_the_manifest_allows_them() {
+    let mut guarded = spec(Runner::Claude, None);
+    guarded.allow_github_writes = false;
+    guarded.disallowed_tools = Some(vec!["Bash(git push:*)".to_owned()]);
+    let cmd = runner_command(&guarded, None);
+    assert!(
+        cmd.contains("--disallowedTools 'Bash(gh pr merge:*),"),
+        "{cmd}"
+    );
+    assert!(cmd.contains("Bash(gh api -X POST:*)"), "{cmd}");
+    // The manifest's own deny rules still apply, after the guard's.
+    assert!(cmd.contains(",Bash(git push:*)'"), "{cmd}");
+    // Opted out: only the manifest's rules.
+    guarded.allow_github_writes = true;
+    assert!(runner_command(&guarded, None).contains("--disallowedTools 'Bash(git push:*)'"));
 }
 
 #[test]

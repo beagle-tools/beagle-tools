@@ -76,6 +76,12 @@ assets/notify/      notification icons; one notifier app is built per png
   `main`/`master` on every remote (`protected_orgs` only narrows it), and
   no investigations dir exists unless configured. Never hard-code an org,
   tracker or path a user would configure.
+- **Agents cannot write to GitHub on their own.** Besides the push guard,
+  every run gets the `gh` shim (`crates/agentd/assets/gh-shim.sh`,
+  installed to `<state>/lib/ghguard/`) first on PATH, and Claude runs get
+  `gitguard::GH_WRITE_DENY` in `--disallowedTools`: no `gh pr merge`, no
+  `gh pr review --approve`, no non-GET `gh api`. The only opt-out is the
+  manifest's `allow_github_writes: true`; never add an env switch.
 - **Data dirs live a week; logs 4h.** A step's data dir is its handover, so
   `agent_core::resume` (agentctl `resume`, agenttop `R`, Agentdesk
   Restart…) only works while its parent's dir exists. Evidence events

@@ -216,13 +216,23 @@ pub(crate) fn env_exports(
             shell_quote(&local_bin.to_string_lossy())
         );
     }
-    // The git shim goes in front of everything (see gitguard.rs).
+    // The git shim goes in front of everything (see gitguard.rs), and the
+    // gh shim too unless the manifest opts out of the GitHub write guard.
     if let Ok(bin) = crate::gitguard::bin_dir() {
         let _ = write!(
             prefix,
             "export PATH={}:\"$PATH\"; ",
             shell_quote(&bin.to_string_lossy())
         );
+    }
+    if !spec.allow_github_writes {
+        if let Ok(bin) = crate::gitguard::gh_bin_dir() {
+            let _ = write!(
+                prefix,
+                "export PATH={}:\"$PATH\"; ",
+                shell_quote(&bin.to_string_lossy())
+            );
+        }
     }
     // Secrets file first, so the manifest's explicit `env:` wins on clashes.
     if let Some(file) = &spec.env_file {

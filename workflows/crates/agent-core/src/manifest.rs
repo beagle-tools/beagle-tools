@@ -70,6 +70,8 @@ struct RawAgentManifest {
     entrypoint: Option<bool>,
     #[serde(default)]
     triggers: Option<Vec<String>>,
+    #[serde(default)]
+    allow_github_writes: Option<bool>,
 }
 
 /// Raw YAML shape of an optional `project.yaml`.
@@ -301,6 +303,7 @@ fn load_agent_file(path: &Path, project: &str) -> Result<AgentSpec, CoreError> {
         enabled: raw.enabled.unwrap_or(true),
         entrypoint: raw.entrypoint,
         triggers: raw.triggers.unwrap_or_default(),
+        allow_github_writes: raw.allow_github_writes.unwrap_or(false),
     })
 }
 

@@ -105,6 +105,17 @@ finishes, its log notes the repos and branches it wrote to
 (`repos touched: acme/widgets @ abc-1-fix (commit ×2, push)`), flagged
 `⚠ PUSHED TO MAIN` if one got past the guard.
 
+**GitHub write guard.** Agents read GitHub freely but cannot change it on
+their own. Every run also gets agentd's `gh` shim first on `PATH`
+(`~/.local/state/agentd/lib/ghguard/gh`), which refuses `gh pr merge`,
+`gh pr review --approve` and any `gh api` call that is not a read (a
+`-X`/`--method` other than GET, a request body via
+`-f`/`-F`/`--field`/`--raw-field`/`--input`, or a GraphQL mutation) with
+`agentd: BLOCKED gh …`. Claude runs also get the matching
+`--disallowedTools` rules ahead of the manifest's own. A job that really
+must write sets `allow_github_writes: true` in its manifest; there is no
+environment switch.
+
 agentd also writes a heartbeat every tick (`~/.local/state/agentd/agentd.heartbeat`);
 `agentctl status`, agenttop and Agentdesk show a red banner when the daemon
 is stopped or stalled. Runs keep the Mac awake (`caffeinate -i`) while they
