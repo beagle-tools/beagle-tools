@@ -36,6 +36,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
+use beagle_tui::config::AppDirs;
+
 use crate::error::{Error, Result};
 use crate::model::{RcaId, RcaMeta, RcaSummary, SectionKind};
 
@@ -108,18 +110,24 @@ pub struct DiagramEntry {
     pub path: PathBuf,
 }
 
+/// rca's names for the shared store-root discovery. Only
+/// [`AppDirs::discover_root`] is used: rca resolves `--root`, `.beagle` and
+/// its config itself (`config`), and has no root environment variable.
+const DIRS: AppDirs = AppDirs {
+    app: "beagle",
+    env_var: "BEAGLE_ROOT",
+    data_dir: RCAS_DIR,
+};
+
 /// The nearest directory at or above `start` that already contains an
 /// `rcas/` directory, or `start` itself when none does. This is the
 /// git-style discovery both frontends use: `beagle` run anywhere inside
-/// an oncall checkout (or `cargo run` from `cli/`) finds the repo's
-/// workspaces instead of silently scaffolding an empty `rcas/` in the
-/// working directory. An explicit `--root` or config `root` wins over it.
+/// a checkout (or `cargo run` from `cli/`) finds the repo's workspaces
+/// instead of silently scaffolding an empty `rcas/` in the working
+/// directory. An explicit `--root` or config `root` wins over it.
 #[must_use]
 pub fn discover_root(start: &Path) -> PathBuf {
-    start
-        .ancestors()
-        .find(|dir| dir.join(RCAS_DIR).is_dir())
-        .map_or_else(|| start.to_path_buf(), Path::to_path_buf)
+    DIRS.discover_root(start)
 }
 
 /// Handle to an on-disk collection of RCA workspaces.
