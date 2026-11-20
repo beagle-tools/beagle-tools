@@ -1,6 +1,9 @@
 //! Opening URLs (tickets, PRs) in the default browser.
 
-use std::process::{Command, Stdio};
+use std::process::Command;
+use std::time::Duration;
+
+use beagle_utils::process::spawn_bounded;
 
 use crate::error::ToolError;
 
@@ -15,15 +18,9 @@ pub fn open_url(url: &str) -> Result<(), ToolError> {
     } else {
         "xdg-open"
     };
-    Command::new(opener)
-        .arg(url)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| ToolError {
-            tool: opener,
-            message: e.to_string(),
-        })
+    // Detached but reaped (and killed if it hangs past 10 s).
+    spawn_bounded(Command::new(opener).arg(url), Duration::from_secs(10)).map_err(|e| ToolError {
+        tool: opener,
+        message: e.to_string(),
+    })
 }
