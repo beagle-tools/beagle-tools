@@ -69,12 +69,15 @@ jobs:
             cli:
               - *shared
               - "cli/**"
-              # Linked into the `beagle` binary (rca, tandem-cli) or
-              # embedded in it (the rca skills).
+              # Linked into the `beagle` binary or embedded in it (the rca
+              # skills); scripts/release/linked.test.mjs checks this list.
               - "rca/cli/**"
               - "tandem/Cargo.toml"
               - "tandem/crates/tandem-cli/**"
               - "tandem/crates/tandem-core/**"
+              - "tandem/crates/tandem-tui/**"
+              - "tandem/crates/tandem-cache/**"
+              - "tandem/crates/tandem-github/**"
               - "skills/beagle/**"
               - "skills/beagle-review/**"
 
