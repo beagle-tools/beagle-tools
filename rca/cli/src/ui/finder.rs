@@ -12,8 +12,9 @@
 
 use crossterm::event::KeyCode;
 
+use crate::fuzzy;
 use crate::model::RcaId;
-use crate::{fuzzy, markdown};
+use beagle_tui::markdown;
 
 use super::{App, Focus, Tab};
 

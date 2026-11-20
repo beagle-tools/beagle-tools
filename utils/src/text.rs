@@ -1,4 +1,4 @@
-//! String truncation and single-line collapsing.
+//! String truncation, single-line collapsing and first lines.
 
 /// At most `max` characters (Unicode scalar values, not bytes or graphemes).
 ///
@@ -33,6 +33,19 @@ pub fn truncate_bytes(s: &str, max: usize) -> &str {
 pub fn one_line(text: &str, max: usize) -> String {
     let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
     truncate_chars(&collapsed, max)
+}
+
+/// The first line of `text` (trailing whitespace trimmed) and how many
+/// lines follow it. A first line longer than `max` characters keeps its
+/// first `max` and gets `…` appended (so it is at most `max + 1` long).
+pub fn first_line(text: &str, max: usize) -> (String, usize) {
+    let mut lines = text.lines();
+    let first = lines.next().unwrap_or_default().trim_end();
+    let mut out: String = first.chars().take(max).collect();
+    if first.chars().count() > max {
+        out.push('…');
+    }
+    (out, lines.count())
 }
 
 #[cfg(test)]
@@ -77,5 +90,13 @@ mod tests {
     #[test]
     fn one_line_truncates_after_collapsing() {
         assert_eq!(one_line("a\n\nb\n\ncdef", 4), "a b…");
+    }
+
+    #[test]
+    fn first_line_cuts_by_chars_and_counts_the_rest() {
+        assert_eq!(first_line("", 5), (String::new(), 0));
+        assert_eq!(first_line("short  \n", 10), ("short".to_owned(), 0));
+        assert_eq!(first_line("héllo wörld\nb\nc", 5), ("héllo…".to_owned(), 2));
+        assert_eq!(first_line("abc\nd", 3), ("abc".to_owned(), 1));
     }
 }

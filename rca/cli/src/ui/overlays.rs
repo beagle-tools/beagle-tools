@@ -148,7 +148,7 @@ impl App {
                 .map(|(_, content)| content),
         };
         if let Some(raw) = raw {
-            for url in crate::links::extract_urls(&raw) {
+            for url in beagle_tui::links::extract_urls(&raw) {
                 if !items.contains(&url) {
                     items.push(url);
                 }
@@ -181,7 +181,7 @@ impl App {
                     .take()
                     .and_then(|popup| popup.items.get(popup.selected).cloned());
                 if let Some(url) = url {
-                    self.status = Some(match crate::links::open_url(&url) {
+                    self.status = Some(match beagle_tui::links::open_url(&url) {
                         Ok(()) => format!("opened {url}"),
                         Err(e) => format!("open failed: {e}"),
                     });

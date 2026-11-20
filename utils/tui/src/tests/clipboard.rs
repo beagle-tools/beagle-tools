@@ -1,4 +1,4 @@
-//! Tests for `clipboard`.
+//! Tests for `clipboard` (moved from rca with the OSC 52 fallback).
 #![allow(clippy::expect_used, clippy::unwrap_used)] // panicking is the correct failure mode in tests
 
 use super::*;

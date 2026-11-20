@@ -249,7 +249,7 @@ impl App {
             None => date.to_string(),
         };
         self.status = Some(match clipboard::copy(&text) {
-            Ok(()) => format!("copied {text}"),
+            Ok(_) => format!("copied {text}"),
             Err(e) => e.to_string(),
         });
     }
@@ -261,7 +261,7 @@ impl App {
         };
         let text = t.manifest.url.clone().unwrap_or_else(|| t.id.to_string());
         self.status = Some(match clipboard::copy(&text) {
-            Ok(()) => format!("copied {text}"),
+            Ok(_) => format!("copied {text}"),
             Err(e) => e.to_string(),
         });
     }

@@ -303,7 +303,7 @@ impl App {
                         .read_section(&rca.id, kind)
                         .ok()
                         .flatten()
-                        .map(|content| crate::markdown::checklist_stats(&content));
+                        .map(|content| beagle_tui::markdown::checklist_stats(&content));
                     match stats {
                         Some((checked, total)) if total > 0 => {
                             self.checklists.insert(key.clone(), (checked, total));

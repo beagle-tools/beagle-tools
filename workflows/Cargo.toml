@@ -20,6 +20,7 @@ repository = "https://github.com/beagle-tools/beagle-tools"
 [workspace.dependencies]
 agent-core = { path = "crates/agent-core" }
 beagle-utils = { path = "../utils" }
+beagle-tui = { path = "../utils/tui" }
 anyhow = "1"
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4", features = ["derive"] }

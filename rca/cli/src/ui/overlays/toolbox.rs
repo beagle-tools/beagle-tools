@@ -5,8 +5,8 @@ use crossterm::event::KeyCode;
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Text};
 
-use crate::markdown;
 use crate::ui::App;
+use beagle_tui::markdown;
 
 impl App {
     /// Builds and opens the toolbox overlay: the root `toolbox.md` followed

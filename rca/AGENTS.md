@@ -40,7 +40,7 @@ released as `beagle-rca` until it is retired.
 
 | Path | What it is | Notes |
 |---|---|---|
-| `cli/` | Crate `beagle`: the domain layer (`model`, `store`, `markdown`, `similar`, `config`, …) **and** the TUI (`ui/`) + CLI (`run.rs`, `cli/`, `commands/`; `main.rs` is the standalone wrapper) | The only implementation of the data format. Everything else depends on it. |
+| `cli/` | Crate `beagle`: the domain layer (`model`, `store`, `similar`, `config`, …; markdown and ANSI rendering come from `beagle_tui`) **and** the TUI (`ui/`) + CLI (`run.rs`, `cli/`, `commands/`; `main.rs` is the standalone wrapper) | The only implementation of the data format. Everything else depends on it. |
 | `crates/beagle-agent` | Agent-runtime engine: config, SQLite job store, RCA poller, worktree manager, headless `claude` runner, orchestrator, control protocol | Depends on `beagle`. |
 | `crates/beagle-agentd` | The always-on daemon binary hosting the engine | See [`docs/agent-runtime.md`](docs/agent-runtime.md). |
 | `desktop/` | Tauri 2 + React viewer. `src-tauri/` is its **own cargo workspace** (own `Cargo.lock`), path-depending on `cli/` | [`desktop/AGENTS.md`](desktop/AGENTS.md) |
@@ -145,7 +145,7 @@ toolbox.md, systems/*.md   agent context at the store root (`beagle rca init`)
 |---|---|
 | `model` | serde round-trips + invalid-input rejection |
 | `store` | temp-dir round-trips, missing/corrupt files |
-| markdown / diagram rendering | assertions on the rendered `Text` |
+| markdown / diagram rendering (in `utils/tui`) | assertions on the rendered `Text` |
 | key handling / `App` state | state-transition tests, no terminal |
 | pure layout | manual check is OK; describe it in the PR |
 

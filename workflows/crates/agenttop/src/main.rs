@@ -268,15 +268,9 @@ fn handle_dag(terminal: &mut DefaultTerminal, app: &mut App, action: Action) -> 
             Action::Open => match (app.selected_step_pr(), app.dag_selected_run()) {
                 (Some(pr), _) => {
                     let pr = pr.to_owned();
-                    let ok = beagle_utils::process::output_with_timeout(
-                        std::process::Command::new("open").arg(&pr),
-                        crate::clip::OPEN_TIMEOUT,
-                    )
-                    .is_ok_and(|o| o.status.success());
-                    app.set_status(&if ok {
-                        format!("opened {pr}")
-                    } else {
-                        format!("could not open {pr}")
+                    app.set_status(&match beagle_tui::links::open_url(&pr) {
+                        Ok(()) => format!("opened {pr}"),
+                        Err(e) => format!("could not open {pr}: {e}"),
                     });
                 }
                 (None, Some(run)) => {

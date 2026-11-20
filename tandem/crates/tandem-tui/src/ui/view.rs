@@ -14,8 +14,6 @@ use super::{tabs, Action, App, Focus, Mode, Tab};
 use crate::state::{Row, Stage};
 use crate::verdict::Verdict;
 
-const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-
 pub fn draw(frame: &mut Frame<'_>, app: &mut App) {
     let [main, footer] =
         Layout::vertical([Constraint::Min(3), Constraint::Length(1)]).areas(frame.area());
@@ -57,7 +55,7 @@ pub fn verdict_style(v: Verdict) -> Style {
 fn stage_glyph(row: &Row, tick: usize) -> Span<'static> {
     let (glyph, color) = match row.stage {
         Stage::Ready => ("●", Color::Green),
-        Stage::Reviewing => (SPINNER[tick % SPINNER.len()], Color::Yellow),
+        Stage::Reviewing => (beagle_tui::widgets::spinner(tick), Color::Yellow),
         Stage::Queued => ("◌", Color::DarkGray),
         Stage::Failed => ("✖", Color::Red),
         Stage::Done => ("✓", Color::DarkGray),

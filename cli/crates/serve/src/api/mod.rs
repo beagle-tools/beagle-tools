@@ -123,7 +123,7 @@ pub fn tail(text: &str, n: usize) -> (Vec<&str>, bool) {
 /// it monospaced, unwrapped), `ansi` the raw file with its colour codes.
 #[must_use]
 pub fn diagram(name: &str, raw: &str) -> Value {
-    json!({ "name": name, "text": beagle_rca::ansi::strip(raw), "ansi": raw })
+    json!({ "name": name, "text": beagle_tui::ansi::strip(raw), "ansi": raw })
 }
 
 /// Default log tail length.

@@ -322,11 +322,8 @@ impl App {
         let Some(url) = self.selected().map(|r| r.pr.url()) else {
             return;
         };
-        // Detached but reaped (killed if it hangs past 10 s).
-        if let Err(e) = beagle_utils::process::spawn_bounded(
-            std::process::Command::new("open").arg(&url),
-            std::time::Duration::from_secs(10),
-        ) {
+        // `open` on macOS, `xdg-open` elsewhere; detached but reaped.
+        if let Err(e) = beagle_tui::links::open_url(&url) {
             self.error(format!("open {url}: {e}"));
         }
     }

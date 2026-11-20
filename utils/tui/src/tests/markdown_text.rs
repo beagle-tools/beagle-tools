@@ -1,4 +1,5 @@
-//! Tests for `markdown`.
+//! `to_text` and `checklist_stats`: rca's renderer tests, moved here
+//! unchanged when rca switched to this module, so its output is pinned.
 #![allow(clippy::expect_used, clippy::unwrap_used, clippy::panic)] // panicking is the correct failure mode in tests
 
 use super::*;
@@ -156,4 +157,16 @@ fn checklist_stats_counts_boxes_and_skips_code_fences() {
 text";
     assert_eq!(checklist_stats(source), (2, 3));
     assert_eq!(checklist_stats("no boxes here"), (0, 0));
+}
+
+#[test]
+fn to_text_keeps_one_line_per_source_line() {
+    let source = "# T\n<!-- note -->\n```\ncode\n```\n- [x] done";
+    let text = to_text(source);
+    assert_eq!(text.lines.len(), source.lines().count());
+    assert_eq!(line_text(&text.lines[1]), "<!-- note -->");
+    // Without comments, both entry points render the same lines.
+    let plain = "# T\n```\ncode\n```\n- [x] done";
+    let lines: Vec<Line<'static>> = to_lines(plain).into_iter().map(|d| d.line).collect();
+    assert_eq!(to_text(plain).lines, lines);
 }

@@ -1,5 +1,7 @@
 //! Claude transcript lines into scout entries.
 
+use beagle_utils::text;
+
 use super::{Entry, Value, MAX_RESULT, MAX_SUMMARY, MAX_TEXT};
 
 /// Converts one transcript line into scout entries (none, for the many line
@@ -196,7 +198,7 @@ pub(super) fn tool(b: &Value, ts: &str) -> Entry {
             None,
         ),
         "TodoWrite" => ("update the todo list".to_owned(), None),
-        _ => (one_line(&input.to_string(), 160), None),
+        _ => (text::one_line(&input.to_string(), 160), None),
     };
     Entry::Tool {
         ts: ts.to_owned(),
@@ -248,7 +250,7 @@ pub(super) fn without_harness_notes(text: &str) -> String {
 pub(super) fn notice_text(raw: &str) -> String {
     between(raw, "<summary>", "</summary>")
         .or_else(|| between(raw, "<status>", "</status>"))
-        .map_or_else(|| one_line(raw, 160), str::to_owned)
+        .map_or_else(|| text::one_line(raw, 160), str::to_owned)
 }
 
 /// `<pasted_content …>…</pasted_content …>` wrappers become a marker line
@@ -281,11 +283,6 @@ pub(super) fn text(v: &Value, key: &str) -> Option<String> {
 
 pub(super) fn flag(v: &Value, key: &str) -> bool {
     v.get(key).and_then(Value::as_bool).unwrap_or(false)
-}
-
-pub(super) fn one_line(text: &str, max: usize) -> String {
-    let flat = text.split_whitespace().collect::<Vec<_>>().join(" ");
-    cap(&flat, max)
 }
 
 /// Cuts to `max` bytes on a char boundary, marking the cut.

@@ -6,9 +6,9 @@
 
 use ratatui::text::Text;
 
-use crate::markdown;
 use crate::model::RcaId;
 use crate::store::DiagramEntry;
+use beagle_tui::markdown;
 
 use super::{App, Tab};
 
@@ -126,7 +126,7 @@ impl App {
             Ok(Some(content)) => Pane::Diagram {
                 // Diagrams support ANSI SGR colors; codes are zero-width so
                 // alignment is preserved.
-                text: crate::ansi::to_text(&content),
+                text: beagle_tui::ansi::to_text(&content),
                 raw: content.lines().map(str::to_owned).collect(),
                 name: entry.name.clone(),
                 index: self.diagram_index,
@@ -265,7 +265,7 @@ impl App {
             return;
         };
         self.content_select_anchor = None; // yank ends the selection
-        self.status = Some(match crate::clipboard::copy(&text) {
+        self.status = Some(match beagle_tui::clipboard::copy(&text) {
             Ok(method) => {
                 if count > 1 {
                     format!("copied {count} lines via {method}")

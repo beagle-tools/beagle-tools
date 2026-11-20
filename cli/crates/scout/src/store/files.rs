@@ -91,7 +91,7 @@ pub(super) fn load_task(path: &Path) -> Result<Option<Task>> {
         meta,
         path: path.to_owned(),
         modified: mtime(path),
-        checklist: markdown::checklist_stats(&body),
+        checklist: beagle_tui::markdown::checklist_stats(&body),
     }))
 }
 

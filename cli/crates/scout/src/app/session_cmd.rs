@@ -78,7 +78,7 @@ pub(super) fn show(store: &Store, project: &str, task: &str, follow: bool) -> Re
         if color {
             out
         } else {
-            strip_ansi(&out)
+            beagle_tui::ansi::strip(&out)
         }
     };
     let mut printed = snapshot();
@@ -96,18 +96,6 @@ pub(super) fn show(store: &Store, project: &str, task: &str, follow: bool) -> Re
         }
         printed = now;
     }
-}
-
-/// `text` without its SGR (`ESC [ … m`) color sequences.
-fn strip_ansi(text: &str) -> String {
-    let mut out = String::with_capacity(text.len());
-    let mut rest = text;
-    while let Some(at) = rest.find("\x1b[") {
-        out.push_str(&rest[..at]);
-        rest = rest[at..].find('m').map_or("", |end| &rest[at + end + 1..]);
-    }
-    out.push_str(rest);
-    out
 }
 
 /// `beagle scout watch`: pick (or pin, or follow) a recorded session and
@@ -151,16 +139,4 @@ pub(super) fn watch(store: &Store, args: WatchArgs) -> Result<()> {
             cwd: env::current_dir().unwrap_or_default(),
         },
     )
-}
-
-#[cfg(test)]
-mod tests {
-    use super::strip_ansi;
-
-    #[test]
-    fn strip_ansi_removes_sgr_sequences() {
-        assert_eq!(strip_ansi("\x1b[1mbold\x1b[0m plain"), "bold plain");
-        assert_eq!(strip_ansi("no escapes"), "no escapes");
-        assert_eq!(strip_ansi("cut \x1b[3"), "cut ");
-    }
 }

@@ -55,7 +55,7 @@ impl Store {
         }
         for entry in self.list_diagrams(id)? {
             if let Ok(Some(content)) = self.read_diagram(&entry) {
-                let plain = crate::ansi::strip(&content);
+                let plain = beagle_tui::ansi::strip(&content);
                 let _ = write!(
                     doc,
                     "\n## Diagram: {}\n\n```\n{}\n```\n",

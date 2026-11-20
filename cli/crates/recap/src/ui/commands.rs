@@ -16,7 +16,7 @@ impl App {
             return;
         };
         self.status = Some(match clipboard::copy(&id) {
-            Ok(()) => format!("copied {id}"),
+            Ok(_) => format!("copied {id}"),
             Err(e) => e.to_string(),
         });
     }
@@ -26,7 +26,7 @@ impl App {
             return;
         };
         self.status = Some(match clipboard::copy(&url) {
-            Ok(()) => format!("copied {url}"),
+            Ok(_) => format!("copied {url}"),
             Err(e) => e.to_string(),
         });
     }
