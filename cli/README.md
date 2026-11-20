@@ -85,7 +85,8 @@ beagle version list              # browse releases; enter installs one
 `beagle-cli-vX.Y.Z` release, **verifies its sha256**, and atomically swaps
 the running binary — never a half-written executable. It updates every
 tool at once, so the tools' own updaters step aside under `beagle`
-(`beagle rca update` and `beagle tandem update` point here).
+(`beagle rca update` and `beagle tandem update` are not commands; they
+say to run this).
 
 How it updates depends on how `beagle` was installed:
 

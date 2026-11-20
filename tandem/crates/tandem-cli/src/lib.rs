@@ -161,13 +161,16 @@ pub fn run(args: Vec<OsString>) -> ExitCode {
 }
 
 /// [`run`] under another program name (e.g. `beagle tandem`): help, usage
-/// and error messages use `program`, and `update` points at the host's own
-/// updater (`beagle update`) instead of updating Tandem.
+/// and error messages use `program`, and `update` is not a command (the
+/// host's own `update` owns updating; it is hidden from the help and a
+/// usage error, exit 2).
 pub fn run_as(program: &'static str, args: Vec<OsString>) -> ExitCode {
+    let hosted = program != STANDALONE;
     let with_program = std::iter::once(OsString::from(program)).chain(args);
     let parsed = Cli::command()
         .name(program)
         .bin_name(program)
+        .mut_subcommand("update", |update| update.hide(hosted))
         .try_get_matches_from(with_program)
         .and_then(|matches| Cli::from_arg_matches(&matches));
     let cli = match parsed {
@@ -181,6 +184,10 @@ pub fn run_as(program: &'static str, args: Vec<OsString>) -> ExitCode {
             return ExitCode::from(u8::try_from(code).unwrap_or(2));
         }
     };
+    if hosted && matches!(cli.command, Some(Command::Update { .. })) {
+        eprintln!("{program}: {}", hosted_update_error(program));
+        return ExitCode::from(2);
+    }
     let result = match cli.command {
         // The review TUI and its queue use their own store, never `--db`.
         None => tandem_tui::open()
@@ -204,7 +211,7 @@ pub fn run_as(program: &'static str, args: Vec<OsString>) -> ExitCode {
 fn hosted_update_error(program: &str) -> String {
     let host = program.split_whitespace().next().unwrap_or(program);
     format!(
-        "`{program} update` is handled by {host} itself: run `{host} update` \
+        "unknown command `update` — run `{host} update` to update every tool \
          (the Tandem app keeps updating itself from its own update button)"
     )
 }

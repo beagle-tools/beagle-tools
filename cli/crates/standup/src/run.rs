@@ -14,14 +14,14 @@ pub(crate) fn main(args: Vec<OsString>) -> ExitCode {
     let args = match cli::parse_os(args) {
         Ok(args) => args,
         Err(message) => {
-            eprintln!("error: {message}\n\n{USAGE}");
+            eprintln!("beagle standup: {message}\n\n{USAGE}");
             return ExitCode::from(2);
         }
     };
     match run(args) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
-            eprintln!("error: {e}");
+            eprintln!("beagle standup: {e}");
             ExitCode::FAILURE
         }
     }

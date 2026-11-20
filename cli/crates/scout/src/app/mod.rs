@@ -45,7 +45,10 @@ pub(crate) fn main(args: Vec<OsString>) -> ExitCode {
         match arg.into_string() {
             Ok(s) => strings.push(s),
             Err(bad) => {
-                eprintln!("error: argument {} is not valid UTF-8", bad.display());
+                eprintln!(
+                    "beagle scout: argument {} is not valid UTF-8",
+                    bad.display()
+                );
                 return ExitCode::from(2);
             }
         }
@@ -53,14 +56,14 @@ pub(crate) fn main(args: Vec<OsString>) -> ExitCode {
     let invocation = match cli::parse_args(strings) {
         Ok(invocation) => invocation,
         Err(message) => {
-            eprintln!("error: {message}\n\n{USAGE}");
+            eprintln!("beagle scout: {message}\n\n{USAGE}");
             return ExitCode::from(2);
         }
     };
     match dispatch(invocation) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
-            eprintln!("error: {e}");
+            eprintln!("beagle scout: {e}");
             ExitCode::FAILURE
         }
     }

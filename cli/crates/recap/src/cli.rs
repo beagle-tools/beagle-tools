@@ -168,6 +168,9 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Args, String> {
             "-V" | "--version" => positional.insert(0, "version".to_owned()),
             "--json" | "--diff" | "--archived" => flags.push((arg, None)),
             "--root" => root = Some(it.next().ok_or("--root needs a value")?),
+            flag if flag.starts_with("--root=") => {
+                root = Some(flag["--root=".len()..].to_owned());
+            }
             flag if flag.starts_with("--") => {
                 let value = it.next().ok_or_else(|| format!("{flag} needs a value"))?;
                 flags.push((arg, Some(value)));
@@ -236,8 +239,9 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Args, String> {
             }
         },
         None => Command::Tui { target: None },
-        // Anything else is a recap id or PR to open in the TUI.
-        Some(other) if other.contains('#') || other.contains('/') || other.contains('-') => {
+        // A PR (URL or owner/repo#n) or a recap id (`<repo>-<number>`)
+        // opens the TUI there; any other word is a typo, not a target.
+        Some(other) if other.contains('#') || other.contains('/') || looks_like_id(other) => {
             Command::Tui {
                 target: Some(other.to_owned()),
             }
@@ -251,6 +255,13 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Args, String> {
         return Err(format!("unknown or misplaced flag `{flag}`"));
     }
     Ok(Args { root, command })
+}
+
+/// Whether `word` has a recap id's shape: `<repo>-<number>`.
+fn looks_like_id(word: &str) -> bool {
+    word.rsplit_once('-').is_some_and(|(repo, n)| {
+        !repo.is_empty() && !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit())
+    })
 }
 
 fn remove_switch(flags: &mut Vec<(String, Option<String>)>, name: &str) -> bool {

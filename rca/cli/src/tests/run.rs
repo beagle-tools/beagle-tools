@@ -18,17 +18,27 @@ fn standalone_accepts_the_unified_spelling() {
 }
 
 #[test]
-fn unified_mode_defers_updating_to_beagle_update() {
-    let err = execute(Command::Update { version: None }, Mode::Unified)
+fn under_beagle_update_and_version_list_are_not_commands() {
+    let err = Mode::Unified
+        .allows(Command::Update { version: None })
         .expect_err("no rca-only self-update under `beagle`");
-    assert!(err.to_string().contains("run `beagle update`"), "{err}");
-
-    let err = execute(Command::VersionList, Mode::Unified)
-        .expect_err("no rca-only version list under `beagle`");
     assert!(
-        err.to_string().contains("run `beagle version list`"),
+        err.contains("unknown command `update`") && err.contains("`beagle update`"),
         "{err}"
     );
+    let err = Mode::Unified
+        .allows(Command::VersionList)
+        .expect_err("no rca-only version list under `beagle`");
+    assert!(err.contains("unknown command `version list`"), "{err}");
+    // The standalone binary still updates itself, and other commands pass.
+    assert!(Mode::Standalone.allows(Command::VersionList).is_ok());
+    assert!(Mode::Unified.allows(Command::Help).is_ok());
+}
+
+#[test]
+fn errors_start_with_the_command_typed() {
+    assert_eq!(Mode::Unified.prefix(), "beagle rca");
+    assert_eq!(Mode::Standalone.prefix(), "beagle");
 }
 
 #[test]

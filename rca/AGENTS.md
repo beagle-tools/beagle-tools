@@ -32,8 +32,8 @@ released as `beagle-rca` until it is retired.
 - Help, hints and the skills always say `beagle rca <cmd>`. The standalone
   binary drops a leading `rca`, so that spelling works there too.
 - Self-update belongs to the unified command (`beagle update`). Under
-  `beagle rca`, `update` and `version list` refuse and point there: an
-  rca-only download would replace every other tool. Only the standalone
+  `beagle rca`, `update` and `version list` are usage errors (exit 2) that
+  name it: an rca-only download would replace every other tool. Only the standalone
   binary updates itself (`cli/src/update/`, over `beagle_utils::update`).
 
 ## Components

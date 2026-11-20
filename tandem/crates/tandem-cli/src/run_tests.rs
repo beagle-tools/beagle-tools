@@ -32,6 +32,13 @@ fn hosted_update_points_at_the_host_updater() {
 }
 
 #[test]
+fn hosted_update_is_a_usage_error() {
+    let code = crate::run_as("beagle tandem", vec!["update".into(), "--check".into()]);
+    assert_eq!(code, std::process::ExitCode::from(2));
+    assert!(hosted_update_error("beagle tandem").starts_with("unknown command `update`"));
+}
+
+#[test]
 fn hosted_names_still_run_the_store_commands() {
     // Not the update refusal: it gets as far as looking for the database.
     let err = dispatch_cli(&cli(Command::Queue { all: false }), "beagle tandem").unwrap_err();

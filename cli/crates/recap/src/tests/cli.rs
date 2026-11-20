@@ -75,6 +75,50 @@ fn errors_are_reported_not_ignored() {
 }
 
 #[test]
+fn unknown_words_are_errors_not_tui_targets() {
+    // A typo'd command with a dash used to open the TUI.
+    for word in ["merge-chek", "comment-sync", "acme-widgets", "-1"] {
+        assert_eq!(
+            p(&[word]).unwrap_err(),
+            format!("unknown command `{word}`"),
+            "{word}"
+        );
+    }
+    // Recap ids and PRs still open the TUI there.
+    for target in ["widgets-12", "acme/widgets#12", "my-repo-3"] {
+        assert_eq!(
+            p(&[target]).unwrap().command,
+            Command::Tui {
+                target: Some(target.to_owned())
+            },
+            "{target}"
+        );
+    }
+}
+
+#[test]
+fn root_help_and_version_parse_anywhere() {
+    assert_eq!(
+        p(&["--root", "/x", "list"]).unwrap().root.as_deref(),
+        Some("/x")
+    );
+    assert_eq!(
+        p(&["list", "--root", "/x"]).unwrap().root.as_deref(),
+        Some("/x")
+    );
+    assert_eq!(
+        p(&["--root=/x", "list"]).unwrap().root.as_deref(),
+        Some("/x")
+    );
+    for word in ["help", "-h", "--help"] {
+        assert_eq!(p(&[word]).unwrap().command, Command::Help, "{word}");
+    }
+    for word in ["version", "-V", "--version"] {
+        assert_eq!(p(&[word]).unwrap().command, Command::Version, "{word}");
+    }
+}
+
+#[test]
 fn os_args_parse_and_help_runs() {
     let args = vec![std::ffi::OsString::from("--help")];
     assert_eq!(parse_os(args.clone()).unwrap().command, Command::Help);
