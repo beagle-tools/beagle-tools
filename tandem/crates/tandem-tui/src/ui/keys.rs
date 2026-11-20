@@ -1,6 +1,8 @@
-//! Keypress → state change. Bindings follow scout (and beagle): j/k move,
-//! Enter/l opens, Esc/h goes back, Tab and 1–3 switch tabs, ? for help.
-//! Both GitHub writes go through a y/n confirmation first.
+//! Keypress → state change. Bindings follow the standard beagle TUI keymap
+//! (`docs/CODING_STANDARDS.md` "Terminal UIs"): j/k move, Enter/l opens,
+//! Esc/h goes back, Tab and 1–3 switch tabs, r reloads, ? for help. Both
+//! GitHub writes are uppercase (`P` post, `A` approve) and go through a y/n
+//! confirmation first.
 
 use beagle_tui::pane_resize;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -30,17 +32,18 @@ pub const HELP: &[(&str, &str)] = &[
     ("n / N", "Diff: next / previous file"),
     ("Enter (Comments)", "show the comment's file in the Diff"),
     ("J / K", "Comments: scroll the selected comment"),
-    ("p", "post the selected comment to GitHub (asks first)"),
+    ("P", "post the selected comment to GitHub (asks first)"),
     ("x", "dismiss / restore the selected comment"),
     ("A", "approve the PR on GitHub (asks first)"),
     ("m", "mark the PR gone-through / not"),
     ("a", "queue a PR (URL or owner/repo#n)"),
-    ("r", "review the PR again"),
+    ("e", "review the PR again"),
     ("z", "zoom: hide the list (full-width diff)"),
     pane_resize::HELP,
     ("o", "open the PR in the browser"),
-    ("R", "refresh from GitHub"),
-    ("q  Ctrl-c", "quit"),
+    ("r", "refresh from GitHub"),
+    ("?", "this help (any key closes it)"),
+    ("q Q  Ctrl-c", "quit"),
 ];
 
 impl App {
@@ -54,6 +57,8 @@ impl App {
             return Flow::Continue;
         }
         match std::mem::replace(&mut self.mode, Mode::Normal) {
+            // Any key closes help; q and Q still quit.
+            Mode::Help if matches!(key.code, KeyCode::Char('q' | 'Q')) => return Flow::Quit,
             Mode::Help => {}
             Mode::Input(text) => self.input_key(key, text),
             Mode::Confirm(action) => self.confirm_key(key, action),
@@ -70,11 +75,11 @@ impl App {
             KeyCode::Char('a') => self.mode = Mode::Input(String::new()),
             KeyCode::Char('A') => self.ask_approve(),
             KeyCode::Char('m') => self.toggle_done(),
-            KeyCode::Char('r') => self.re_review(),
+            KeyCode::Char('e') => self.re_review(),
             KeyCode::Char('o') => self.open_in_browser(),
             KeyCode::Char('z') => self.zoom = !self.zoom,
             KeyCode::Char('w') => self.start_resize(),
-            KeyCode::Char('R') => {
+            KeyCode::Char('r') => {
                 if let Some(pr) = self.selected().map(|r| r.pr.clone()) {
                     self.send(Cmd::Fetch(pr));
                 }
@@ -120,7 +125,7 @@ impl App {
             KeyCode::Char('k') | KeyCode::Up if comments => self.select_comment(false),
             KeyCode::Char('J') if comments => self.scroll_by(1, true),
             KeyCode::Char('K') if comments => self.scroll_by(1, false),
-            KeyCode::Char('p') if comments => self.ask_post(),
+            KeyCode::Char('P') if comments => self.ask_post(),
             KeyCode::Char('x') if comments => self.toggle_dismissed(),
             KeyCode::Enter if comments => self.show_in_diff(),
             KeyCode::Char('j') | KeyCode::Down => self.scroll_by(1, true),
@@ -297,7 +302,7 @@ impl App {
         }
     }
 
-    /// Queues a PR from the input line (or `r`), fetches it, and kicks
+    /// Queues a PR from the input line (or `e`), fetches it, and kicks
     /// the reviewer.
     fn queue(&mut self, text: &str) {
         let Some(pr) = PrRef::parse(text) else {

@@ -99,17 +99,20 @@ fn the_comments_tab_reads_threads_as_you_rest_on_them() {
     // Read marks are saved, so they survive a restart.
     assert_eq!(comments::load_read(&dir).len(), 1);
 
-    // tab reaches the agent review pane on the Comments tab; j scrolls it.
+    // enter reaches the agent review pane on the Comments tab; j scrolls
+    // it; esc walks back out one step at a time.
     assert_eq!(app.focus, Focus::Content);
-    key(&mut app, KeyCode::Tab);
+    key(&mut app, KeyCode::Enter);
     assert_eq!(app.focus, Focus::Review);
     key(&mut app, KeyCode::Char('j'));
     assert_eq!(app.review_scroll, 1);
-    key(&mut app, KeyCode::Tab);
+    key(&mut app, KeyCode::Esc);
+    assert_eq!(app.focus, Focus::Content);
+    key(&mut app, KeyCode::Esc);
     assert_eq!(app.focus, Focus::List);
     // Leaving the Comments tab never strands focus on the review pane.
-    key(&mut app, KeyCode::Tab);
-    key(&mut app, KeyCode::Tab);
+    key(&mut app, KeyCode::Enter);
+    key(&mut app, KeyCode::Enter);
     key(&mut app, KeyCode::Char('1'));
     assert_eq!(app.focus, Focus::Content);
 }

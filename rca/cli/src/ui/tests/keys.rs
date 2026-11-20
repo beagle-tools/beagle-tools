@@ -99,18 +99,15 @@ fn agents_screen_ignores_rca_keys_but_still_quits() {
     // A normal RCA key is a no-op here and the screen stays put.
     assert_eq!(press(&mut app, KeyCode::Char('j')), Flow::Continue);
     assert_eq!(app.screen(), Screen::Agents);
-    // Shift-Q still quits.
+    // q and Q still quit.
     assert_eq!(press(&mut app, KeyCode::Char('Q')), Flow::Quit);
+    assert_eq!(press(&mut app, KeyCode::Char('q')), Flow::Quit);
 }
 
 #[test]
-fn only_shift_q_and_ctrl_c_quit() {
+fn q_shift_q_and_ctrl_c_quit() {
     let mut app = app_with(1);
-    assert_eq!(
-        press(&mut app, KeyCode::Char('q')),
-        Flow::Continue,
-        "plain q must not quit"
-    );
+    assert_eq!(press(&mut app, KeyCode::Char('q')), Flow::Quit);
     assert_eq!(press(&mut app, KeyCode::Char('Q')), Flow::Quit);
     let ctrl_c = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
     assert_eq!(app.handle_key(ctrl_c), Flow::Quit);
@@ -296,9 +293,9 @@ fn y_in_content_yanks_the_cursor_line() {
         "y in content yanks the cursor line: {:?}",
         app.status_line()
     );
-    // `Y` yanks the incident id, from either pane.
+    // `i` copies the incident id, from either pane.
     press(&mut app, KeyCode::Char('b')); // back to the list
-    press(&mut app, KeyCode::Char('Y'));
+    press(&mut app, KeyCode::Char('i'));
     assert!(app.status_line().is_some_and(|s| s.contains("copied id")));
 }
 

@@ -11,10 +11,10 @@ impl App {
     /// Keys while the agents screen owns the view: `j`/`k` select an agent,
     /// `x` starts/stops it, `enter` opens its latest session log, `e` edits the
     /// config (and reloads), `A`/`Esc` returns to the RCA browser, `?` opens
-    /// help, and `Q` quits.
+    /// help, and `q`/`Q` quit.
     pub(super) fn handle_agents_key(&mut self, key: KeyEvent) -> Flow {
         match key.code {
-            KeyCode::Char('Q') => return Flow::Quit,
+            KeyCode::Char('q' | 'Q') => return Flow::Quit,
             KeyCode::Char('A') | KeyCode::Esc => self.toggle_screen(),
             KeyCode::Char('?') => {
                 self.show_help = true;

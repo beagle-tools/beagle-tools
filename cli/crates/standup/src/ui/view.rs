@@ -269,7 +269,7 @@ fn draw_footer(frame: &mut Frame<'_>, app: &App, area: Rect) {
         ]),
         Some(status) => Line::styled(format!(" {status}"), Style::default().fg(Color::Yellow)),
         None => Line::styled(
-            " j/k move · tab focus · v select · y copy · i id · o ticket · p PRs · d reports · [ ] older/newer · w resize · ? help · q quit",
+            " j/k move · enter/esc focus · v select · y copy · i id · o ticket · p PRs · d reports · [ ] older/newer · w resize · ? help · q quit",
             Style::default().fg(Color::DarkGray),
         ),
     };

@@ -1,6 +1,7 @@
-//! Keypress → state transition. Bindings follow beagle's: `j`/`k` move,
-//! `enter` opens, `b`/esc go back, `tab`/`1`–`3` switch tabs, `F` follows,
-//! `E` edits, `r` reloads, `w` resizes the list, `?` helps, `Q`/ctrl-c
+//! Keypress → state transition. Bindings follow the standard beagle TUI
+//! keymap (`docs/CODING_STANDARDS.md` "Terminal UIs"): `j`/`k` move, `enter`
+//! opens, `b`/esc go back, `tab`/`1`–`5` switch tabs, `F` follows, `E`
+//! edits, `r` reloads, `w` resizes the list, `?` helps, `q`/`Q`/ctrl-c
 //! quit.
 
 use std::path::PathBuf;
@@ -46,7 +47,7 @@ pub(super) const HELP: &[(&str, &str)] = &[
     ("r", "reload from disk (it also reloads on its own)"),
     pane_resize::HELP,
     ("?", "this help"),
-    ("Q / ctrl-c", "quit"),
+    ("q / Q / ctrl-c", "quit"),
 ];
 
 impl App {
@@ -64,7 +65,7 @@ impl App {
         }
         if self.help {
             self.help = false;
-            return if key.code == KeyCode::Char('Q') {
+            return if matches!(key.code, KeyCode::Char('q' | 'Q')) {
                 Flow::Quit
             } else {
                 Flow::Continue
@@ -72,7 +73,7 @@ impl App {
         }
         let half_page = i32::from(self.viewport_height / 2).max(1);
         match key.code {
-            KeyCode::Char('Q') => return Flow::Quit,
+            KeyCode::Char('q' | 'Q') => return Flow::Quit,
             KeyCode::Char('?') => self.help = true,
             KeyCode::Char('w') => self.side.start(),
             KeyCode::Char('r') => {
@@ -308,8 +309,52 @@ mod tests {
             other => panic!("expected edit, got {other:?}"),
         }
         assert_eq!(press(&mut app, KeyCode::Char('Q')), Flow::Quit);
+        assert_eq!(press(&mut app, KeyCode::Char('q')), Flow::Quit);
         let ctrl_c = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
         assert_eq!(app.handle_key(ctrl_c), Flow::Quit);
+    }
+
+    /// The standard beagle TUI keymap (`docs/CODING_STANDARDS.md`).
+    #[test]
+    fn scout_follows_the_standard_keymap() {
+        let (_dir, mut app) = app_with_project();
+        // Open with l, move with j/k/g/G, back with h.
+        press(&mut app, KeyCode::Char('l'));
+        assert_eq!(app.screen, Screen::Tasks);
+        press(&mut app, KeyCode::Char('g'));
+        assert_eq!(app.selected_task().unwrap().id, "01-a");
+        press(&mut app, KeyCode::Char('j'));
+        assert_eq!(app.selected_task().unwrap().id, "02-b");
+        press(&mut app, KeyCode::Char('G'));
+        assert_eq!(app.selected_task().unwrap().id, "03-c");
+        press(&mut app, KeyCode::Char('k'));
+        assert_eq!(app.selected_task().unwrap().id, "02-b");
+        // Tabs: Tab / ] forward, [ back, digits jump.
+        press(&mut app, KeyCode::Char(']'));
+        assert_eq!(app.tab, Tab::Outcome);
+        press(&mut app, KeyCode::Char('['));
+        assert_eq!(app.tab, Tab::Task);
+        press(&mut app, KeyCode::Tab);
+        assert_eq!(app.tab, Tab::Outcome);
+        press(&mut app, KeyCode::Char('1'));
+        assert_eq!(app.tab, Tab::Task);
+        // Enter opens the content, Esc goes back, b/h back again.
+        press(&mut app, KeyCode::Enter);
+        assert_eq!(app.focus, Focus::Content);
+        press(&mut app, KeyCode::Esc);
+        assert_eq!(app.focus, Focus::List);
+        press(&mut app, KeyCode::Char('h'));
+        assert_eq!(app.screen, Screen::Projects);
+        // Reload, help (any key closes it), edit, quit.
+        press(&mut app, KeyCode::Char('r'));
+        assert!(app.status.is_some());
+        press(&mut app, KeyCode::Char('?'));
+        assert!(app.help);
+        press(&mut app, KeyCode::Char('j'));
+        assert!(!app.help);
+        assert!(matches!(press(&mut app, KeyCode::Char('E')), Flow::Edit(_)));
+        press(&mut app, KeyCode::Char('?'));
+        assert_eq!(press(&mut app, KeyCode::Char('q')), Flow::Quit);
     }
 
     #[test]

@@ -12,14 +12,18 @@ pub(super) const HELP: &[(&str, &str)] = &[
         "list: pick a PR · pane: move the line cursor",
     ),
     (
-        "tab  enter",
-        "switch focus: PR list → pane → (Comments) agent review",
+        "enter",
+        "focus in: PR list → pane → (Comments) agent review",
     ),
-    ("esc", "end the selection, then back to the list"),
+    ("esc", "end the selection, then focus back out one step"),
+    (
+        "tab ] · shift-tab [",
+        "next / previous tab (and focus the pane)",
+    ),
     ("1 / 2 / 3", "Summary / Diff / Comments tab (and focus it)"),
     ("n / N", "next / previous file in the diff"),
     (
-        "n / N  ] / [",
+        "n / N",
         "Comments: next / previous thread (sub-tabs) · J / K scroll its review",
     ),
     (
@@ -42,7 +46,7 @@ pub(super) const HELP: &[(&str, &str)] = &[
     ),
     ("o", "open the PR on GitHub"),
     (
-        "R",
+        "D",
         "draft → ready for review (on an open PR: back to draft)",
     ),
     (
@@ -57,7 +61,7 @@ pub(super) const HELP: &[(&str, &str)] = &[
     ("r", "reload from disk"),
     pane_resize::HELP,
     ("?", "toggle this help"),
-    ("q  ctrl-c", "quit"),
+    ("q  Q  ctrl-c", "quit"),
 ];
 
 impl App {
@@ -78,9 +82,9 @@ impl App {
             return;
         }
         if self.help {
-            // Any key closes help; q still quits.
+            // Any key closes help; q and Q still quit.
             self.help = false;
-            if key.code == KeyCode::Char('q') {
+            if matches!(key.code, KeyCode::Char('q' | 'Q')) {
                 self.quit = true;
             }
             return;
@@ -96,11 +100,14 @@ impl App {
             return;
         }
         match key.code {
-            KeyCode::Char('q') => self.quit = true,
+            KeyCode::Char('q' | 'Q') => self.quit = true,
             KeyCode::Char('?') => self.help = true,
             KeyCode::Char('w') => self.side.start(),
-            KeyCode::Tab | KeyCode::Enter | KeyCode::BackTab => self.toggle_focus(),
+            KeyCode::Enter => self.focus_in(),
+            KeyCode::Tab | KeyCode::Char(']') => self.open_tab(self.tab.step(true)),
+            KeyCode::BackTab | KeyCode::Char('[') => self.open_tab(self.tab.step(false)),
             KeyCode::Esc if self.view.anchor.is_some() => self.view.anchor = None,
+            KeyCode::Esc if self.focus == Focus::Review => self.focus = Focus::Content,
             KeyCode::Esc => self.focus = Focus::List,
             // A tab key means "show me this": switch and focus the pane, so
             // j/k scroll it straight away.
@@ -108,10 +115,10 @@ impl App {
             KeyCode::Char('2') => self.open_tab(Tab::Diff),
             KeyCode::Char('3') => self.open_tab(Tab::Comments),
             KeyCode::Char('u') if !ctrl => self.mark_current_unread(),
-            // Comments: n/N (or ]/[) switch thread sub-tabs; J/K scroll
-            // the review pane beside it.
-            KeyCode::Char('n' | ']') if self.tab == Tab::Comments => self.switch_thread(1),
-            KeyCode::Char('N' | '[') if self.tab == Tab::Comments => self.switch_thread(-1),
+            // Comments: n/N switch thread sub-tabs; J/K scroll the review
+            // pane beside it.
+            KeyCode::Char('n') if self.tab == Tab::Comments => self.switch_thread(1),
+            KeyCode::Char('N') if self.tab == Tab::Comments => self.switch_thread(-1),
             KeyCode::Char('J') if self.tab == Tab::Comments => self.scroll_review(3),
             KeyCode::Char('K') if self.tab == Tab::Comments => self.scroll_review(-3),
             KeyCode::Char('n') => self.jump_file(1),
@@ -127,7 +134,7 @@ impl App {
             KeyCode::Char('y' | 'Y') => self.copy_pr_url(),
             KeyCode::Char('o') => self.open_pr(),
             KeyCode::Char('i') => self.copy_recap_id(),
-            KeyCode::Char('R') => self.ask_ready(),
+            KeyCode::Char('D') => self.ask_ready(),
             KeyCode::Char('M') => self.ask_merge(),
             KeyCode::Char('X') => self.ask_close(),
             KeyCode::Char('a') => self.archive_selected(),
@@ -146,20 +153,17 @@ impl App {
         }
     }
 
-    /// tab / enter: PR list → pane → (on Comments) the agent review → list.
-    fn toggle_focus(&mut self) {
+    /// enter: PR list → pane → (on Comments) the agent review. Esc walks
+    /// back out the same way.
+    fn focus_in(&mut self) {
         match self.focus {
             Focus::List => self.focus_content(),
             Focus::Content if self.tab == Tab::Comments => {
                 self.view.anchor = None;
                 self.focus = Focus::Review;
-                self.status = Some("agent review — j/k scroll · tab back to the list".to_owned());
+                self.status = Some("agent review — j/k scroll · esc back to the thread".to_owned());
             }
-            Focus::Content | Focus::Review => {
-                // Leaving the pane ends any selection.
-                self.view.anchor = None;
-                self.focus = Focus::List;
-            }
+            Focus::Content | Focus::Review => {}
         }
     }
 

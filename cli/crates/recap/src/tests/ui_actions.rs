@@ -15,7 +15,7 @@ fn ready_asks_first_and_cancel_does_nothing() {
         .unwrap();
     let mut app = offline(store);
     assert_eq!(app.selected_row().unwrap().state, PrState::Draft);
-    key(&mut app, KeyCode::Char('R'));
+    key(&mut app, KeyCode::Char('D'));
     assert!(matches!(
         app.confirm,
         Some(Confirm::Ready { undo: false, .. })
@@ -23,7 +23,7 @@ fn ready_asks_first_and_cancel_does_nothing() {
     key(&mut app, KeyCode::Esc);
     assert!(app.confirm.is_none());
     assert_eq!(app.requested, Vec::<String>::new(), "cancel runs nothing");
-    key(&mut app, KeyCode::Char('R'));
+    key(&mut app, KeyCode::Char('D'));
     key(&mut app, KeyCode::Char('y'));
     assert_eq!(app.requested, ["marking ready newer#2"]);
 }
@@ -93,11 +93,11 @@ fn guards_explain_why_an_action_isnt_offered() {
         .status
         .as_deref()
         .unwrap()
-        .contains("R marks it ready first"));
+        .contains("D marks it ready first"));
     key(&mut app, KeyCode::Char('j')); // older-1, merged
     key(&mut app, KeyCode::Char('X'));
     assert!(app.status.as_deref().unwrap().contains("already merged"));
-    key(&mut app, KeyCode::Char('R'));
+    key(&mut app, KeyCode::Char('D'));
     assert!(app
         .status
         .as_deref()

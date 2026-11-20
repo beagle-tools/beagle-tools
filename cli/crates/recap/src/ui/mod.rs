@@ -57,12 +57,25 @@ pub enum Tab {
 }
 
 impl Tab {
+    const ALL: [Self; 3] = [Self::Summary, Self::Diff, Self::Comments];
+
     fn index(self) -> usize {
         match self {
             Self::Summary => 0,
             Self::Diff => 1,
             Self::Comments => 2,
         }
+    }
+
+    /// The next (`forward`) or previous tab, wrapping around.
+    fn step(self, forward: bool) -> Self {
+        let n = Self::ALL.len();
+        let i = if forward {
+            (self.index() + 1) % n
+        } else {
+            (self.index() + n - 1) % n
+        };
+        Self::ALL[i]
     }
 }
 
@@ -361,6 +374,9 @@ mod tests_actions;
 #[cfg(test)]
 #[path = "../tests/ui_comments.rs"]
 mod tests_comments;
+#[cfg(test)]
+#[path = "../tests/ui_keymap.rs"]
+mod tests_keymap;
 #[cfg(test)]
 #[path = "../tests/ui_status.rs"]
 mod tests_status;

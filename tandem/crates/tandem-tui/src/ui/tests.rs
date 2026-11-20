@@ -131,7 +131,7 @@ fn comments_select_dismiss_and_ask_before_posting() {
     press(&mut app, KeyCode::Char('x'));
     assert_eq!(app.comment().unwrap().status, CommentStatus::Open);
 
-    press(&mut app, KeyCode::Char('p'));
+    press(&mut app, KeyCode::Char('P'));
     let Mode::Confirm(Action::Post { preview, .. }) = &app.mode else {
         unreachable!("expected a post confirmation, got {:?}", app.mode);
     };
@@ -232,4 +232,46 @@ fn w_resizes_the_list_within_its_limits_and_esc_leaves() {
     // The choice survives a redraw.
     draw(&mut a);
     assert_eq!(a.pane.width(total), widest);
+}
+
+/// The standard beagle TUI keymap (`docs/CODING_STANDARDS.md` "Terminal UIs").
+#[test]
+fn tandem_follows_the_standard_keymap() {
+    let mut app = app();
+    // Open with l, back with h; tabs with ] / [ and digits.
+    press(&mut app, KeyCode::Char('l'));
+    assert_eq!(app.focus, Focus::Content);
+    press(&mut app, KeyCode::Char(']'));
+    assert_eq!(app.tab, Tab::Diff);
+    press(&mut app, KeyCode::Char('['));
+    assert_eq!(app.tab, Tab::Summary);
+    press(&mut app, KeyCode::Char('3'));
+    assert_eq!(app.tab, Tab::Comments);
+    // P (post) and A (approve) are uppercase and always ask first.
+    press(&mut app, KeyCode::Char('P'));
+    assert!(matches!(app.mode, Mode::Confirm(Action::Post { .. })));
+    press(&mut app, KeyCode::Esc);
+    press(&mut app, KeyCode::Char('A'));
+    assert!(matches!(app.mode, Mode::Confirm(Action::Approve(_))));
+    press(&mut app, KeyCode::Char('n'));
+    assert_eq!(app.mode, Mode::Normal);
+    // Lowercase p is no longer a GitHub write.
+    press(&mut app, KeyCode::Char('p'));
+    assert_eq!(app.mode, Mode::Normal);
+    press(&mut app, KeyCode::Char('h'));
+    assert_eq!(app.focus, Focus::List);
+    // r refreshes (never re-reviews): no PR gets queued again.
+    let queued = app.rows.iter().filter(|r| r.stage == Stage::Queued).count();
+    assert_eq!(press(&mut app, KeyCode::Char('r')), Flow::Continue);
+    app.reload().unwrap();
+    let after = app.rows.iter().filter(|r| r.stage == Stage::Queued).count();
+    assert_eq!(after, queued, "r must not queue a review");
+    // Help: any key closes it, q and Q quit from it too.
+    press(&mut app, KeyCode::Char('?'));
+    assert_eq!(app.mode, Mode::Help);
+    press(&mut app, KeyCode::Char('j'));
+    assert_eq!(app.mode, Mode::Normal);
+    press(&mut app, KeyCode::Char('?'));
+    assert_eq!(press(&mut app, KeyCode::Char('Q')), Flow::Quit);
+    assert_eq!(press(&mut app, KeyCode::Char('q')), Flow::Quit);
 }

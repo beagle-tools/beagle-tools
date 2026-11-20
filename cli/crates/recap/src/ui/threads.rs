@@ -314,7 +314,7 @@ pub(super) fn review_pane(app: &App, width: u16) -> (String, Vec<Line<'static>>)
     }
     (
         format!(
-            " agent review · comment {} of {} · tab to focus, j/k scroll ",
+            " agent review · comment {} of {} · enter to focus, j/k scroll ",
             i + 1,
             app.thread_ids.len()
         ),

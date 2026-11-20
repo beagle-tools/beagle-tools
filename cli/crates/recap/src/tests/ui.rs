@@ -157,7 +157,7 @@ fn tab_keys_focus_the_pane_so_j_scrolls_it() {
 fn tabs_remember_their_position() {
     let (_tmp, store) = fixture();
     let mut app = laid_out(store);
-    key(&mut app, KeyCode::Tab);
+    key(&mut app, KeyCode::Enter);
     for _ in 0..30 {
         key(&mut app, KeyCode::Char('j'));
     }
@@ -216,7 +216,7 @@ fn open_ticket_without_url_explains_itself() {
 fn live_reload_keeps_the_reader_in_place_and_announces_new_prs() {
     let (_tmp, store) = fixture();
     let mut app = laid_out(store.clone());
-    key(&mut app, KeyCode::Tab);
+    key(&mut app, KeyCode::Enter);
     for _ in 0..40 {
         key(&mut app, KeyCode::Char('j'));
     }

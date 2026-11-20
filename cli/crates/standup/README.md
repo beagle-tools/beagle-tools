@@ -19,7 +19,7 @@ couple of minutes.
 │▌● ABC-123 In Review         ││ TL;DR                                           │
 │   Gateway returns 502s on…  ││ The gateway returned 502s every time a pod…     │
 └─────────────────────────────┘└─────────────────────────────────────────────────┘
- j/k move · tab focus · v select · y copy · i id · o ticket · p PRs · d reports · ? help
+ j/k move · enter/esc focus · v select · y copy · i id · o ticket · p PRs · d reports · ? help
 ```
 
 ## Use
@@ -53,14 +53,14 @@ is `--root DIR`, else `$STANDUP_ROOT`, else `root = "…"` in
 
 ## Keys
 
-`j/k` move (the list, or a line cursor in the write-up) · `tab`/`enter`
-switch focus · `esc` back · `J/K` `space` `ctrl-d/u` page · `g/G` top/bottom
+`j/k` move (the list, or a line cursor in the write-up) · `enter` open
+the write-up · `esc` back · `J/K` `space` `ctrl-d/u` page · `g/G` top/bottom
 · `v` select lines · `y` copy the line/selection (list: the ticket URL) ·
 `Y` copy the ticket URL · `i` copy the id (the date, or `<date> <ticket>`) ·
 `h/l` pan wide diagrams · `d` pick a report by day · `[`/`]` older/newer
 report · `o` open the ticket · `p` open its PRs · `w` resize the list (←/→,
 `0` default, `Esc` done) · `r` reload · `?` help ·
-`q` quit.
+`q`/`Q` quit.
 
 ## Develop
 
