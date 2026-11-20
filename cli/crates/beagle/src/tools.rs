@@ -69,7 +69,7 @@ mod tests {
     use super::*;
 
     /// Names `beagle` itself answers before looking up a tool (`main.rs`).
-    const BUILTINS: &[&str] = &["help", "version", "update", "doctor"];
+    const BUILTINS: &[&str] = &["help", "version", "update", "doctor", "setup"];
 
     #[test]
     fn tools_are_unique_sorted_and_never_shadow_a_builtin() {

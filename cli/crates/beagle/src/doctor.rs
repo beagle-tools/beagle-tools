@@ -4,9 +4,11 @@
 //! this one) that shadows or duplicates the running `beagle`.
 //!
 //! On macOS it also reports whether the `beagle serve` launchd agent is
-//! running (`launchctl print`, read-only).
+//! running (`launchctl print`, read-only), and it runs the setup checks in
+//! `health` (gh, beagle-agentd, tmux, skills, scout hooks), which only
+//! warn: the exit code is non-zero only for old binaries or a down service.
 //!
-//! It only reads directory entries; it never runs what it finds.
+//! The PATH scan only reads directory entries; it never runs what it finds.
 
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
@@ -40,6 +42,12 @@ pub fn run() -> ExitCode {
     let path_var = std::env::var_os("PATH").unwrap_or_default();
     let findings = scan(&path_var, this.as_deref());
     let serve_ok = report_serve();
+    // Setup checks only warn: each matters to some tools, not all.
+    if let Some(home) = beagle_utils::paths::home_dir() {
+        for check in crate::health::checks(&home, &path_var) {
+            println!("{}", check.line());
+        }
+    }
     if findings.is_empty() {
         println!("✓ no old standalone binaries on PATH — `beagle` is the only one");
         return if serve_ok {

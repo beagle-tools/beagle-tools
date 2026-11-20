@@ -7,7 +7,9 @@
 //! `help` — are answered here, before any tool.
 
 mod doctor;
+mod health;
 mod selfupdate;
+mod setup;
 mod shared;
 mod tools;
 
@@ -43,6 +45,7 @@ fn main() -> ExitCode {
             eprintln!("beagle: `doctor` takes no arguments");
             ExitCode::from(2)
         }
+        Some("setup") => setup::run(&rest),
         Some(name) => match tools::find(name) {
             // `help` and `version` mean the same in every tool.
             Some(tool) => match shared::shared(&rest) {
@@ -79,5 +82,8 @@ fn print_help() {
     println!("  help [tool]          this list, or a tool's own help");
     println!("  version [list]       print the version, or browse releases to install one");
     println!("  update [--check]     update to the latest release (--version X.Y.Z for any)");
-    println!("  doctor               find old standalone binaries this one replaces");
+    println!(
+        "  setup [--yes]        run every tool's one-time install steps (skills, hooks, store)"
+    );
+    println!("  doctor               check the setup, and find old binaries this one replaces");
 }

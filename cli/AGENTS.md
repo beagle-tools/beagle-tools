@@ -59,9 +59,17 @@ tool may be named after one:
   install runs `brew upgrade beagle-tools/tap/beagle`; a source build
   prints the `cargo install` that rebuilds it. Release CI marks release
   builds with `BEAGLE_RELEASE_TARGET`; anything without it is a source build.
+- `setup [--yes] [--skip <id>] [--only <ids>]` (`setup.rs`): every tool's
+  one-time install steps (rca skills, scout skills, scout hooks, the scout
+  store), each run through the tool's own command and skipped when already
+  in place. `beagle update` runs the new binary's `setup --only
+  rca-skills,scout-skills` afterwards. A tool with a new install step adds
+  it to `STEPS`.
 - `doctor`: old standalone binaries (`scout`, `recap`, `standup`, another
   `beagle`) still on `PATH`, and (macOS) whether the `beagle serve` launchd
-  agent is running.
+  agent is running — both fail it — plus setup checks that only warn
+  (`health.rs`: `gh` signed in, `beagle-agentd`, `tmux`, skills, scout
+  hooks).
 
 **Tools never update themselves under `beagle`.** One tool's download
 would replace every other tool in the binary, so under `beagle` a tool has

@@ -54,8 +54,8 @@ conflict. Switch with:
 ```sh
 brew uninstall beagle-rca
 brew install beagle-tools/tap/beagle
-beagle rca skill install   # refresh the /beagle skills, which now say `beagle rca …`
-beagle doctor              # lists old standalone binaries still on your PATH
+beagle setup               # agent skills (which now say `beagle rca …`), scout hooks + store
+beagle doctor              # checks the setup; lists old standalone binaries still on your PATH
 ```
 
 The rca agent daemon, `beagle-agentd`, is installed alongside `beagle`
@@ -69,7 +69,8 @@ beagle help rca          # one tool's own help (same as `beagle rca --help`)
 beagle rca               # open the RCA TUI
 beagle rca list --json   # any tool's subcommands, after its name
 beagle version           # the version, and the release target or "source build"
-beagle doctor            # old standalone binaries that shadow or duplicate this one
+beagle setup             # every tool's one-time install steps (asks per step; --yes for all)
+beagle doctor            # setup checks (warnings), plus old binaries that shadow this one
 ```
 
 ## Update
