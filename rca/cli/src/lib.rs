@@ -27,7 +27,6 @@
 pub mod agentd;
 pub mod banner;
 mod cli;
-pub mod clipboard;
 mod commands;
 pub mod config;
 pub mod error;

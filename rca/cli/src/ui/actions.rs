@@ -63,7 +63,7 @@ impl App {
             return;
         };
         let id = rca.id.to_string();
-        self.status = Some(match crate::clipboard::copy(&id) {
+        self.status = Some(match beagle_tui::clipboard::copy(&id) {
             Ok(method) => format!("copied id `{id}` via {method}"),
             Err(e) => format!("copy failed: {e}"),
         });
@@ -118,7 +118,7 @@ impl App {
     }
 
     pub(super) fn finish_copy(&mut self, label: &str, content: &str) {
-        self.status = Some(match crate::clipboard::copy(content) {
+        self.status = Some(match beagle_tui::clipboard::copy(content) {
             Ok(method) => format!(
                 "copied {label} ({}) via {method}",
                 human_size(content.len())

@@ -35,7 +35,7 @@ Terminal-UI pieces shared by the beagle TUIs (`beagle rca`, `beagle scout`,
 | `doc`       | Document building blocks: dim text, rules, link rows, diagram blocks           |
 | `widgets`   | Pane borders, centred overlays, the key-help sheet, cursor painting            |
 | `watch`     | Recursive filesystem watcher + per-frame drain, for live reload                |
-| `clipboard` | Copy via `pbcopy` / `wl-copy` / `xclip`                                         |
+| `clipboard` | Copy via `pbcopy` / `wl-copy` / `xclip` / `xsel`, falling back to OSC 52 (works over SSH) |
 | `links`     | Open a URL with `open` / `xdg-open`, detached                                  |
 | `config`    | `AppDirs`: store root from `--root` → `$<APP>_ROOT` → config → ancestor → cwd  |
 | `version_picker` | The interactive `version list` picker over an `update::Channel`'s releases |

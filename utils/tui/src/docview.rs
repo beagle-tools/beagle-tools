@@ -254,8 +254,8 @@ impl DocView {
         self.anchor = None;
         let rows = last - first + 1;
         match clipboard::copy(&text) {
-            Ok(()) if rows == 1 => "copied 1 line".to_owned(),
-            Ok(()) => format!("copied {rows} lines"),
+            Ok(_) if rows == 1 => "copied 1 line".to_owned(),
+            Ok(_) => format!("copied {rows} lines"),
             Err(e) => e.to_string(),
         }
     }

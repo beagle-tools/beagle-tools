@@ -265,7 +265,7 @@ impl App {
             return;
         };
         self.content_select_anchor = None; // yank ends the selection
-        self.status = Some(match crate::clipboard::copy(&text) {
+        self.status = Some(match beagle_tui::clipboard::copy(&text) {
             Ok(method) => {
                 if count > 1 {
                     format!("copied {count} lines via {method}")
