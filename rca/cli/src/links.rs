@@ -5,7 +5,10 @@
 //! them to the platform opener.
 
 use std::io;
-use std::process::{Command, Stdio};
+use std::process::Command;
+use std::time::Duration;
+
+use beagle_utils::process::spawn_bounded;
 
 /// Extracts `http(s)://` URLs from free text, in order of appearance,
 /// de-duplicated. URLs end at whitespace or a closing delimiter, and
@@ -44,13 +47,8 @@ pub fn open_url(url: &str) -> io::Result<()> {
     } else {
         "xdg-open"
     };
-    Command::new(opener)
-        .arg(url)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map(|_| ())
+    // Detached but reaped (and killed if it hangs past 10 s).
+    spawn_bounded(Command::new(opener).arg(url), Duration::from_secs(10))
 }
 
 #[cfg(test)]

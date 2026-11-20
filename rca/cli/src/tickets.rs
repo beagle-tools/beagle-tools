@@ -6,7 +6,9 @@
 //! JSON with the `serde_json` already in the tree. The parsers are pure
 //! and unit-tested; the command invocation is a thin wrapper.
 
-use std::process::Command;
+use std::time::Duration;
+
+use beagle_utils::process;
 
 use crate::config::{AccessMode, PlatformConfig, TicketsConfig};
 use crate::error::{Error, Result};
@@ -232,13 +234,24 @@ fn linear_linked_prs(reference: &str, cfg: PlatformConfig) -> Result<Vec<String>
 
 // ---- shell --------------------------------------------------------------
 
-/// Runs `cmd args`, returning stdout. Errors if the binary is missing or
-/// the command exits non-zero.
+/// Bound on one ticket lookup. Covers a paginated `gh api` (several
+/// requests) as well as a single `curl` or user-configured command.
+const LOOKUP_TIMEOUT: Duration = Duration::from_secs(60);
+
+/// Runs `cmd args` (resolved on the augmented PATH, bounded by
+/// [`LOOKUP_TIMEOUT`]), returning stdout. Errors if the binary is missing,
+/// the command exits non-zero, or it times out.
 fn run(cmd: &str, args: &[&str]) -> Result<String> {
-    let output = Command::new(cmd)
-        .args(args)
-        .output()
-        .map_err(|e| tool_err(format!("`{cmd}` failed to launch: {e} (is it installed?)")))?;
+    let program = process::which(cmd).unwrap_or_else(|| cmd.into());
+    let mut command = process::command(program);
+    command.args(args);
+    let output = process::output_with_timeout(&mut command, LOOKUP_TIMEOUT).map_err(|e| {
+        if e.kind() == std::io::ErrorKind::TimedOut {
+            tool_err(format!("{e} — is the tracker reachable?"))
+        } else {
+            tool_err(format!("`{cmd}` failed to launch: {e} (is it installed?)"))
+        }
+    })?;
     if !output.status.success() {
         let err = String::from_utf8_lossy(&output.stderr);
         return Err(tool_err(format!("`{cmd}` failed: {}", err.trim())));
