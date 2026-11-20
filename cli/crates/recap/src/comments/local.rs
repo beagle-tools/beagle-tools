@@ -57,6 +57,7 @@ pub fn load_read(recap_dir: &Path) -> ReadMarks {
 /// # Errors
 /// [`Error::Io`] when it can't be written.
 pub fn save_read(recap_dir: &Path, marks: &ReadMarks) -> Result<()> {
+    super::gitignore::ensure(recap_dir);
     write_json(&dir(recap_dir).join("read.json"), marks)
 }
 
@@ -175,6 +176,7 @@ pub fn save_review(
         .or_else(|| thread.last_counted())
         .map(|c| c.id.clone())
         .unwrap_or_default();
+    super::gitignore::ensure(recap_dir);
     let path = dir(recap_dir)
         .join("reviews")
         .join(format!("{thread_id}.md"));

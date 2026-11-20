@@ -141,4 +141,7 @@ fn save_backs_up_and_load_reads_back() {
     let backup = save(&path, &json!({"a": 2})).unwrap().unwrap();
     assert_eq!(load(&backup).unwrap(), json!({"a": 1}));
     assert_eq!(load(&path).unwrap(), json!({"a": 2}));
+    // The first backup is the user's pre-scout settings: never overwritten.
+    save(&path, &json!({"a": 3})).unwrap();
+    assert_eq!(load(&backup).unwrap(), json!({"a": 1}));
 }

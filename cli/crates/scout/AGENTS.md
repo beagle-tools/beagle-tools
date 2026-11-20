@@ -18,6 +18,7 @@ src/app/              command dispatch and printing (all I/O for commands)
 src/cli/              argument parsing and the usage text — pure, no filesystem or env
 src/model.rs          Slug, ProjectStatus/TaskStatus, frontmatter structs
 src/frontmatter.rs    `+++` TOML frontmatter split/parse/render
+src/gitignore.rs      keeps session recordings out of git (init, and the first recording in a git-backed store)
 src/store/            the on-disk store: list/load (mod), mutations (mutate), file helpers
 src/markdown.rs       the Markdown subset → ratatui Text
 src/skill.rs          the /scout and /scout-build skills, embedded with include_str!

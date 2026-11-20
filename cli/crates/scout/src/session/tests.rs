@@ -171,3 +171,31 @@ fn pick_prefers_tab_then_cwd_then_newest() {
     assert_eq!(pick(&sessions, None, Path::new("/z")).unwrap().id, "newest");
     assert!(pick(&[], None, Path::new("/")).is_none());
 }
+
+#[test]
+fn recording_into_a_fresh_git_backed_store_ignores_sessions() {
+    let repo = tempfile::tempdir().unwrap();
+    fs::create_dir(repo.path().join(".git")).unwrap();
+    let store = repo.path().join("notes/scout");
+    let (_, start) = event_from_hook(&pre("s1", "t", "ls"), &here(), now()).unwrap();
+    append(&store, "s1", &start).unwrap();
+    let ignore = fs::read_to_string(store.join(".gitignore")).unwrap();
+    for line in crate::gitignore::LINES {
+        assert!(ignore.lines().any(|l| l == line), "{line} in {ignore}");
+    }
+    // Later events in the same recording leave the file alone.
+    fs::write(store.join(".gitignore"), "custom\n").unwrap();
+    append(&store, "s1", &start).unwrap();
+    assert_eq!(
+        fs::read_to_string(store.join(".gitignore")).unwrap(),
+        "custom\n"
+    );
+}
+
+#[test]
+fn recording_outside_git_writes_no_gitignore() {
+    let root = tempfile::tempdir().unwrap();
+    let (_, start) = event_from_hook(&pre("s2", "t", "ls"), &here(), now()).unwrap();
+    append(root.path(), "s2", &start).unwrap();
+    assert!(!root.path().join(".gitignore").exists());
+}

@@ -224,3 +224,27 @@ fn rate_limits_are_recognised() {
     assert!(is_rate_limit("You have exceeded a secondary rate limit"));
     assert!(!is_rate_limit("Could not resolve to a Repository"));
 }
+
+#[test]
+fn comment_data_in_a_git_backed_store_is_ignored() {
+    let repo = tempfile::tempdir().unwrap();
+    std::fs::create_dir(repo.path().join(".git")).unwrap();
+    let recap = repo.path().join("recaps/widgets-12");
+    save_read(&recap, &ReadMarks::default()).unwrap();
+    let ignore = std::fs::read_to_string(repo.path().join(".gitignore")).unwrap();
+    for line in gitignore::LINES {
+        assert!(ignore.lines().any(|l| l == line), "{line} in {ignore}");
+    }
+    save_read(&recap, &ReadMarks::default()).unwrap();
+    let again = std::fs::read_to_string(repo.path().join(".gitignore")).unwrap();
+    assert_eq!(again, ignore, "idempotent");
+
+    // Outside git: no .gitignore appears.
+    let plain = tempfile::tempdir().unwrap();
+    save_read(
+        &plain.path().join("recaps/widgets-12"),
+        &ReadMarks::default(),
+    )
+    .unwrap();
+    assert!(!plain.path().join(".gitignore").exists());
+}

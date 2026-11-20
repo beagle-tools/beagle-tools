@@ -311,7 +311,7 @@ cd ~/src/my-scout-projects && beagle scout init   # writes .scout-store and a .g
 
 Inside that folder, `beagle scout` uses it. Agents work from other repos, so to make it your default everywhere, also set `root = "~/src/my-scout-projects"` in `~/.config/scout/config.toml`.
 
-`init` adds `/.sessions/` and `/*/sessions/` to the store's `.gitignore`. Session recordings hold raw command output, which can include secrets, so they never belong in a repo.
+`init` adds `/.sessions/` and `/*/sessions/` to the store's `.gitignore`, and so does the first recording into a store inside a git repo (one picked by `$SCOUT_ROOT` or config `root` never ran `init`). Session recordings hold raw command output, which can include secrets, so they never belong in a repo. `beagle scout hook install` backs up `settings.json` once, to `settings.json.scout-backup`, and never overwrites that first backup.
 
 ### File format
 

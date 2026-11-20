@@ -79,10 +79,6 @@ pub(crate) fn marked_ancestor(start: &Path) -> Option<PathBuf> {
         .map(Path::to_path_buf)
 }
 
-/// Paths a store must keep out of git: session recordings and their
-/// rendered copies hold raw command output, which can include secrets.
-const GITIGNORE_LINES: [&str; 2] = ["/.sessions/", "/*/sessions/"];
-
 /// Marks `dir` as a store (creating it if needed) and makes sure its
 /// `.gitignore` excludes session data. Idempotent; never removes a line.
 pub(crate) fn init(dir: &Path) -> std::io::Result<PathBuf> {
@@ -95,24 +91,7 @@ pub(crate) fn init(dir: &Path) -> std::io::Result<PathBuf> {
              # inside it uses the projects here. Created by `beagle scout init`.\n",
         )?;
     }
-    let ignore = dir.join(".gitignore");
-    let existing = std::fs::read_to_string(&ignore).unwrap_or_default();
-    let missing: Vec<&str> = GITIGNORE_LINES
-        .into_iter()
-        .filter(|line| !existing.lines().any(|l| l.trim() == *line))
-        .collect();
-    if !missing.is_empty() {
-        let mut text = existing;
-        if !text.is_empty() && !text.ends_with('\n') {
-            text.push('\n');
-        }
-        text.push_str("# scout session recordings: raw command output, never commit\n");
-        for line in missing {
-            text.push_str(line);
-            text.push('\n');
-        }
-        std::fs::write(&ignore, text)?;
-    }
+    crate::gitignore::ensure(dir)?;
     Ok(marker)
 }
 

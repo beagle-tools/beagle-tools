@@ -18,6 +18,7 @@
 //! never count: a thread made only of them is dropped.
 
 mod github;
+pub mod gitignore;
 mod local;
 mod need;
 mod sync;
