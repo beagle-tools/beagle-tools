@@ -37,10 +37,14 @@ test("crates the unified cli links in release it too", () => {
   assert.deepEqual(changedApps(["tandem/crates/tandem-cli/src/lib.rs"]), ["tandem", "cli"]);
   assert.deepEqual(changedApps(["tandem/crates/tandem-core/src/diff.rs"]), ["tandem", "cli"]);
   assert.deepEqual(changedApps(["tandem/Cargo.toml"]), ["tandem", "cli"]);
+  // Linked through tandem-cli's review TUI.
+  assert.deepEqual(changedApps(["tandem/crates/tandem-tui/src/lib.rs"]), ["tandem", "cli"]);
+  assert.deepEqual(changedApps(["tandem/crates/tandem-cache/src/store.rs"]), ["tandem", "cli"]);
+  assert.deepEqual(changedApps(["tandem/crates/tandem-github/src/client.rs"]), ["tandem", "cli"]);
   // The parts of those apps the cli does not link stay theirs alone.
   assert.deepEqual(changedApps(["rca/crates/beagle-agentd/src/main.rs"]), ["rca"]);
   assert.deepEqual(changedApps(["rca/desktop/src-tauri/src/lib.rs"]), ["rca"]);
-  assert.deepEqual(changedApps(["tandem/crates/tandem-github/src/client.rs"]), ["tandem"]);
+  assert.deepEqual(changedApps(["tandem/crates/tandem-agents/src/runner.rs"]), ["tandem"]);
   assert.deepEqual(changedApps(["tandem/Cargo.lock"]), ["tandem"]);
   // Their docs don't release anything.
   assert.deepEqual(changedApps(["rca/cli/README.md", "tandem/crates/tandem-cli/NOTES.md"]), []);
