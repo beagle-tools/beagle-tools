@@ -11,17 +11,10 @@
 //! pane's width and renders its ANSI output, so the Diff tab looks exactly
 //! like their git diffs. [`render`] is the fallback.
 
-use std::process::Command;
-use std::time::Duration;
-
-use beagle_utils::process::{output_with_input_and_timeout, output_with_timeout};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 
 use crate::wrap::DocLine;
-
-/// Bound on one `delta` run; a hung delta falls back to [`render`].
-const DELTA_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// One file's change counts.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -223,22 +216,7 @@ fn push_file_table(lines: &mut Vec<DocLine>, files: &[FileStat]) {
 /// Whether the `delta` pager is installed and runnable.
 #[must_use]
 pub fn delta_available() -> bool {
-    output_with_timeout(Command::new("delta").arg("--version"), DELTA_TIMEOUT)
-        .is_ok_and(|o| o.status.success())
-}
-
-/// Runs `delta --side-by-side` on `source` at `width` columns and returns its
-/// raw ANSI output. `None` if delta is missing or fails.
-fn run_delta(source: &str, width: u16) -> Option<String> {
-    let mut cmd = Command::new("delta");
-    cmd.args(["--side-by-side", "--paging=never", "--width"])
-        .arg(width.max(40).to_string());
-    // Stdin is fed from a helper thread, so a large diff can't deadlock
-    // against a full stdout pipe; a hung delta falls back to the plain view.
-    let out = output_with_input_and_timeout(&mut cmd, source.as_bytes(), DELTA_TIMEOUT).ok()?;
-    out.status
-        .success()
-        .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+    beagle_tui::delta::available()
 }
 
 /// The Diff tab rendered by `delta` (side by side, the user's git look),
@@ -249,7 +227,7 @@ pub fn render_delta(source: &str, width: u16) -> Option<RenderedDiff> {
     if source.trim().is_empty() {
         return Some(render(source));
     }
-    let output = run_delta(source, width)?;
+    let output = beagle_tui::delta::side_by_side(source, width)?;
     Some(from_delta_output(source, &output))
 }
 

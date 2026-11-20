@@ -5,7 +5,7 @@
 //! ANSI rendering, word wrapping, a scrolling document pane with a vim-style
 //! cursor ([`DocView`]), common widgets, live-reload watching, clipboard and
 //! URL opening, store-root / config-file discovery, the shared side-pane
-//! resize mode ([`SideResize`]), and the release picker
+//! resize mode ([`SideResize`]), the `delta` diff runner, and the release picker
 //! behind `version list`. Apps keep their own domain types and error
 //! enums; errors from here convert into them.
 //!
@@ -21,6 +21,7 @@
 pub mod ansi;
 pub mod clipboard;
 pub mod config;
+pub mod delta;
 pub mod doc;
 pub mod docview;
 pub mod error;

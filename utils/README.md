@@ -37,6 +37,7 @@ Terminal-UI pieces shared by the beagle TUIs (`beagle rca`, `beagle scout`,
 | `watch`     | Recursive filesystem watcher + per-frame drain, for live reload                |
 | `clipboard` | Copy via `pbcopy` / `wl-copy` / `xclip` / `xsel`, falling back to OSC 52 (works over SSH) |
 | `links`     | `extract_urls` from text; open a URL with `open` / `xdg-open`, detached        |
+| `delta`     | Run `delta --side-by-side` on a diff (bounded), for a Diff tab; `None` falls back to plain |
 | `config`    | `AppDirs`: store root from `--root` → `$<APP>_ROOT` → config → ancestor → cwd  |
 | `version_picker` | The interactive `version list` picker over an `update::Channel`'s releases |
 | `pane_resize` | `SideResize`: the shared `w` resize mode for a side pane's width (limits, reset, keys) |

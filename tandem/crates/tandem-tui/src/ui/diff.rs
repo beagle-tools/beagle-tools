@@ -4,8 +4,6 @@
 //! once per (PR, commit, width) and is cached — scrolling only slices.
 //! The delta approach is the recap TUI's.
 
-use std::process::Command;
-
 use ratatui::style::{Color, Style};
 use ratatui::text::Line;
 
@@ -65,7 +63,7 @@ fn render_delta(raw: &str, width: u16) -> Option<Rendered> {
     if raw.trim().is_empty() {
         return None;
     }
-    let output = run_delta(raw, width)?;
+    let output = beagle_tui::delta::side_by_side(raw, width)?;
     let plain: Vec<String> = ansi::strip(&output).lines().map(str::to_owned).collect();
     let text = ansi::to_text(&output);
     let mut files = Vec::new();
@@ -85,24 +83,6 @@ fn render_delta(raw: &str, width: u16) -> Option<Rendered> {
         lines: text.lines,
         files,
     })
-}
-
-fn run_delta(raw: &str, width: u16) -> Option<String> {
-    let mut cmd = Command::new("delta");
-    cmd.args(["--side-by-side", "--paging=never", "--width"])
-        .arg(width.max(40).to_string())
-        .env("PATH", beagle_utils::process::augmented_path());
-    // Stdin is fed from a helper thread (no deadlock on a big diff); a
-    // delta that hangs past 10 s falls back to the plain view.
-    let out = beagle_utils::process::output_with_input_and_timeout(
-        &mut cmd,
-        raw.as_bytes(),
-        std::time::Duration::from_secs(10),
-    )
-    .ok()?;
-    out.status
-        .success()
-        .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
 /// The fallback: a unified diff, added green, removed red, hunks magenta.
