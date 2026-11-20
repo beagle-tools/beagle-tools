@@ -6,8 +6,8 @@ mod settings;
 mod state;
 
 use commands::{
-    agents, conflicts, files, github_write, mcp, merge, prs, review, settings_cmd, text_tools,
-    threads, updates, workspace,
+    agents, archive, conflicts, files, github_write, mcp, merge, prs, review, settings_cmd,
+    text_tools, threads, updates, workspace,
 };
 use state::AppState;
 
@@ -31,7 +31,7 @@ pub fn run() {
             // Startup housekeeping: purge archive entries past their
             // 3-day EST deadline (and their run dirs).
             if let Ok(mut cache) = state.cache.try_lock() {
-                if let Err(e) = commands::prs::purge_expired_data(&mut cache, &state.dirs)
+                if let Err(e) = commands::archive::purge_expired_data(&mut cache, &state.dirs)
                 {
                     tracing::warn!(error = %e, "startup purge failed");
                 }
@@ -61,12 +61,12 @@ pub fn run() {
             prs::get_pr_bundle,
             prs::sync_pr_bundle,
             prs::get_last_synced,
-            prs::list_archived_prs,
+            archive::list_archived_prs,
             prs::search_prs,
             prs::list_my_prs,
             prs::list_failing_checks,
             prs::list_pr_commits,
-            prs::forget_pr,
+            archive::forget_pr,
             prs::list_reviewed_prs,
             files::get_file_excerpt,
             review::list_local_comments,

@@ -347,3 +347,7 @@ mod tests;
 #[cfg(test)]
 #[path = "tests/parse_shape.rs"]
 mod tests_shape;
+
+#[cfg(test)]
+#[path = "tests/parse_lifecycle.rs"]
+mod tests_lifecycle;

@@ -367,3 +367,7 @@ fn section_template(kind: SectionKind, title: &str) -> String {
 #[cfg(test)]
 #[path = "tests/mutate.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tests/archive.rs"]
+mod archive_tests;
