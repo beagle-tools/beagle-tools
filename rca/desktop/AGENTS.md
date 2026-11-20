@@ -11,6 +11,10 @@ Rust backend (`src-tauri/`) does all disk access; the React frontend in
 `src/` only renders what it gets over IPC. It is a second renderer, not a
 second implementation — domain rules belong on the Rust side.
 
+It follows the store live, like the TUI: `src-tauri/src/watch.rs` watches
+`rcas/` and fires a debounced `workspaces-changed` event; `useIncidents`
+re-lists and re-reads the open section, and `DiagramView` its diagrams.
+
 ## Layout
 
 ```text

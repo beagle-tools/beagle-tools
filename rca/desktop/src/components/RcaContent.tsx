@@ -43,7 +43,11 @@ export function RcaContent({
         <>
           <TabBar activeFile={incidents.activeFile} onSelect={incidents.selectTab} />
           {incidents.activeFile === DIAGRAMS_TAB.file ? (
-            <DiagramView id={selected.id} onError={incidents.onError} />
+            <DiagramView
+              id={selected.id}
+              revision={incidents.revision}
+              onError={incidents.onError}
+            />
           ) : (
             <SectionView
               content={incidents.content}

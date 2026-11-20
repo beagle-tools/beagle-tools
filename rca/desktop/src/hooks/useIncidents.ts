@@ -1,10 +1,12 @@
 // Workspace data state: the listing, the selection, the active tab, and
 // the section content that follows them. App composes this with the
-// presentation-side hooks (theme, keybindings, filter).
+// presentation-side hooks (theme, keybindings, filter). It also follows the
+// store live: the backend's watcher fires `workspaces-changed` when a file
+// under rcas/ changes, and the listing and the open section re-read.
 
 import { useCallback, useEffect, useState } from "react";
 
-import { listWorkspaces, readSection } from "../api";
+import { listWorkspaces, onWorkspacesChanged, readSection } from "../api";
 import { DIAGRAMS_TAB, SECTIONS } from "../lib/sections";
 import type { Listing, Workspace } from "../types";
 
@@ -30,6 +32,8 @@ export interface Incidents {
   selectTab: (file: string) => void;
   content: string | null;
   loading: boolean;
+  /** Bumps on every live store change, for views that load their own data. */
+  revision: number;
 }
 
 export function useIncidents(): Incidents {
@@ -38,12 +42,18 @@ export function useIncidents(): Incidents {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeFile, setActiveFile] = useState<string>(FIRST_SECTION);
   const [section, setSection] = useState<LoadedSection | null>(null);
+  const [revision, setRevision] = useState(0);
 
   const reload = useCallback(() => {
     listWorkspaces()
       .then((result) => {
         setListing(result);
-        setSelectedId((current) => current ?? result.workspaces[0]?.id ?? null);
+        // Keep the selection unless it vanished (deleted on disk meanwhile).
+        setSelectedId((current) =>
+          current !== null && result.workspaces.some((w) => w.id === current)
+            ? current
+            : (result.workspaces[0]?.id ?? null),
+        );
       })
       .catch((cause: unknown) => {
         setError(String(cause));
@@ -52,6 +62,33 @@ export function useIncidents(): Incidents {
 
   useEffect(() => {
     reload();
+  }, [reload]);
+
+  // Live reload: re-list and bump the revision so the open section re-reads.
+  // The old content stays on screen until the new read lands (no flash).
+  useEffect(() => {
+    let cancelled = false;
+    let unlisten: (() => void) | null = null;
+    onWorkspacesChanged(() => {
+      reload();
+      setRevision((current) => current + 1);
+    })
+      .then((fn) => {
+        if (cancelled) {
+          fn();
+        } else {
+          unlisten = fn;
+        }
+      })
+      .catch(() => {
+        // No event stream: the view still loads, it just doesn't follow edits.
+      });
+    return () => {
+      cancelled = true;
+      if (unlisten !== null) {
+        unlisten();
+      }
+    };
   }, [reload]);
 
   useEffect(() => {
@@ -73,7 +110,7 @@ export function useIncidents(): Incidents {
     return () => {
       stale = true;
     };
-  }, [selectedId, activeFile]);
+  }, [selectedId, activeFile, revision]);
 
   const onSelect = useCallback((id: string) => {
     setSelectedId(id);
@@ -106,5 +143,6 @@ export function useIncidents(): Incidents {
     selectTab,
     content: current?.body ?? null,
     loading: selectedId !== null && current === null,
+    revision,
   };
 }

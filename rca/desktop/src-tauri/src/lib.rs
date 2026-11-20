@@ -3,14 +3,16 @@
 //! Modules: `dto` (the IPC contract, mirrored by `src/types.ts`), `commands`
 //! (the invoke surface), `error` (the typed command error, serialized as a
 //! plain message string), `agents` (the beagle-agentd control proxy + live
-//! status emitter), and `updates` (release listing + version install for the
-//! in-app updater). This file only assembles the app.
+//! status emitter), `updates` (release listing + version install for the
+//! in-app updater), and `watch` (live reload: the store watcher). This file
+//! only assembles the app.
 
 mod agents;
 mod commands;
 mod dto;
 mod error;
 mod updates;
+mod watch;
 
 /// Builds and runs the Tauri application.
 ///
@@ -29,6 +31,8 @@ pub fn run() {
                 .plugin(tauri_plugin_updater::Builder::new().build())?;
             // Stream live beagle-agentd status to the frontend for its lifetime.
             agents::spawn_status_emitter(app.handle().clone());
+            // Tell the frontend when RCA files change, so the view is live.
+            watch::spawn_store_watcher(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -60,6 +60,17 @@ export async function prStates(urls: string[]): Promise<Record<string, string>> 
   return invoke<Record<string, string>>("pr_states", { urls });
 }
 
+/**
+ * Subscribes to live store changes: the backend's watcher fires
+ * `workspaces-changed` (debounced) whenever a file under `rcas/` changes.
+ * Returns an unlisten function.
+ */
+export async function onWorkspacesChanged(handler: () => void): Promise<() => void> {
+  return listen("workspaces-changed", () => {
+    handler();
+  });
+}
+
 /** Opens a URL in the system browser. */
 export async function openInBrowser(url: string): Promise<void> {
   return openUrl(url);
