@@ -17,12 +17,13 @@ pub fn new_session(name: &str, cwd: &Path, script: &str) -> Result<()> {
     // Deliberately the daemon's own PATH (set by the launchd plist), not
     // `agent_core::tmux::command()`'s augmented one: the first new-session
     // starts the tmux server, and every run inherits that server's PATH.
-    let output = Command::new("tmux")
-        .args(["new-session", "-d", "-s", name, "-c"])
-        .arg(cwd)
-        .arg(command)
-        .output()
-        .context("failed to execute tmux")?;
+    let output = agent_core::tmux::output(
+        Command::new("tmux")
+            .args(["new-session", "-d", "-s", name, "-c"])
+            .arg(cwd)
+            .arg(command),
+    )
+    .context("failed to execute tmux")?;
     if !output.status.success() {
         bail!(
             "tmux new-session failed: {}",

@@ -7,6 +7,7 @@
 
 use std::fmt::Write as _;
 use std::process::Command;
+use std::time::Duration;
 
 use anyhow::{bail, Result};
 
@@ -57,6 +58,9 @@ pub fn parse_status(output: &str) -> McpStatus {
     }
 }
 
+/// Bound on one `claude mcp get` health check.
+const MCP_GET_TIMEOUT: Duration = Duration::from_secs(30);
+
 /// Refuse the run unless every server the job declares is connected.
 ///
 /// A missing `claude` binary is a warning, not a refusal: `agentctl` is
@@ -68,15 +72,21 @@ pub fn check_mcp(job: &str, servers: &[String]) -> Result<()> {
     }
     let mut bad: Vec<(String, McpStatus)> = Vec::new();
     for name in servers {
-        let Ok(output) = Command::new("claude").args(["mcp", "get", name]).output() else {
-            eprintln!("warning: claude is not on PATH — skipping the MCP preflight");
-            return Ok(());
-        };
-        let text = String::from_utf8_lossy(&output.stdout);
-        let status = if output.status.success() {
-            parse_status(&text)
-        } else {
-            McpStatus::Missing
+        let mut cmd = Command::new("claude");
+        cmd.args(["mcp", "get", name]);
+        let status = match beagle_utils::process::output_with_timeout(&mut cmd, MCP_GET_TIMEOUT) {
+            Ok(output) if output.status.success() => {
+                parse_status(&String::from_utf8_lossy(&output.stdout))
+            }
+            Ok(_) => McpStatus::Missing,
+            // A hung health check counts as unreachable rather than blocking.
+            Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
+                McpStatus::Failed(format!("{e} — is the server reachable?"))
+            }
+            Err(_) => {
+                eprintln!("warning: claude is not on PATH — skipping the MCP preflight");
+                return Ok(());
+            }
         };
         if status != McpStatus::Connected {
             bad.push((name.clone(), status));

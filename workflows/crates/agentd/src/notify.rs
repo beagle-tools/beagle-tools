@@ -10,11 +10,13 @@
 //!   `off` still silences everything.
 
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
+use std::time::Duration;
 
 use agent_core::paths;
 use agent_core::types::{AgentSpec, NotifyPolicy, Run, RunState};
 use beagle_utils::notify::applescript_escape as escape;
+use beagle_utils::process::spawn_bounded;
 use chrono::Utc;
 use tracing::debug;
 
@@ -121,6 +123,9 @@ fn human_secs(secs: i64) -> String {
     }
 }
 
+/// Bound on a notifier child (terminal-notifier or osascript).
+const NOTIFY_TIMEOUT: Duration = Duration::from_secs(10);
+
 /// Fire-and-forget delivery; failures are logged at debug and ignored.
 /// The icon IS the sending app: `scripts/build-notifier.sh` builds one
 /// branded notifier app per image in `assets/notify/`, and the run's icon
@@ -131,12 +136,13 @@ fn send(subtitle: &str, message: &str, sound: &str, icon: Option<&Path>) {
         osascript_fallback(subtitle, message, sound);
         return;
     };
-    let spawned = Command::new(notifier)
-        .args(["-title", TITLE, "-subtitle", subtitle, "-message", message])
-        .args(["-sound", sound, "-group", &format!("{TITLE}-{subtitle}")])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn();
+    // Bounded: a stuck notifier is killed and reaped after 10 s.
+    let spawned = spawn_bounded(
+        Command::new(notifier)
+            .args(["-title", TITLE, "-subtitle", subtitle, "-message", message])
+            .args(["-sound", sound, "-group", &format!("{TITLE}-{subtitle}")]),
+        NOTIFY_TIMEOUT,
+    );
     if spawned.is_err() {
         osascript_fallback(subtitle, message, sound);
     }
@@ -166,12 +172,10 @@ fn osascript_fallback(subtitle: &str, message: &str, sound: &str) {
         escape(message),
         escape(subtitle)
     );
-    if let Err(e) = Command::new("osascript")
-        .args(["-e", &script])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-    {
+    if let Err(e) = spawn_bounded(
+        Command::new("osascript").args(["-e", &script]),
+        NOTIFY_TIMEOUT,
+    ) {
         debug!(error = %e, "notification delivery failed");
     }
 }

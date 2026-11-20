@@ -8,6 +8,9 @@ use ratatui::DefaultTerminal;
 use crate::app::App;
 use crate::tmux;
 
+/// Bound on `open` (it hands off to the browser and returns at once).
+pub(crate) const OPEN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+
 /// `y` — put the highlighted link on the clipboard. For a markdown path that
 /// is the point: paste it at another agent and it can read the write-up.
 pub(crate) fn copy_selected_link(app: &mut App) {
@@ -46,10 +49,11 @@ pub(crate) fn open_selected_link(terminal: &mut DefaultTerminal, app: &mut App) 
         }
         return Ok(());
     }
-    let ok = std::process::Command::new("open")
-        .arg(&target)
-        .status()
-        .is_ok_and(|s| s.success());
+    let ok = beagle_utils::process::output_with_timeout(
+        std::process::Command::new("open").arg(&target),
+        OPEN_TIMEOUT,
+    )
+    .is_ok_and(|o| o.status.success());
     let msg = if ok {
         format!("opened {target}")
     } else {
@@ -72,18 +76,14 @@ pub(crate) fn copy_log_view(app: &mut App) {
 
 /// Pipe text into the system clipboard (`pbcopy` on macOS).
 pub(crate) fn copy_to_clipboard(text: &str) -> Result<()> {
-    use std::io::Write as _;
-    let mut child = std::process::Command::new("pbcopy")
-        .stdin(std::process::Stdio::piped())
-        .spawn()
-        .context("spawn pbcopy")?;
-    if let Some(stdin) = child.stdin.as_mut() {
-        stdin
-            .write_all(text.as_bytes())
-            .context("write to pbcopy")?;
-    }
-    let status = child.wait().context("wait for pbcopy")?;
-    anyhow::ensure!(status.success(), "pbcopy exited with {status}");
+    // Bounded so a stuck pbcopy can't freeze the TUI.
+    let out = beagle_utils::process::output_with_input_and_timeout(
+        &mut std::process::Command::new("pbcopy"),
+        text.as_bytes(),
+        std::time::Duration::from_secs(5),
+    )
+    .context("run pbcopy")?;
+    anyhow::ensure!(out.status.success(), "pbcopy exited with {}", out.status);
     Ok(())
 }
 

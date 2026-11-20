@@ -11,6 +11,7 @@ use agent_core::state::Store;
 use agent_core::types::{AgentSpec, Run, RunState};
 use agent_core::{ids, paths};
 use anyhow::Result;
+use beagle_utils::process::output_with_timeout;
 use chrono::{Duration, Utc};
 use tracing::{info, warn};
 
@@ -21,6 +22,10 @@ const EXIT_MARKER: &str = "__AGENTD_EXIT__:";
 /// Event payloads are capped at this many bytes.
 /// How many bytes of log tail to scan for the exit marker.
 const TAIL_BYTES: u64 = 4096;
+
+/// Bound on a local repo query or worktree removal: a hang must never
+/// wedge the daemon tick.
+const GIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 /// Timeout applied when a run's agent spec has been deleted mid-flight.
 const FALLBACK_TIMEOUT_MINUTES: u64 = 30;
 
@@ -198,38 +203,42 @@ fn record_repos(store: &Store, run: &Run) {
 
 /// A checkout's current branch; `None` when detached or gone.
 fn current_branch(path: &Path) -> Option<String> {
-    Command::new("git")
-        .arg("-C")
-        .arg(path)
-        .args(["symbolic-ref", "--short", "-q", "HEAD"])
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_owned())
-        .filter(|s| !s.is_empty())
+    output_with_timeout(
+        Command::new("git")
+            .arg("-C")
+            .arg(path)
+            .args(["symbolic-ref", "--short", "-q", "HEAD"]),
+        GIT_TIMEOUT,
+    )
+    .ok()
+    .filter(|o| o.status.success())
+    .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_owned())
+    .filter(|s| !s.is_empty())
 }
 
 /// `owner/name` of a checkout from its origin remote; the path itself when
 /// it has none (or is gone — a removed worktree): its folder still says
 /// which repo it was.
 fn local_repo_name(path: &Path) -> String {
-    Command::new("git")
-        .arg("-C")
-        .arg(path)
-        .args(["remote", "get-url", "origin"])
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .map(|o| {
-            String::from_utf8_lossy(&o.stdout)
-                .trim()
-                .trim_start_matches("git@github.com:")
-                .trim_start_matches("https://github.com/")
-                .trim_end_matches(".git")
-                .to_owned()
-        })
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| path.display().to_string())
+    output_with_timeout(
+        Command::new("git")
+            .arg("-C")
+            .arg(path)
+            .args(["remote", "get-url", "origin"]),
+        GIT_TIMEOUT,
+    )
+    .ok()
+    .filter(|o| o.status.success())
+    .map(|o| {
+        String::from_utf8_lossy(&o.stdout)
+            .trim()
+            .trim_start_matches("git@github.com:")
+            .trim_start_matches("https://github.com/")
+            .trim_end_matches(".git")
+            .to_owned()
+    })
+    .filter(|s| !s.is_empty())
+    .unwrap_or_else(|| path.display().to_string())
 }
 
 /// Where ingestion should start for a run first seen by this daemon process:
@@ -352,13 +361,15 @@ fn cleanup_worktree(store: &Store, run: &Run, spec: Option<&AgentSpec>) -> Resul
         return Ok(());
     }
     let removed = spec.is_some_and(|spec| {
-        Command::new("git")
-            .arg("-C")
-            .arg(&spec.workdir)
-            .args(["worktree", "remove"])
-            .arg(workdir)
-            .output()
-            .is_ok_and(|out| out.status.success())
+        output_with_timeout(
+            Command::new("git")
+                .arg("-C")
+                .arg(&spec.workdir)
+                .args(["worktree", "remove"])
+                .arg(workdir),
+            GIT_TIMEOUT,
+        )
+        .is_ok_and(|out| out.status.success())
     });
     if !removed {
         let note = format!("worktree kept (dirty): {}", workdir.display());
