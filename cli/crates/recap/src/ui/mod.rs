@@ -378,5 +378,8 @@ mod tests_comments;
 #[path = "../tests/ui_keymap.rs"]
 mod tests_keymap;
 #[cfg(test)]
+#[path = "../tests/ui_keys.rs"]
+mod tests_keys;
+#[cfg(test)]
 #[path = "../tests/ui_status.rs"]
 mod tests_status;

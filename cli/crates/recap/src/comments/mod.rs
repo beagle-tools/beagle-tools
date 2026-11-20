@@ -203,3 +203,6 @@ pub fn open_only(threads: Vec<Thread>) -> Vec<Thread> {
 #[cfg(test)]
 #[path = "../tests/comments.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "../tests/comments_local.rs"]
+mod tests_local;
