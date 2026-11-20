@@ -13,13 +13,13 @@ the TUI is how it explains itself.
 │ HIGH  Payments API p99… ││ ● review · HIGH · payments-api, redis-sess…      │
 │  ◐ review               ││                                                  │
 │ CRIT  Ledger export st… ││ 1 Summary·2 Timeline·3 Root Cause·4 Impact·5 Fix │
-│  ● investigating        ││ ·6 Diagrams·7 Notes                              │
+│  ● investigating        ││ ·6 Final Review·7 Diagrams·8 Notes·9 Log         │
 │ LOW   Cron drift on ba… ││ ┌ Root Cause ───────────────────────────────────┐│
 │  ✔ finished             ││ │ Causal chain, symptom → root                  ││
 │                         ││ │  1. checkout requests time out (ELB 504)      ││
 │                         ││ │  2. handlers block waiting for a free Redis…  ││
 └─────────────────────────┘└──────────────────────────────────────────────────┘
-  j/k select · enter open · tab/1-7 tabs · r reload · ? help · q quit
+  j/k select · enter open · tab/1-9 tabs · r reload · ? help · q quit
 ```
 
 ## How it works
@@ -34,7 +34,9 @@ the TUI is how it explains itself.
    re-renders live as the investigation is written — no refresh needed.
 
 Every RCA gets nine tabs: **Summary · Timeline · Root Cause · Impact · Fix ·
-Final Review · Diagrams · Notes · Log**. The Log tab is the live investigation stream — the
+Final Review · Diagrams · Notes · Log**, plus an opt-in **Commands** tab
+(after Fix) once the workspace has a `commands.md` — the TUI and the desktop
+app both show it only then. The Log tab is the live investigation stream — the
 agent appends a timestamped line at every step (`beagle rca log <slug> "..."`),
 and `f` (follow mode) keeps the tab pinned to the newest line, tail-f style.
 Tabs whose files changed since you last looked get a `●` marker, workspaces
@@ -316,6 +318,6 @@ contribution workflow is in [`../CONTRIBUTING.md`](../CONTRIBUTING.md).
 
 ## License & maintainer
 
-MIT — see [`LICENSE`](LICENSE). Maintained by
+Apache-2.0 — see [`LICENSE`](../LICENSE). Maintained by
 [Matthew Myrick](https://github.com/matthewmyrick); issues and PRs welcome
 (read the contributing guide first).

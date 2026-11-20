@@ -14,6 +14,7 @@ function workspace(overrides: Partial<Workspace>): Workspace {
     tags: [],
     prs: [],
     archived: false,
+    has_commands: false,
     ...overrides,
   };
 }

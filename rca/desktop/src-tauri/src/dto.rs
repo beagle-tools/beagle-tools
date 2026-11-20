@@ -21,6 +21,10 @@ pub struct Workspace {
     pub tags: Vec<String>,
     pub prs: Vec<String>,
     pub archived: bool,
+    /// Whether the workspace has the opt-in `commands.md`, so the
+    /// frontend shows its tab (as the TUI does). `From` leaves it `false`;
+    /// `list_workspaces` fills it in from the store.
+    pub has_commands: bool,
 }
 
 impl From<&beagle::model::RcaSummary> for Workspace {
@@ -35,6 +39,7 @@ impl From<&beagle::model::RcaSummary> for Workspace {
             tags: rca.meta.tags.clone(),
             prs: rca.meta.prs.clone(),
             archived: rca.archived,
+            has_commands: false,
         }
     }
 }

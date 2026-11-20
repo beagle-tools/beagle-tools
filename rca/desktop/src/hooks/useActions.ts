@@ -4,7 +4,7 @@
 import { useCallback } from "react";
 import type { RefObject } from "react";
 
-import { cycleTab, TABS } from "../lib/sections";
+import { cycleTab, tabsFor } from "../lib/sections";
 import type { Action } from "../lib/keys";
 import type { Workspace } from "../types";
 
@@ -35,6 +35,8 @@ export function useActions(context: ActionContext): (action: Action, tabIndex?: 
 
   return useCallback(
     (action: Action, tabIndex?: number) => {
+      const selected = visible.find((w) => w.id === selectedId);
+      const tabs = tabsFor(selected?.has_commands === true);
       switch (action) {
         case "next-incident":
         case "previous-incident": {
@@ -47,13 +49,13 @@ export function useActions(context: ActionContext): (action: Action, tabIndex?: 
           break;
         }
         case "next-tab":
-          setActiveFile((current) => cycleTab(current, 1));
+          setActiveFile((current) => cycleTab(current, 1, tabs));
           break;
         case "previous-tab":
-          setActiveFile((current) => cycleTab(current, -1));
+          setActiveFile((current) => cycleTab(current, -1, tabs));
           break;
         case "jump-tab": {
-          const tab = tabIndex === undefined ? undefined : TABS[tabIndex];
+          const tab = tabIndex === undefined ? undefined : tabs[tabIndex];
           if (tab !== undefined) {
             setActiveFile(() => tab.file);
           }

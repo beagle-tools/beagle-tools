@@ -5,7 +5,7 @@
 import type { JSX } from "react";
 
 import type { Incidents } from "../hooks/useIncidents";
-import { DIAGRAMS_TAB } from "../lib/sections";
+import { DIAGRAMS_TAB, tabsFor } from "../lib/sections";
 import type { Theme } from "../lib/theme";
 import type { Workspace } from "../types";
 import { DiagramView } from "./DiagramView";
@@ -41,7 +41,11 @@ export function RcaContent({
       />
       {selected !== null ? (
         <>
-          <TabBar activeFile={incidents.activeFile} onSelect={incidents.selectTab} />
+          <TabBar
+            tabs={tabsFor(selected.has_commands)}
+            activeFile={incidents.activeFile}
+            onSelect={incidents.selectTab}
+          />
           {incidents.activeFile === DIAGRAMS_TAB.file ? (
             <DiagramView
               id={selected.id}

@@ -4,7 +4,7 @@ version = "0.29.0"
 edition = "2021"
 rust-version = "1.79"
 description = "The always-on daemon that hosts beagle's agent engine."
-license = "MIT"
+license = "Apache-2.0"
 repository = "https://github.com/beagle-tools/beagle-tools"
 
 [[bin]]

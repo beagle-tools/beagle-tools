@@ -6,10 +6,10 @@
 - [x] GitHub read-only client (gh CLI / PAT / GHES base URL)
 - [x] SQLite cache-first data flow with visible sync state
 - [x] Structured differ with inline local comments
-- [x] Agent runs: headless claude / codex / custom command, live JSONL
-      event feed, tandem_comment contract, triage workflow
+- [x] Agent runs: headless claude / codex / grok / custom command, live
+      JSONL event feed, tandem_comment contract, triage workflow
 - [ ] Comment anchors survive force-pushes (re-anchor by hunk context)
-- [ ] Syntax highlighting in the differ
+- [x] Syntax highlighting in the differ
 - [ ] Split (side-by-side) diff view
 - [ ] OAuth device-flow auth (alongside gh CLI and PAT)
 - [ ] PAT/API keys in OS keychain instead of settings file
