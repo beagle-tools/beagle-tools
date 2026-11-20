@@ -20,7 +20,9 @@ use std::time::Duration;
 
 mod timeout;
 
-pub use timeout::{output_with_input_and_timeout, output_with_timeout};
+pub use timeout::{
+    output_with_input_and_timeout, output_with_timeout, spawn_bounded, status_with_timeout,
+};
 
 /// How long the one-time login-shell PATH probe may take. A shell rc that
 /// blocks (a prompt, a slow network mount) must not stall the first spawn.

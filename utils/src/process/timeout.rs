@@ -1,7 +1,7 @@
 //! Bounded child processes: [`Command::output`] with a deadline.
 
 use std::io::{self, Read, Write as _};
-use std::process::{Child, Command, Output, Stdio};
+use std::process::{Child, Command, ExitStatus, Output, Stdio};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -41,6 +41,44 @@ pub fn output_with_input_and_timeout(
     run(cmd, Some(input.to_vec()), timeout)
 }
 
+/// Runs `cmd` like [`Command::status`] (stdio inherited, so the user sees
+/// its progress), but kills and reaps it after `timeout` and returns
+/// [`io::ErrorKind::TimedOut`]. For long, visible commands such as
+/// `brew upgrade`.
+pub fn status_with_timeout(cmd: &mut Command, timeout: Duration) -> io::Result<ExitStatus> {
+    let label = label(cmd);
+    let mut child = cmd.spawn()?;
+    if let Some(status) = wait_until(&mut child, Instant::now() + timeout)? {
+        return Ok(status);
+    }
+    let _ = child.kill();
+    let _ = child.wait();
+    Err(timed_out(&label, timeout))
+}
+
+/// Starts `cmd` fire-and-forget (all stdio null) and returns at once. A
+/// detached watcher thread reaps it, killing it first if it is still
+/// running after `timeout`, so a stuck notifier never lingers or leaves a
+/// zombie. Should the calling process exit first, the child simply
+/// outlives it.
+///
+/// # Errors
+/// Only a spawn failure; how the child ends is not reported.
+pub fn spawn_bounded(cmd: &mut Command, timeout: Duration) -> io::Result<()> {
+    let mut child = cmd
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()?;
+    thread::spawn(move || {
+        if matches!(wait_until(&mut child, Instant::now() + timeout), Ok(None)) {
+            let _ = child.kill();
+        }
+        let _ = child.wait();
+    });
+    Ok(())
+}
+
 fn run(cmd: &mut Command, input: Option<Vec<u8>>, timeout: Duration) -> io::Result<Output> {
     let label = label(cmd);
     let deadline = Instant::now() + timeout;
@@ -78,10 +116,7 @@ fn run(cmd: &mut Command, input: Option<Vec<u8>>, timeout: Duration) -> io::Resu
 
 /// Polls `child` until it exits (`Some(status)`) or `deadline` passes
 /// (`None`).
-fn wait_until(
-    child: &mut Child,
-    deadline: Instant,
-) -> io::Result<Option<std::process::ExitStatus>> {
+fn wait_until(child: &mut Child, deadline: Instant) -> io::Result<Option<ExitStatus>> {
     let mut poll = Duration::from_millis(1);
     loop {
         if let Some(status) = child.try_wait()? {
@@ -229,6 +264,40 @@ mod tests {
         assert!(out.status.success());
         assert_eq!(out.stdout.len(), 1_000_000);
         assert_eq!(out.stderr.len(), 500_000);
+    }
+
+    #[test]
+    fn status_with_timeout_reports_exit_and_timeout() {
+        let status = status_with_timeout(
+            Command::new("sh").args(["-c", "exit 4"]),
+            Duration::from_secs(10),
+        )
+        .unwrap();
+        assert_eq!(status.code(), Some(4));
+        let start = Instant::now();
+        let err = status_with_timeout(Command::new("sleep").arg("5"), Duration::from_millis(200))
+            .unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::TimedOut);
+        assert!(start.elapsed() < Duration::from_secs(2));
+    }
+
+    #[test]
+    fn spawn_bounded_returns_at_once_and_kills_late_children() {
+        let dir = tempfile::tempdir().unwrap();
+        let marker = dir.path().join("done");
+        let start = Instant::now();
+        spawn_bounded(
+            Command::new("sh")
+                .arg("-c")
+                .arg("sleep 2; touch \"$1\"")
+                .arg("sh")
+                .arg(&marker),
+            Duration::from_millis(200),
+        )
+        .unwrap();
+        assert!(start.elapsed() < Duration::from_secs(1));
+        thread::sleep(Duration::from_millis(2500));
+        assert!(!marker.exists(), "the child should have been killed");
     }
 
     #[test]
