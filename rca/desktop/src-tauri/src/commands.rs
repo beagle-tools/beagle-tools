@@ -30,7 +30,7 @@ fn effective_root() -> Result<PathBuf> {
     Ok(beagle::store::discover_root(&cwd))
 }
 
-fn open_store() -> Result<Store> {
+pub(crate) fn open_store() -> Result<Store> {
     Ok(Store::open(&effective_root()?)?)
 }
 

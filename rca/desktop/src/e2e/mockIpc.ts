@@ -4,8 +4,11 @@
 //
 // Specs steer it through `window.__BEAGLE_E2E__` (set with
 // page.addInitScript before the app boots), e.g. `{ update: "0.30.0" }` to
-// make the updater report a newer release.
+// make the updater report a newer release. `window.__beagleE2eWrite` stands
+// in for an agent writing a section file: it changes the fixture and fires
+// the backend watcher's `workspaces-changed` event.
 
+import { emit } from "@tauri-apps/api/event";
 import { mockIPC } from "@tauri-apps/api/mocks";
 
 import { AGENTS, CORPUS, DIAGRAMS, LISTING, PR_URL, RELEASES, SECTIONS } from "./fixtures";
@@ -19,6 +22,7 @@ export interface E2eOptions {
 declare global {
   interface Window {
     __BEAGLE_E2E__?: E2eOptions;
+    __beagleE2eWrite?: (id: string, file: string, body: string) => Promise<void>;
   }
 }
 
@@ -78,4 +82,8 @@ function handle(cmd: string, payload: unknown): unknown {
 /** Installs the IPC mock. Call before React renders. */
 export function installMockIpc(): void {
   mockIPC(handle, { shouldMockEvents: true });
+  window.__beagleE2eWrite = async (id, file, body) => {
+    SECTIONS[id] = { ...SECTIONS[id], [file]: body };
+    await emit("workspaces-changed");
+  };
 }

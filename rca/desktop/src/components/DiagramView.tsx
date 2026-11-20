@@ -1,7 +1,7 @@
 // The Diagrams tab: one diagram at a time, prev/next cycling, rendered
 // unwrapped in a horizontally scrollable pre so ASCII alignment survives.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 
 import { listDiagrams, readDiagram } from "../api";
@@ -9,6 +9,8 @@ import { ansiToHtml } from "../lib/ansi";
 
 interface DiagramViewProps {
   id: string;
+  /** Bumps when the store changes on disk; re-reads the diagrams. */
+  revision: number;
   onError: (message: string) => void;
 }
 
@@ -19,18 +21,23 @@ interface LoadedDiagram {
   body: string | null;
 }
 
-export function DiagramView({ id, onError }: DiagramViewProps): JSX.Element {
+export function DiagramView({ id, revision, onError }: DiagramViewProps): JSX.Element {
   const [names, setNames] = useState<string[] | null>(null);
   const [index, setIndex] = useState(0);
   const [diagram, setDiagram] = useState<LoadedDiagram | null>(null);
+  // The workspace the names were last listed for: a live reload of the same
+  // workspace keeps the diagram on screen; a new workspace starts at the first.
+  const listedId = useRef<string | null>(null);
 
   useEffect(() => {
     let stale = false;
     listDiagrams(id)
       .then((result) => {
         if (!stale) {
+          const same = listedId.current === id;
+          listedId.current = id;
           setNames(result);
-          setIndex(0);
+          setIndex((current) => (same && current < result.length ? current : 0));
         }
       })
       .catch((cause: unknown) => {
@@ -39,7 +46,7 @@ export function DiagramView({ id, onError }: DiagramViewProps): JSX.Element {
     return () => {
       stale = true;
     };
-  }, [id, onError]);
+  }, [id, revision, onError]);
 
   const name = names?.[index] ?? null;
 
@@ -60,7 +67,7 @@ export function DiagramView({ id, onError }: DiagramViewProps): JSX.Element {
     return () => {
       stale = true;
     };
-  }, [id, name, onError]);
+  }, [id, name, revision, onError]);
 
   if (names === null) {
     return <div className="section-hint">loading…</div>;
