@@ -21,7 +21,9 @@ beagle-scout = { path = "crates/scout" }
 beagle-serve = { path = "crates/serve" }
 beagle-standup = { path = "crates/standup" }
 beagle-tui = { path = "../utils/tui" }
+tandem-cache = { path = "../tandem/crates/tandem-cache" }
 tandem-cli = { path = "../tandem/crates/tandem-cli" }
+tandem-tui = { path = "../tandem/crates/tandem-tui" }
 crossterm = "0.28"
 notify = "7"
 ratatui = { version = "0.29", features = ["unstable-rendered-line-info"] }

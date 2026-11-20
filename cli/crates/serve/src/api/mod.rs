@@ -5,6 +5,7 @@ pub mod rca;
 pub mod recap;
 pub mod scout;
 pub mod standup;
+pub mod tandem;
 
 use std::path::Path;
 use std::time::SystemTime;

@@ -21,6 +21,8 @@ pub struct Stores {
     pub recap: Source,
     /// `beagle standup`'s store root (the directory holding `standups/`).
     pub standup: Source,
+    /// The Tandem review TUI's store: the SQLite file itself.
+    pub tandem: Source,
 }
 
 impl Stores {
@@ -32,6 +34,7 @@ impl Stores {
             rca: beagle_rca::effective_root(None).map_err(|e| e.to_string()),
             recap: ::recap::config::root_for(None).map_err(|e| e.to_string()),
             standup: ::standup::config::root_for(None).map_err(|e| e.to_string()),
+            tandem: tandem_tui::read::store_path().map_err(|e| e.to_string()),
         }
     }
 
@@ -43,6 +46,7 @@ impl Stores {
             ("rca", &self.rca),
             ("recap", &self.recap),
             ("standup", &self.standup),
+            ("tandem", &self.tandem),
         ]
         .into_iter()
         .map(|(tool, source)| match source {

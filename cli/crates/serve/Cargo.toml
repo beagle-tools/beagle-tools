@@ -19,11 +19,13 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 rustls-pki-types = { version = "1", features = ["std"] }
 serde.workspace = true
 serde_json.workspace = true
+tandem-tui.workspace = true
 thiserror.workspace = true
 time.workspace = true
 toml.workspace = true
 
 [dev-dependencies]
+tandem-cache.workspace = true
 tempfile.workspace = true
 
 [lints]
