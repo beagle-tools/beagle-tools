@@ -8,6 +8,7 @@
 //! some queryability for schema flexibility, which is the right call
 //! while the domain types are still moving.
 
+mod agent_env;
 mod archive;
 mod queue;
 mod review_store;

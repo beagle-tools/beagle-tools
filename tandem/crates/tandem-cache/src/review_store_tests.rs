@@ -76,3 +76,77 @@ fn missing_comment_errors() {
         .set_comment_status("nope", CommentStatus::Resolved)
         .is_err());
 }
+
+fn spec_with_env(name: &str) -> tandem_core::agent::AgentSpec {
+    serde_json::from_value(serde_json::json!({
+        "name": name,
+        "runner": {"kind": "claude_headless"},
+        "auth": {"kind": "cli_session"},
+        "prompt": "review",
+        "env": {"API_KEY": "secret-value"},
+        "timeout_minutes": 30
+    }))
+    .unwrap()
+}
+
+fn raw_row(cache: &Cache, name: &str) -> String {
+    cache
+        .conn
+        .query_row(
+            "SELECT json FROM agent_specs WHERE name = ?1",
+            rusqlite::params![name],
+            |r| r.get(0),
+        )
+        .unwrap()
+}
+
+#[test]
+fn agent_env_never_reaches_the_db_but_reads_back() {
+    let cache = Cache::open_in_memory().unwrap();
+    cache.put_agent_spec(&spec_with_env("a")).unwrap();
+    assert!(!raw_row(&cache, "a").contains("secret-value"));
+    let got = cache.list_agent_specs().unwrap();
+    assert_eq!(
+        got[0].env.get("API_KEY").map(String::as_str),
+        Some("secret-value")
+    );
+    cache.delete_agent_spec("a").unwrap();
+    assert!(cache.env_store.get("a").unwrap().is_empty());
+}
+
+#[test]
+fn a_legacy_row_with_env_is_moved_out_on_first_read() {
+    let cache = Cache::open_in_memory().unwrap();
+    let legacy = serde_json::to_string(&spec_with_env("old")).unwrap();
+    cache
+        .conn
+        .execute(
+            "INSERT INTO agent_specs (name, json) VALUES ('old', ?1)",
+            rusqlite::params![legacy],
+        )
+        .unwrap();
+    let got = cache.list_agent_specs().unwrap();
+    assert_eq!(
+        got[0].env.get("API_KEY").map(String::as_str),
+        Some("secret-value")
+    );
+    assert!(!raw_row(&cache, "old").contains("secret-value"));
+}
+
+#[test]
+fn the_env_file_is_private() {
+    let dir = std::env::temp_dir().join(format!("tandem-env-{}", std::process::id()));
+    let cache = Cache::open(&dir.join("cache.sqlite3")).unwrap();
+    cache.put_agent_spec(&spec_with_env("a")).unwrap();
+    let file = dir.join("agent-env.json");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = std::fs::metadata(&file).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
+    }
+    assert!(std::fs::read_to_string(&file)
+        .unwrap()
+        .contains("secret-value"));
+    let _ = std::fs::remove_dir_all(&dir);
+}

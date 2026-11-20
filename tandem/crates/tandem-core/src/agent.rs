@@ -68,8 +68,8 @@ pub struct AgentSpec {
     pub append_system_prompt: Option<String>,
     /// The review instructions (what to look for, tone, severity bar).
     pub prompt: String,
-    /// Extra environment for the process. Values live in the OS keychain /
-    /// env files, never in the cache DB.
+    /// Extra environment for the process. The cache keeps these out of the
+    /// DB, in `agent-env.json` (0600) beside it (`tandem-cache::agent_env`).
     #[serde(default)]
     pub env: BTreeMap<String, String>,
     /// Network endpoints the agent may reach. Unenforced in v1 (local

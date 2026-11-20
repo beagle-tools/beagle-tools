@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 use tandem_core::{Result, TandemError};
 use tokio::process::Command;
 
-/// How Tandem obtains a GitHub token.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// How Tandem obtains a GitHub token. `Debug` never prints the token.
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind")]
 pub enum GithubAuth {
     /// Shell out to `gh auth token` — reuses the user's existing CLI login.
@@ -23,6 +23,16 @@ pub enum GithubAuth {
     },
     /// No auth — public repos only, heavily rate limited.
     Anonymous,
+}
+
+impl std::fmt::Debug for GithubAuth {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::GhCli => f.write_str("GhCli"),
+            Self::Token { .. } => f.write_str("Token { token: <redacted> }"),
+            Self::Anonymous => f.write_str("Anonymous"),
+        }
+    }
 }
 
 /// Which GitHub to talk to, and how to authenticate with it.
