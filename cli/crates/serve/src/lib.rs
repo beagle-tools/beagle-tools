@@ -11,7 +11,8 @@
 //! ```text
 //! run ──▶ cli
 //!  └──▶ server ──▶ router ──▶ api::*  (each tool through its own crate)
-//!         │          └──▶ auth
+//!         │          ├──▶ auth
+//!         │          └──▶ stores (each tool's root, resolved once)
 //!         ├──▶ http   (request head parsing, responses)
 //!         └──▶ tls    (rustls from the tailscale cert)
 //! config, tailscale: read by run
@@ -30,6 +31,7 @@ pub mod http;
 pub mod router;
 mod run;
 pub mod server;
+pub mod stores;
 pub mod tailscale;
 pub mod tls;
 

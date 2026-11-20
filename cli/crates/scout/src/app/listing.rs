@@ -38,22 +38,7 @@ pub(super) fn list(store: &Store, json: bool) -> Result<()> {
         eprintln!("warning: {warning}");
     }
     if json {
-        let rows: Vec<_> = listing
-            .projects
-            .iter()
-            .map(|p| {
-                serde_json::json!({
-                    "id": p.id.as_str(),
-                    "title": p.meta.title,
-                    "status": p.meta.status.as_str(),
-                    "tasks_closed": p.closed_count(),
-                    "tasks_total": p.tasks.len(),
-                    "working": p.working().map(|t| t.id.as_str()).collect::<Vec<_>>(),
-                    "links": p.meta.links,
-                    "dir": p.dir,
-                })
-            })
-            .collect();
+        let rows: Vec<_> = listing.projects.iter().map(Project::list_json).collect();
         println!("{}", serde_json::to_string_pretty(&rows)?);
         return Ok(());
     }

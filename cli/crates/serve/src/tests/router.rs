@@ -8,7 +8,14 @@ use super::*;
 pub(crate) const TOKEN: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 fn ctx() -> Ctx {
-    Ctx::new(Token::parse(TOKEN).unwrap())
+    Ctx::new(Token::parse(TOKEN).unwrap(), unavailable())
+}
+
+/// Stores that all fail to resolve, for tests that never reach one.
+pub(crate) fn unavailable() -> Stores {
+    Stores {
+        scout: Err("none in tests".into()),
+    }
 }
 
 fn bearer() -> String {
@@ -61,4 +68,14 @@ fn writes_are_405_even_without_a_token() {
     let r = handle(&ctx(), &req);
     assert_eq!(r.status, 405);
     assert_eq!(r.body["error"]["code"], "method_not_allowed");
+}
+
+#[test]
+fn an_unresolved_store_is_500_with_the_reason() {
+    let r = handle(&ctx(), &Request::get("/v1/scout/projects", Some(&bearer())));
+    assert_eq!(r.status, 500);
+    assert_eq!(
+        r.body["error"]["message"],
+        "scout store unavailable: none in tests"
+    );
 }

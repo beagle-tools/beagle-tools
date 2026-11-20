@@ -6,18 +6,20 @@
 use crate::api;
 use crate::auth::Token;
 use crate::http::{Method, Request, Response};
+use crate::stores::Stores;
 
-/// Everything a request needs: the token it must carry.
+/// Everything a request needs: the token it must carry, and the stores.
 #[derive(Debug)]
 pub struct Ctx {
     token: Token,
+    stores: Stores,
 }
 
 impl Ctx {
-    /// A context accepting `token`.
+    /// A context accepting `token`, serving `stores`.
     #[must_use]
-    pub fn new(token: Token) -> Self {
-        Self { token }
+    pub fn new(token: Token, stores: Stores) -> Self {
+        Self { token, stores }
     }
 }
 
@@ -52,6 +54,8 @@ pub fn handle(ctx: &Ctx, req: &Request) -> Response {
     }
     let result = match segments.as_slice() {
         ["v1", "version"] => Ok(api::version()),
+        ["v1", "scout", rest @ ..] => api::root("scout", &ctx.stores.scout)
+            .and_then(|root| api::scout::route(root, rest, req)),
         _ => Err(api::ApiError::not_found(format!(
             "no endpoint {}",
             req.path
@@ -65,4 +69,4 @@ pub fn handle(ctx: &Ctx, req: &Request) -> Response {
 
 #[cfg(test)]
 #[path = "tests/router.rs"]
-mod tests;
+pub(crate) mod tests;

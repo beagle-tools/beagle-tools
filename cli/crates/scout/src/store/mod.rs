@@ -258,6 +258,22 @@ impl Project {
         })
     }
 
+    /// The project as one row of `beagle scout list --json` (`beagle
+    /// serve` answers the same row, so both views always agree).
+    #[must_use]
+    pub fn list_json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "id": self.id.as_str(),
+            "title": self.meta.title,
+            "status": self.meta.status.as_str(),
+            "tasks_closed": self.closed_count(),
+            "tasks_total": self.tasks.len(),
+            "working": self.working().map(|t| t.id.as_str()).collect::<Vec<_>>(),
+            "links": self.meta.links,
+            "dir": self.dir,
+        })
+    }
+
     /// The first paragraph of the `## Goal` section, flattened to one line.
     #[must_use]
     pub fn goal(&self) -> Option<String> {
