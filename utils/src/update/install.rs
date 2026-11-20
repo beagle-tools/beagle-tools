@@ -2,10 +2,21 @@
 
 use std::fs;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Output};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
 
 use super::{Error, Result};
+use crate::process::output_with_timeout;
+
+/// curl's `--connect-timeout` for every request, in seconds.
+const CONNECT_TIMEOUT_SECS: u64 = 10;
+/// curl's `--max-time` for a tarball or checksum download, in seconds.
+const DOWNLOAD_MAX_SECS: u64 = 600;
+/// curl's `--max-time` for the release listing, in seconds.
+pub(super) const LISTING_MAX_SECS: u64 = 30;
+/// Bound on the local tools (`tar`, `shasum`), generous for a big tarball.
+const LOCAL_TOOL_TIMEOUT: Duration = Duration::from_secs(120);
 
 /// Distinguishes concurrent installs (tests run in parallel in one process).
 static INSTALL_SEQ: AtomicUsize = AtomicUsize::new(0);
@@ -118,14 +129,28 @@ fn swap_in(new_file: &Path, dest: &Path) -> Result<()> {
 
 /// Downloads `url` to `to` via curl. `file://` URLs work too.
 fn download(url: &str, to: &Path) -> Result<()> {
-    curl_stdout(&["-fsSL", "--retry", "2", "-o", &to.to_string_lossy(), url]).map(|_| ())
+    curl_stdout(
+        &["-fsSL", "--retry", "2", "-o", &to.to_string_lossy(), url],
+        DOWNLOAD_MAX_SECS,
+    )
+    .map(|_| ())
 }
 
-/// Runs curl with `args` and returns its stdout.
-pub(super) fn curl_stdout(args: &[&str]) -> Result<String> {
-    let output = Command::new("curl").args(args).output().map_err(|e| {
+/// Runs curl with `args` and returns its stdout. Every request gets
+/// `--connect-timeout 10 --max-time <max_secs>`, and the process itself is
+/// bounded a little past that in case curl overruns its own limit.
+pub(super) fn curl_stdout(args: &[&str], max_secs: u64) -> Result<String> {
+    let connect = CONNECT_TIMEOUT_SECS.to_string();
+    let max = max_secs.to_string();
+    let mut cmd = Command::new("curl");
+    cmd.args(["--connect-timeout", &connect, "--max-time", &max])
+        .args(args);
+    let bound = Duration::from_secs(max_secs + 15);
+    let output = output_with_timeout(&mut cmd, bound).map_err(|e| {
         let message = if e.kind() == std::io::ErrorKind::NotFound {
             "curl not found on PATH; install curl to update".to_owned()
+        } else if e.kind() == std::io::ErrorKind::TimedOut {
+            format!("{e} — is GitHub reachable?")
         } else {
             e.to_string()
         };
@@ -143,14 +168,16 @@ pub(super) fn curl_stdout(args: &[&str]) -> Result<String> {
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
 }
 
+/// Runs a local tool (`tar`, `shasum`) bounded by [`LOCAL_TOOL_TIMEOUT`].
+fn local_tool(tool: &str, args: &[&str]) -> std::io::Result<Output> {
+    output_with_timeout(Command::new(tool).args(args), LOCAL_TOOL_TIMEOUT)
+}
+
 fn run_tool(tool: &'static str, args: &[&str]) -> Result<()> {
-    let output = Command::new(tool)
-        .args(args)
-        .output()
-        .map_err(|e| Error::Tool {
-            tool,
-            message: e.to_string(),
-        })?;
+    let output = local_tool(tool, args).map_err(|e| Error::Tool {
+        tool,
+        message: e.to_string(),
+    })?;
     if !output.status.success() {
         return Err(Error::Tool {
             tool,
@@ -186,7 +213,7 @@ fn sha256_of(path: &Path) -> Result<String> {
         ("sha256sum", vec![&path_str]),
     ];
     for (tool, args) in attempts {
-        match Command::new(tool).args(&args).output() {
+        match local_tool(tool, &args) {
             Ok(output) if output.status.success() => {
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 return parse_sha(&stdout).ok_or(Error::Tool {

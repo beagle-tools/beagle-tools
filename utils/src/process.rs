@@ -6,24 +6,40 @@
 //! spawn that works fine from a terminal. Prepending the standard install
 //! locations (and the login shell's PATH) fixes that without affecting runs
 //! that already have a full PATH.
+//!
+//! [`output_with_timeout`] is the bounded replacement for
+//! [`Command::output`]: every non-interactive child process in the apps
+//! goes through it (or `kill_on_drop` + `tokio::time::timeout` in async
+//! code), so a hung `gh` or `git` can never freeze a TUI or wedge a daemon.
 
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::OnceLock;
+use std::time::Duration;
+
+mod timeout;
+
+pub use timeout::{output_with_input_and_timeout, output_with_timeout};
+
+/// How long the one-time login-shell PATH probe may take. A shell rc that
+/// blocks (a prompt, a slow network mount) must not stall the first spawn.
+const LOGIN_SHELL_TIMEOUT: Duration = Duration::from_secs(3);
 
 /// PATH from the user's login shell (`$SHELL -lc`, default `/bin/zsh`), so
 /// tools installed via nvm, asdf, etc. are found too.
 ///
-/// Spawns the shell on the first call only; the result (empty if the shell
-/// failed) is cached for the life of the process.
+/// Spawns the shell on the first call only, bounded to 3 s. The result is
+/// cached for the life of the process and never retried; it is empty if the
+/// shell failed or timed out, so [`augmented_path`] falls back to the
+/// current PATH plus the standard install dirs.
 pub fn login_shell_path() -> &'static str {
     static CACHE: OnceLock<String> = OnceLock::new();
     CACHE.get_or_init(|| {
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".into());
-        Command::new(shell)
-            .args(["-lc", "printf %s \"$PATH\""])
-            .output()
+        let mut cmd = Command::new(shell);
+        cmd.args(["-lc", "printf %s \"$PATH\""]);
+        output_with_timeout(&mut cmd, LOGIN_SHELL_TIMEOUT)
             .ok()
             .filter(|o| o.status.success())
             .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())

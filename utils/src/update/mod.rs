@@ -110,14 +110,17 @@ impl Channel {
             "https://api.github.com/repos/{}/releases?per_page=100",
             self.repo
         );
-        let json = curl_stdout(&[
-            "-fsSL",
-            "-H",
-            "Accept: application/vnd.github+json",
-            "-H",
-            "User-Agent: beagle",
-            &url,
-        ])?;
+        let json = curl_stdout(
+            &[
+                "-fsSL",
+                "-H",
+                "Accept: application/vnd.github+json",
+                "-H",
+                "User-Agent: beagle",
+                &url,
+            ],
+            install::LISTING_MAX_SECS,
+        )?;
         self.parse_releases(&json)
     }
 
