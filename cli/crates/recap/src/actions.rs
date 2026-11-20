@@ -6,8 +6,6 @@
 //! network. The functions that change GitHub ([`set_ready`], [`merge`],
 //! [`close`]) run only when the user confirms in the TUI.
 
-use std::process::Command;
-
 use serde::Deserialize;
 
 use crate::model::PrState;
@@ -208,10 +206,7 @@ pub fn merge_plan(check: &MergeCheck, repo: &RepoSettings) -> Result<MergePlan, 
 }
 
 fn gh(args: &[&str]) -> Result<String, String> {
-    let out = Command::new("gh")
-        .args(args)
-        .output()
-        .map_err(|e| format!("gh: {e}"))?;
+    let out = crate::gh::run_gh(args, crate::gh::GH_TIMEOUT).map_err(|e| format!("gh: {e}"))?;
     if out.status.success() {
         Ok(String::from_utf8_lossy(&out.stdout).trim().to_owned())
     } else {

@@ -1,6 +1,5 @@
 //! Fetching a PR's comment threads from GitHub (`gh api graphql`).
 
-use std::process::Command;
 use std::time::Duration;
 
 use serde::Deserialize;
@@ -157,10 +156,7 @@ pub fn is_rate_limit(message: &str) -> bool {
 pub const RATE_LIMIT_WAIT: Duration = Duration::from_secs(30);
 
 fn gh(args: &[&str]) -> std::result::Result<String, String> {
-    let out = Command::new("gh")
-        .args(args)
-        .output()
-        .map_err(|e| format!("{e} (is the GitHub CLI installed?)"))?;
+    let out = crate::gh::run_gh(args, crate::gh::GH_TIMEOUT)?;
     if out.status.success() {
         Ok(String::from_utf8_lossy(&out.stdout).into_owned())
     } else {

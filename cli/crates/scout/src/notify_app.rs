@@ -172,10 +172,12 @@ fn find_terminal_notifier() -> Option<PathBuf> {
 
 /// Runs a tool quietly; a non-zero exit becomes an error naming it.
 fn run(program: &str, args: &[&std::ffi::OsStr]) -> Result<()> {
-    let output = Command::new(program)
-        .args(args)
-        .output()
-        .map_err(Error::io(program))?;
+    // Local tools (ditto, sips, codesign, lsregister): 60 s is generous.
+    let output = beagle_utils::process::output_with_timeout(
+        Command::new(program).args(args),
+        std::time::Duration::from_secs(60),
+    )
+    .map_err(Error::io(program))?;
     if output.status.success() {
         return Ok(());
     }

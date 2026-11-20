@@ -8,7 +8,6 @@
 //! quietly and the TUI keeps showing what's on disk: degraded, never broken.
 
 use std::collections::HashMap;
-use std::process::Command;
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
 use std::thread;
 use std::time::Duration;
@@ -21,6 +20,10 @@ use crate::model::PrState;
 pub const POLL_INTERVAL: Duration = Duration::from_mins(3);
 
 /// The `--json` fields one status query asks for.
+/// Bound on one `gh pr view` status poll; a hung `gh` skips that PR this
+/// round (its last status stays on screen) instead of stalling the poller.
+const POLL_GH_TIMEOUT: Duration = Duration::from_secs(20);
+
 const FIELDS: &str = "state,isDraft,reviewDecision,statusCheckRollup,updatedAt,mergedAt";
 
 /// Where a PR's reviews stand.
@@ -135,10 +138,7 @@ pub fn parse_status_json(json: &str) -> Option<PrStatus> {
 /// Queries one PR's status via `gh`. `None` on any failure.
 #[must_use]
 pub fn status_of(url: &str) -> Option<PrStatus> {
-    let out = Command::new("gh")
-        .args(["pr", "view", url, "--json", FIELDS])
-        .output()
-        .ok()?;
+    let out = crate::gh::run_gh(&["pr", "view", url, "--json", FIELDS], POLL_GH_TIMEOUT).ok()?;
     if !out.status.success() {
         return None;
     }
@@ -148,10 +148,7 @@ pub fn status_of(url: &str) -> Option<PrStatus> {
 /// Whether the `gh` CLI is installed and runnable.
 #[must_use]
 pub fn gh_available() -> bool {
-    Command::new("gh")
-        .arg("--version")
-        .output()
-        .is_ok_and(|o| o.status.success())
+    crate::gh::run_gh(&["--version"], POLL_GH_TIMEOUT).is_ok_and(|o| o.status.success())
 }
 
 /// Polls every URL once, in order. PRs whose status can't be read are left

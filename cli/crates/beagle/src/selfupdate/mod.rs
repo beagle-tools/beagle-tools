@@ -226,10 +226,13 @@ fn install(version: Option<Version>, exe: &Path) -> Result<(), String> {
 
 fn brew_upgrade() -> Result<(), String> {
     println!("beagle is managed by Homebrew; running `brew upgrade {BREW_FORMULA}` …");
-    let status = std::process::Command::new("brew")
-        .args(["upgrade", BREW_FORMULA])
-        .status()
-        .map_err(|e| format!("couldn't run brew: {e}"))?;
+    // Stdio stays inherited so the user sees brew's progress; a brew that
+    // hangs (a stuck download or lock) is killed after 10 minutes.
+    let status = beagle_utils::process::status_with_timeout(
+        std::process::Command::new("brew").args(["upgrade", BREW_FORMULA]),
+        std::time::Duration::from_secs(600),
+    )
+    .map_err(|e| format!("couldn't run brew: {e}"))?;
     if status.success() {
         Ok(())
     } else {
