@@ -268,11 +268,11 @@ pub(crate) fn human_age(age: Duration) -> String {
     beagle_utils::duration::age_single_unit(i64::try_from(age.as_secs()).unwrap_or(i64::MAX))
 }
 
+/// The first line of `text`, cut to `max` characters; one `…` marks a cut
+/// or hidden lines.
 pub(crate) fn one_line(text: &str, max: usize) -> String {
-    let first = text.lines().next().unwrap_or_default();
-    let more = text.lines().nth(1).is_some();
-    let mut out: String = first.chars().take(max).collect();
-    if more || first.chars().count() > max {
+    let (mut out, more) = beagle_utils::text::first_line(text, max);
+    if more > 0 && !out.ends_with('…') {
         out.push('…');
     }
     out

@@ -142,13 +142,7 @@ fn file_name(path: &str) -> String {
 
 /// The first line of `text`, cut to `max` characters; marks what was cut.
 fn one_line(text: &str, max: usize) -> String {
-    let mut lines = text.lines();
-    let first = lines.next().unwrap_or_default().trim_end();
-    let more = lines.count();
-    let mut out: String = first.chars().take(max).collect();
-    if first.chars().count() > max {
-        out.push('…');
-    }
+    let (mut out, more) = beagle_utils::text::first_line(text, max);
     if more > 0 {
         let _ = write!(out, "  (+{more} lines)");
     }
