@@ -14,7 +14,7 @@
 use ratatui::text::{Line, Text};
 use ratatui::widgets::Paragraph;
 
-use crate::markdown;
+use beagle_tui::markdown;
 
 use super::{App, Focus, Tab};
 

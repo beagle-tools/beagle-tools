@@ -6,9 +6,9 @@
 
 use ratatui::text::Text;
 
-use crate::markdown;
 use crate::model::RcaId;
 use crate::store::DiagramEntry;
+use beagle_tui::markdown;
 
 use super::{App, Tab};
 

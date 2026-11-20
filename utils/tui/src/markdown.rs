@@ -8,7 +8,7 @@
 //! alignment.
 
 use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{Line, Span};
+use ratatui::text::{Line, Span, Text};
 
 use crate::wrap::DocLine;
 
@@ -19,6 +19,24 @@ use crate::wrap::DocLine;
 /// code. Single-line HTML comments (`<!-- … -->`) are hidden.
 #[must_use]
 pub fn to_lines(source: &str) -> Vec<DocLine> {
+    render(source, true)
+}
+
+/// Renders markdown `source` into styled [`Text`] with exactly one output
+/// line per source line, so a rendered line index is its source line index
+/// (search and jump-to-line rely on this). Unlike [`to_lines`], HTML
+/// comments are kept, as plain text.
+#[must_use]
+pub fn to_text(source: &str) -> Text<'static> {
+    Text::from(
+        render(source, false)
+            .into_iter()
+            .map(|doc| doc.line)
+            .collect::<Vec<_>>(),
+    )
+}
+
+fn render(source: &str, hide_comments: bool) -> Vec<DocLine> {
     let mut lines: Vec<DocLine> = Vec::with_capacity(source.lines().count());
     let mut in_code_fence = false;
     let mut lang = String::new();
@@ -48,7 +66,7 @@ pub fn to_lines(source: &str) -> Vec<DocLine> {
             lines.push(DocLine::pre(Line::from(spans)));
             continue;
         }
-        if trimmed.starts_with("<!--") && trimmed.trim_end().ends_with("-->") {
+        if hide_comments && trimmed.starts_with("<!--") && trimmed.trim_end().ends_with("-->") {
             continue;
         }
         lines.push(DocLine::prose(render_line(raw)));
@@ -129,6 +147,36 @@ fn render_line(raw: &str) -> Line<'static> {
         return Line::from(spans);
     }
     Line::from(inline_spans(raw, Style::default()))
+}
+
+/// Counts markdown checkboxes in `source`: `(checked, total)`. Follows the
+/// renderer's rules — code fences are skipped, `- ` and `* ` bullets at any
+/// indent count, `[x]`/`[X]` are checked.
+#[must_use]
+pub fn checklist_stats(source: &str) -> (usize, usize) {
+    let mut checked = 0;
+    let mut total = 0;
+    let mut in_code_fence = false;
+    for raw in source.lines() {
+        if raw.trim_start().starts_with("```") {
+            in_code_fence = !in_code_fence;
+            continue;
+        }
+        if in_code_fence {
+            continue;
+        }
+        let trimmed = raw.trim_start();
+        if let Some(rest) = trimmed
+            .strip_prefix("- ")
+            .or_else(|| trimmed.strip_prefix("* "))
+        {
+            if let Some((done, _)) = checkbox(rest) {
+                total += 1;
+                checked += usize::from(done);
+            }
+        }
+    }
+    (checked, total)
 }
 
 /// The checkbox at the start of a bullet's content, if any: `[ ]`, `[x]`,
@@ -312,3 +360,7 @@ mod highlight {
 #[cfg(test)]
 #[path = "tests/markdown.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tests/markdown_text.rs"]
+mod text_tests;

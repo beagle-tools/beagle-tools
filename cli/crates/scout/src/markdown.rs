@@ -150,34 +150,6 @@ pub fn split_sections(source: &str, names: &[&str]) -> (String, String) {
     (rest, picked)
 }
 
-/// Counts checkboxes in `source` as `(checked, total)`, skipping code fences.
-#[must_use]
-pub fn checklist_stats(source: &str) -> (usize, usize) {
-    let mut checked = 0;
-    let mut total = 0;
-    let mut in_code_fence = false;
-    for raw in source.lines() {
-        let trimmed = raw.trim_start();
-        if trimmed.starts_with("```") {
-            in_code_fence = !in_code_fence;
-            continue;
-        }
-        if in_code_fence {
-            continue;
-        }
-        if let Some(rest) = trimmed
-            .strip_prefix("- ")
-            .or_else(|| trimmed.strip_prefix("* "))
-        {
-            if let Some((done, _)) = checkbox(rest) {
-                total += 1;
-                checked += usize::from(done);
-            }
-        }
-    }
-    (checked, total)
-}
-
 fn heading(text: &str, color: Color, top_level: bool) -> Line<'static> {
     let style = Style::default().fg(color).add_modifier(Modifier::BOLD);
     let style = if top_level {
@@ -280,6 +252,6 @@ mod tests {
     #[test]
     fn stats_skip_code_fences() {
         let src = "- [x] a\n- [ ] b\n```\n- [ ] not counted\n```\n* [X] c";
-        assert_eq!(checklist_stats(src), (2, 3));
+        assert_eq!(beagle_tui::markdown::checklist_stats(src), (2, 3));
     }
 }
