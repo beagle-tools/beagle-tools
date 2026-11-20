@@ -57,8 +57,8 @@ beagle rca skill install   # refresh the /beagle skills, which now say `beagle r
 beagle doctor              # lists old standalone binaries still on your PATH
 ```
 
-The rca agent daemon, `beagle-agentd`, is a separate binary and is not in
-this package; see [`../rca/README.md`](../rca/README.md#install--run).
+The rca agent daemon, `beagle-agentd`, is installed alongside `beagle`
+(and `beagle update` updates both); set it up with `beagle rca agent install`.
 
 ## Use
 

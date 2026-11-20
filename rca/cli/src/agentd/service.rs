@@ -339,6 +339,6 @@ fn find_agentd() -> Result<PathBuf, String> {
         return Ok(explicit);
     }
     beagle_utils::process::which("beagle-agentd").ok_or_else(|| {
-        "beagle-agentd not found on PATH; build it (`cargo build -p beagle-agentd`) and put it on PATH, or set BEAGLE_AGENTD".to_string()
+        "beagle-agentd not found on PATH; it ships with `beagle` (`brew install beagle-tools/tap/beagle`, or `beagle update`), or set BEAGLE_AGENTD".to_string()
     })
 }

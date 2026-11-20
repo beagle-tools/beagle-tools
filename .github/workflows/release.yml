@@ -252,6 +252,11 @@ jobs:
       cargo-dir: cli
       packages: beagle-cli
       bins: beagle
+      # rca's remediation daemon ships with beagle (`beagle rca agent install`).
+      extra-app-dir: rca
+      extra-cargo-dir: rca
+      extra-packages: beagle-agentd
+      extra-bins: beagle-agentd
       asset-prefix: beagle-cli
       tag: ${{ needs.plan.outputs.cli_tag }}
       version: ${{ needs.plan.outputs.cli_version }}

@@ -133,7 +133,9 @@ CLI tarballs hold the binaries at the tarball root:
   `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-musl`.
 - `beagle-workflows-<target>.tar.gz` holds `agentd`, `agentctl` and
   `agenttop`. Targets: the two macOS targets.
-- `beagle-cli-<target>.tar.gz` holds `beagle`, the unified command. Targets:
+- `beagle-cli-<target>.tar.gz` holds `beagle`, the unified command, and
+  rca's `beagle-agentd` (built from `rca/` with the same version stamped,
+  via `_release-cli.yml`'s `extra-*` inputs). Targets:
   `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-musl`.
   `beagle update` installs these; it lists only `beagle-cli-v*` tags, so the
   standalone rca `beagle` (also named `beagle`) is never offered.
@@ -182,7 +184,7 @@ because the next release overwrites the tap.
 - `beagle` and `beagle-rca` both install a `beagle` binary, so each
   formula declares `conflicts_with` the other. Users switch with
   `brew uninstall beagle-rca && brew install beagle-tools/tap/beagle`.
-  `beagle-agentd` ships only in `beagle-rca` (and its tarball) for now.
+  Both also ship `beagle-agentd`.
 - The cli app's formula is `beagle` but its tarballs are `beagle-cli-*`:
   `scripts/release/apps.sh` sets `APP_ASSET` apart from `APP_FORMULA` for it.
 - **Casks** (`Casks/*.rb`) are static: `version :latest` and
