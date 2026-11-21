@@ -41,10 +41,21 @@ test("crates the unified cli links in release it too", () => {
   assert.deepEqual(changedApps(["tandem/crates/tandem-tui/src/lib.rs"]), ["tandem", "cli"]);
   assert.deepEqual(changedApps(["tandem/crates/tandem-cache/src/store.rs"]), ["tandem", "cli"]);
   assert.deepEqual(changedApps(["tandem/crates/tandem-github/src/client.rs"]), ["tandem", "cli"]);
+  // `beagle rca agentd` and `beagle agent`.
+  assert.deepEqual(changedApps(["rca/crates/beagle-agentd/src/lib.rs"]), ["rca", "cli"]);
+  assert.deepEqual(changedApps(["rca/crates/beagle-agent/src/lib.rs"]), ["rca", "cli"]);
+  assert.deepEqual(changedApps(["rca/Cargo.toml"]), ["rca", "cli"]);
+  assert.deepEqual(changedApps(["workflows/crates/agentctl/src/lib.rs"]), ["workflows", "cli"]);
+  assert.deepEqual(changedApps(["workflows/crates/agent-core/src/state.rs"]), ["workflows", "cli"]);
+  assert.deepEqual(changedApps(["workflows/deploy/com.agentd.daemon.plist"]), ["workflows", "cli"]);
+  assert.deepEqual(changedApps(["workflows/scripts/build-notifier.sh"]), ["workflows", "cli"]);
+  assert.deepEqual(changedApps(["workflows/Cargo.toml"]), ["workflows", "cli"]);
   // The parts of those apps the cli does not link stay theirs alone.
-  assert.deepEqual(changedApps(["rca/crates/beagle-agentd/src/main.rs"]), ["rca"]);
   assert.deepEqual(changedApps(["rca/desktop/src-tauri/src/lib.rs"]), ["rca"]);
   assert.deepEqual(changedApps(["tandem/crates/tandem-agents/src/runner.rs"]), ["tandem"]);
+  assert.deepEqual(changedApps(["workflows/desktop/src/App.tsx"]), ["workflows"]);
+  assert.deepEqual(changedApps(["workflows/manifests/demo/fanout.yaml"]), ["workflows"]);
+  assert.deepEqual(changedApps(["workflows/scripts/agentman"]), ["workflows"]);
   assert.deepEqual(changedApps(["tandem/Cargo.lock"]), ["tandem"]);
   // Their docs don't release anything.
   assert.deepEqual(changedApps(["rca/cli/README.md", "tandem/crates/tandem-cli/NOTES.md"]), []);

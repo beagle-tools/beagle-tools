@@ -42,7 +42,7 @@ released as `beagle-rca` until it is retired.
 |---|---|---|
 | `cli/` | Crate `beagle`: the domain layer (`model`, `store`, `similar`, `config`, …; markdown and ANSI rendering come from `beagle_tui`) **and** the TUI (`ui/`) + CLI (`run.rs`, `cli/`, `commands/`; `main.rs` is the standalone wrapper) | The only implementation of the data format. Everything else depends on it. |
 | `crates/beagle-agent` | Agent-runtime engine: config, SQLite job store, RCA poller, worktree manager, headless `claude` runner, orchestrator, control protocol | Depends on `beagle`. |
-| `crates/beagle-agentd` | The always-on daemon binary hosting the engine | See [`docs/agent-runtime.md`](docs/agent-runtime.md). |
+| `crates/beagle-agentd` | The always-on daemon hosting the engine: a library (`run_as`) the unified `beagle` runs as `beagle rca agentd run`, plus the standalone `beagle-agentd` wrapper | See [`docs/agent-runtime.md`](docs/agent-runtime.md). |
 | `desktop/` | Tauri 2 + React viewer. `src-tauri/` is its **own cargo workspace** (own `Cargo.lock`), path-depending on `cli/` | [`desktop/AGENTS.md`](desktop/AGENTS.md) |
 | `web/` | Astro static site of *published* postmortems | [`web/AGENTS.md`](web/AGENTS.md) |
 | `deploy/` | Helm chart for the web image | `web/DEPLOY.md` |
@@ -169,7 +169,7 @@ doesn't bundle SQLite.
 
 ## Agent runtime
 
-Setting an RCA to `status = "agent"` hands it to `beagle-agentd`, which
+Setting an RCA to `status = "agent"` hands it to the daemon (`beagle rca agentd`), which
 implements `remediation.md` in an isolated worktree via headless `claude`,
 opens a PR, attaches it and advances the RCA to `final-review`. Contracts,
 config (`agents.toml`), service install (`beagle rca agent install`) and the

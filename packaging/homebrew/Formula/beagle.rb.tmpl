@@ -32,6 +32,8 @@ class Beagle < Formula
   conflicts_with "beagle-rca", because: "both install a `beagle` binary"
 
   def install
+    # beagle-agentd is deprecated (`beagle rca agentd run` replaces it); it
+    # stays one release so services installed before the switch keep working.
     bin.install "beagle", "beagle-agentd"
   end
 
@@ -40,9 +42,16 @@ class Beagle < Formula
       Run `beagle setup` once: it installs every tool's agent skills, scout's
       session hooks and its store (each step asks first; `--yes` runs all).
       Every tool is a subcommand: `beagle help` lists them (`beagle rca`,
-      `beagle scout`, `beagle tandem`, …). `brew upgrade beagle` updates
-      them all; `beagle doctor` checks the setup (gh, beagle-agentd, tmux,
-      skills, hooks) and finds old standalone binaries to remove.
+      `beagle scout`, `beagle tandem`, `beagle agent`, …). `brew upgrade
+      beagle` updates them all; `beagle doctor` checks the setup (gh, agent
+      services, tmux, skills, hooks) and finds old standalone binaries to
+      remove.
+
+      The agent daemons are `beagle` too. If you installed their services
+      before, re-run these once so they stop using the old binaries
+      (`agentd`, `beagle-agentd`), which go away in the next release:
+        beagle agent daemon install   # agentd → beagle agent daemon run
+        beagle rca agent install      # beagle-agentd → beagle rca agentd run
     EOS
   end
 

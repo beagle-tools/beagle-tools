@@ -33,6 +33,6 @@
     "utils/tui": "the shared crate itself",
     "cli/crates/beagle": "uses only the release picker behind `beagle version list`",
     "cli/crates/serve": "an HTTPS API, no terminal UI",
-    "workflows/crates/agenttop": "out of scope for now (its keys predate the standard)"
+    "workflows/crates/agenttop": "`beagle agent top`; out of scope for now (its keys predate the standard)"
   }
 }

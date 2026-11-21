@@ -1,4 +1,5 @@
-//! `agentctl daemon install|restart|uninstall` — run agentd under launchd
+//! `agentctl daemon install|restart|uninstall` (`beagle agent daemon …`
+//! under the unified command) — run the daemon under launchd
 //! from the installed binaries alone (a brew install has no repo checkout,
 //! so the unit template, icons and notifier builder are embedded; see
 //! [`crate::launchd`]).
@@ -12,7 +13,8 @@ use anyhow::{bail, Context, Result};
 use beagle_utils::process::{output_with_timeout, which};
 
 use crate::launchd::{
-    parse_pid, render_plist, resolve_agentd, BUILD_NOTIFIER_SH, LABEL, NOTIFY_ICONS,
+    hosted_program, parse_pid, render_plist, resolve_agentd, Program, BUILD_NOTIFIER_SH, LABEL,
+    NOTIFY_ICONS,
 };
 
 /// How long to wait for launchd to report a running agentd.
@@ -23,9 +25,9 @@ const START_TIMEOUT: Duration = Duration::from_secs(12);
 /// branded notifiers when terminal-notifier is installed, and (re)load the
 /// unit so the daemon is running when this returns.
 pub fn install(print: bool) -> Result<()> {
-    let agentd = locate_agentd()?;
+    let program = locate_program()?;
     let log_dir = home()?.join("Library/Logs/agentd");
-    let plist = render_plist(&agentd, &log_dir);
+    let plist = render_plist(&program, &log_dir);
     if print {
         print!("{plist}");
         return Ok(());
@@ -39,7 +41,11 @@ pub fn install(print: bool) -> Result<()> {
     }
     beagle_utils::fs::write_atomic(&target, plist.as_bytes())
         .with_context(|| format!("write {}", target.display()))?;
-    println!("wrote {} (agentd: {})", target.display(), agentd.display());
+    let runs = std::iter::once(program.bin.display().to_string())
+        .chain(program.args.iter().cloned())
+        .collect::<Vec<_>>()
+        .join(" ");
+    println!("wrote {} (runs: {runs})", target.display());
 
     install_notifiers()?;
 
@@ -58,7 +64,10 @@ pub fn restart() -> Result<()> {
     require_macos()?;
     let domain = gui_domain()?;
     if launchctl(&["print", &format!("{domain}/{LABEL}")]).is_err() {
-        bail!("{LABEL} is not loaded — run `agentctl daemon install` first");
+        bail!(
+            "{LABEL} is not loaded — run `{} daemon install` first",
+            agent_core::ctl::name()
+        );
     }
     run_launchctl(&["kickstart", "-k", &format!("{domain}/{LABEL}")])?;
     report_running(&domain)
@@ -85,7 +94,8 @@ fn require_macos() -> Result<()> {
     if cfg!(target_os = "macos") {
         Ok(())
     } else {
-        bail!("`agentctl daemon` manages a launchd unit and only works on macOS — run `agentd` under your own service manager instead")
+        let ctl = agent_core::ctl::name();
+        bail!("`{ctl} daemon` manages a launchd unit and only works on macOS — run `{ctl} daemon run` under your own service manager instead")
     }
 }
 
@@ -97,12 +107,23 @@ fn plist_path() -> Result<PathBuf> {
     Ok(home()?.join(format!("Library/LaunchAgents/{LABEL}.plist")))
 }
 
-fn locate_agentd() -> Result<PathBuf> {
+/// What the unit runs. Inside the unified `beagle` command: this very
+/// binary, as `beagle agent daemon run`. Standalone: the `agentd` binary
+/// from the same install.
+fn locate_program() -> Result<Program> {
     let exe = std::env::current_exe().ok();
-    resolve_agentd(exe.as_deref(), which("agentd"), Path::is_file).context(
+    if !crate::standalone() {
+        let exe = exe.context("could not resolve the path of the running `beagle` binary")?;
+        return Ok(hosted_program(&exe));
+    }
+    let bin = resolve_agentd(exe.as_deref(), which("agentd"), Path::is_file).context(
         "could not find the agentd binary next to agentctl or on PATH — \
          install it (brew install beagle-tools/tap/beagle-workflows, or `make install`)",
-    )
+    )?;
+    Ok(Program {
+        bin,
+        args: Vec::new(),
+    })
 }
 
 /// Unpack the stock icons into `<state>/assets/notify/` (where agentd looks
@@ -120,7 +141,8 @@ fn install_notifiers() -> Result<()> {
     if which("terminal-notifier").is_none() {
         println!(
             "terminal-notifier not found: notifications will have no icon \
-             (brew install terminal-notifier, then re-run `agentctl daemon install`)"
+             (brew install terminal-notifier, then re-run `{} daemon install`)",
+            agent_core::ctl::name()
         );
         return Ok(());
     }
@@ -190,7 +212,8 @@ fn report_running(domain: &str) -> Result<()> {
         if std::time::Instant::now() >= deadline {
             bail!(
                 "agentd did not come up — runs will sit Pending. \
-                 Check ~/Library/Logs/agentd/agentd.err.log, then `agentctl daemon restart`"
+                 Check ~/Library/Logs/agentd/agentd.err.log, then `{} daemon restart`",
+                agent_core::ctl::name()
             );
         }
         std::thread::sleep(Duration::from_millis(500));

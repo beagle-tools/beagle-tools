@@ -14,6 +14,7 @@
 //! `agenttop` only ever read/write the store — they never talk to the daemon.
 
 mod codex;
+pub mod ctl;
 pub mod daemon;
 /// The crate-wide [`CoreError`].
 pub mod error;

@@ -194,8 +194,9 @@ cmd_rm() {
 
 cmd_sync() {
   link_manifest_projects
-  if command -v agentctl >/dev/null 2>&1; then agentctl apply
-  else echo "agentman: agentctl not on PATH — run 'agentctl apply' yourself" >&2; fi
+  if command -v beagle >/dev/null 2>&1; then beagle agent apply
+  elif command -v agentctl >/dev/null 2>&1; then agentctl apply
+  else echo "agentman: beagle not on PATH — run 'beagle agent apply' yourself" >&2; fi
 }
 
 # Only dispatch when run directly; sourcing just defines the functions.

@@ -111,7 +111,7 @@ fn usage(job: &str, declared: &[ParamSpec]) -> String {
         .filter(|s| s.required)
         .map(|s| format!("{}=<value>", s.name))
         .collect();
-    let mut out = String::from("usage: agentctl -j ");
+    let mut out = format!("usage: {} -j ", crate::ctl::name());
     out.push_str(job);
     if !required.is_empty() {
         out.push_str(" -p ");

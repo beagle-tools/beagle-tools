@@ -13,9 +13,15 @@ repository = "https://github.com/beagle-tools/beagle-tools"
 
 [workspace.dependencies]
 beagle-utils = { path = "../utils" }
+beagle-agent-tool = { path = "crates/agent" }
 # Tools that live with their own app. rca's crate is named `beagle`, so it
 # is renamed here to say which tool it is.
 beagle-rca = { package = "beagle", path = "../rca/cli" }
+# rca's daemon, run as `beagle rca agentd run`.
+beagle-agentd = { path = "../rca/crates/beagle-agentd" }
+# The agentd stack (workflows/), run as `beagle agent`; it links agenttop
+# and agentd itself.
+agentctl = { path = "../workflows/crates/agentctl" }
 beagle-recap = { path = "crates/recap" }
 beagle-scout = { path = "crates/scout" }
 beagle-serve = { path = "crates/serve" }

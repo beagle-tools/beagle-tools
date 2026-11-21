@@ -106,3 +106,41 @@ fn the_serve_service_is_reported_and_only_a_down_one_fails() {
     assert!(!serve_line(&down).1);
     assert!(!serve_line(&Status::NotLoaded(PathBuf::from("/p"))).1);
 }
+
+#[test]
+fn the_agentd_stack_is_retired_too() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let bin = tmp.path().join("bin");
+    let names = ["agentctl", "agenttop", "agentd"];
+    let expected: Vec<Finding> = names
+        .iter()
+        .map(|&name| Finding::Retired {
+            name,
+            path: executable(&bin, name),
+        })
+        .collect();
+    assert_eq!(scan(&path_of(&[&bin]), None), expected);
+}
+
+#[test]
+fn beagle_agentd_is_not_flagged_while_beagle_still_ships_it() {
+    // It stays in the beagle formula for one release so services installed
+    // before `beagle rca agentd run` keep working; health.rs warns instead.
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let bin = tmp.path().join("bin");
+    executable(&bin, "beagle-agentd");
+    assert_eq!(scan(&path_of(&[&bin]), None), []);
+}
+
+#[test]
+fn each_retired_binary_names_the_command_that_replaced_it() {
+    assert_eq!(replacement("agentctl"), "beagle agent");
+    assert_eq!(replacement("agenttop"), "beagle agent top");
+    assert_eq!(replacement("agentd"), "beagle agent daemon run");
+    assert_eq!(replacement("scout"), "beagle scout");
+    let line = describe(&Finding::Retired {
+        name: "agentctl",
+        path: PathBuf::from("/usr/local/bin/agentctl"),
+    });
+    assert!(line.contains("it is `beagle agent` now"), "{line}");
+}

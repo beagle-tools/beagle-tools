@@ -77,10 +77,11 @@ or a `beagle-cli-<target>.tar.gz` from the
 release, or `cargo install --locked --path cli/crates/beagle` from a checkout
 (see [`../cli/README.md`](../cli/README.md)). `beagle update` keeps it current.
 
-The agent daemon is a separate binary, `beagle-agentd`
-(`cargo install --locked --git https://github.com/beagle-tools/beagle-tools beagle-agentd`,
-or the `beagle-rca-<target>.tar.gz` release tarball, which holds it beside
-the standalone CLI).
+The agent daemon ships inside `beagle` too: `beagle rca agentd run` (or
+`once`), installed as a login service with `beagle rca agent install`. The
+standalone `beagle-agentd` binary (in the `beagle-rca-<target>.tar.gz`
+release tarball, beside the standalone CLI) runs the same daemon until it is
+retired.
 
 **The standalone rca `beagle` binary** (`brew install beagle-tools/tap/beagle-rca`,
 v0.x) still ships while it is retired. It installs a `beagle` too, so the two

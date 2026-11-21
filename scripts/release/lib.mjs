@@ -7,7 +7,8 @@ export const APPS = {
   tandem: { versionFile: "tandem/src-tauri/tauri.conf.json", kind: "json" },
   rca: { versionFile: "rca/cli/Cargo.toml", kind: "cargo-package" },
   workflows: { versionFile: "workflows/Cargo.toml", kind: "cargo-workspace" },
-  // The unified `beagle` command (cli/), which links rca and tandem-cli in.
+  // The unified `beagle` command (cli/), which links rca (and its daemon),
+  // tandem-cli and the agentd stack in.
   cli: { versionFile: "cli/Cargo.toml", kind: "cargo-workspace" },
 };
 
@@ -37,15 +38,32 @@ export const LINKED_PREFIXES = {
   // this in step with the Cargo.toml files).
   cli: [
     "rca/cli/",
+    // `beagle rca agentd`: the daemon and the engine it hosts.
+    "rca/crates/beagle-agentd/",
+    "rca/crates/beagle-agent/",
     "tandem/crates/tandem-cli/",
     "tandem/crates/tandem-core/",
     "tandem/crates/tandem-tui/",
     "tandem/crates/tandem-cache/",
     "tandem/crates/tandem-github/",
+    // `beagle agent`: the whole agentd stack, plus what agentctl embeds.
+    "workflows/crates/",
+    "workflows/deploy/",
+    "workflows/assets/notify/",
   ],
 };
-/** Manifests outside `<app>/` whose workspace settings a linked crate inherits. */
-const LINKED_FILES = { cli: new Set(["tandem/Cargo.toml"]) };
+/**
+ * Files outside `<app>/` that a linked crate inherits workspace settings from
+ * or embeds.
+ */
+const LINKED_FILES = {
+  cli: new Set([
+    "tandem/Cargo.toml",
+    "rca/Cargo.toml",
+    "workflows/Cargo.toml",
+    "workflows/scripts/build-notifier.sh",
+  ]),
+};
 
 const ZERO_SHA = /^0+$/;
 const SEMVER = /^(\d+)\.(\d+)\.(\d+)$/;

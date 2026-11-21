@@ -3,6 +3,7 @@
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use beagle_utils::paths;
@@ -12,6 +13,20 @@ use super::state_dir;
 
 mod systemd;
 use systemd::{systemd_install, systemd_start, systemd_stop, systemd_uninstall};
+
+/// Set when rca runs inside the unified `beagle` command, which carries the
+/// daemon itself (`beagle rca agentd run`), so the service runs that binary
+/// rather than a separate `beagle-agentd`.
+static UNIFIED: AtomicBool = AtomicBool::new(false);
+
+/// The arguments that make the unified `beagle` binary run the daemon.
+pub const UNIFIED_DAEMON_ARGS: [&str; 3] = ["rca", "agentd", "run"];
+
+/// Record that rca runs inside the unified `beagle` command (see
+/// [`UNIFIED_DAEMON_ARGS`]).
+pub fn set_unified() {
+    UNIFIED.store(true, Ordering::Relaxed);
+}
 
 /// The launchd label / service name.
 const LABEL: &str = "com.beagle.agentd";
@@ -30,8 +45,11 @@ const SERVICE_TOOL_TIMEOUT: Duration = Duration::from_secs(30);
 pub struct LaunchdConfig {
     /// The launchd label.
     pub label: String,
-    /// Absolute path to the `beagle-agentd` binary.
+    /// Absolute path to the daemon's binary: `beagle-agentd`, or the
+    /// unified `beagle`.
     pub program: PathBuf,
+    /// The binary's arguments ([`UNIFIED_DAEMON_ARGS`] for `beagle`).
+    pub args: Vec<String>,
     /// Directory for the daemon's stdout/stderr logs.
     pub log_dir: PathBuf,
     /// The `PATH` the daemon runs with. launchd starts agents with a bare
@@ -68,7 +86,7 @@ pub fn render_plist(config: &LaunchdConfig) -> String {
     <string>{label}</string>
     <key>ProgramArguments</key>
     <array>
-        <string>{program}</string>
+{program}
     </array>
     <key>RunAtLoad</key>
     <true/>
@@ -89,7 +107,11 @@ pub fn render_plist(config: &LaunchdConfig) -> String {
 </plist>
 "#,
         label = xml_escape(&config.label),
-        program = xml_escape(&config.program.display().to_string()),
+        program = std::iter::once(config.program.display().to_string())
+            .chain(config.args.iter().cloned())
+            .map(|arg| format!("        <string>{}</string>", xml_escape(&arg)))
+            .collect::<Vec<_>>()
+            .join("\n"),
         path = xml_escape(&config.path),
         workdir = config
             .working_dir
@@ -106,8 +128,15 @@ pub fn render_plist(config: &LaunchdConfig) -> String {
 /// Renders a `systemd --user` service unit that restarts the daemon on crash
 /// and starts it on login (`WantedBy=default.target`). `path` becomes the
 /// daemon's `PATH` (the user manager's default lacks `~/.local/bin` etc.).
+/// `args` follow `program` on the `ExecStart` line; they are plain words
+/// ([`UNIFIED_DAEMON_ARGS`]), so they need no quoting.
 #[must_use]
-pub fn render_unit(program: &Path, path: &str, working_dir: Option<&Path>) -> String {
+pub fn render_unit(
+    program: &Path,
+    args: &[String],
+    path: &str,
+    working_dir: Option<&Path>,
+) -> String {
     // systemd quoting: escape backslashes and quotes; `%` starts a specifier.
     let quote = |s: &str| {
         s.replace('\\', "\\\\")
@@ -120,6 +149,10 @@ pub fn render_unit(program: &Path, path: &str, working_dir: Option<&Path>) -> St
             quote(&dir.display().to_string())
         )
     });
+    let exec = std::iter::once(program.display().to_string())
+        .chain(args.iter().cloned())
+        .collect::<Vec<_>>()
+        .join(" ");
     format!(
         "[Unit]\n\
          Description=beagle agent daemon (beagle-agentd)\n\
@@ -129,13 +162,12 @@ pub fn render_unit(program: &Path, path: &str, working_dir: Option<&Path>) -> St
          Type=simple\n\
          Environment=\"PATH={path}\"\n\
          {workdir}\
-         ExecStart={program}\n\
+         ExecStart={exec}\n\
          Restart=always\n\
          RestartSec=5\n\
          \n\
          [Install]\n\
          WantedBy=default.target\n",
-        program = program.display(),
         path = quote(path),
     )
 }
@@ -202,12 +234,13 @@ fn install_store_root() -> Option<PathBuf> {
 // ---- macOS (launchd) ----
 
 fn launchd_install() -> Result<String, String> {
-    let program = find_agentd()?;
+    let (program, args) = daemon_command()?;
     let log_dir = state_dir().ok_or(NO_HOME)?.join("logs");
     std::fs::create_dir_all(&log_dir).map_err(|err| format!("creating log dir: {err}"))?;
     let config = LaunchdConfig {
         label: LABEL.to_string(),
         program,
+        args,
         log_dir,
         path: beagle_utils::process::augmented_path(),
         working_dir: install_store_root(),
@@ -308,13 +341,36 @@ fn remove_if_present(path: &Path, what: &str) -> Result<(), String> {
     }
 }
 
-/// Resolves the `beagle-agentd` binary: `$BEAGLE_AGENTD`, else an executable
-/// on the augmented `PATH` (`PATH` plus Homebrew, `~/.local/bin`, `~/bin`, and
-/// the login shell's `PATH`).
-fn find_agentd() -> Result<PathBuf, String> {
+/// What the service runs, as (binary, arguments): `$BEAGLE_AGENTD` when set;
+/// inside the unified `beagle` command, that same binary (at its
+/// upgrade-proof path) with [`UNIFIED_DAEMON_ARGS`]; otherwise a
+/// `beagle-agentd` on the augmented `PATH` (`PATH` plus Homebrew,
+/// `~/.local/bin`, `~/bin`, and the login shell's `PATH`).
+pub(super) fn daemon_command() -> Result<(PathBuf, Vec<String>), String> {
     if let Some(explicit) = paths::env_path("BEAGLE_AGENTD") {
-        return Ok(explicit);
+        return Ok((explicit, Vec::new()));
     }
+    if UNIFIED.load(Ordering::Relaxed) {
+        let exe = std::env::current_exe()
+            .map_err(|err| format!("could not resolve the running `beagle` binary: {err}"))?;
+        return Ok(unified_command(&exe));
+    }
+    find_agentd().map(|program| (program, Vec::new()))
+}
+
+/// The service command for the unified `beagle` binary at `exe`.
+#[must_use]
+pub fn unified_command(exe: &Path) -> (PathBuf, Vec<String>) {
+    (
+        paths::stable_exe(exe),
+        UNIFIED_DAEMON_ARGS
+            .iter()
+            .map(|a| (*a).to_owned())
+            .collect(),
+    )
+}
+
+fn find_agentd() -> Result<PathBuf, String> {
     beagle_utils::process::which("beagle-agentd").ok_or_else(|| {
         "beagle-agentd not found on PATH; it ships with `beagle` (`brew install beagle-tools/tap/beagle`, or `beagle update`), or set BEAGLE_AGENTD".to_string()
     })

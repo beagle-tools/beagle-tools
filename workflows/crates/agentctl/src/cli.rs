@@ -89,6 +89,14 @@ pub enum Command {
     },
     /// One-screen summary of agents and runs.
     Status,
+    /// The live dashboard (jobs → runs → logs): watch, run, resume, attach,
+    /// kill. Everything after `top` goes to it.
+    #[command(disable_help_flag = true)]
+    Top {
+        /// The dashboard's own flags (`--help`, `--version`).
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<std::ffi::OsString>,
+    },
     /// What broke — failed or timed-out runs, and ERROR lines in runs that
     /// carried on — grouped so a repeated failure is one entry with a
     /// count. Never looks back more than 48 hours.
@@ -111,19 +119,20 @@ pub enum Command {
         #[arg(long, value_name = "DIR")]
         write: Option<PathBuf>,
     },
-    /// Run agentd under launchd (macOS): install, restart, or remove it.
+    /// The daemon: run it, or manage it under launchd (macOS) — install,
+    /// restart, or remove it.
     Daemon {
         #[command(subcommand)]
         action: DaemonAction,
     },
 }
 
-/// `agentctl daemon` actions.
+/// `daemon` actions.
 #[derive(Debug, Subcommand)]
 pub enum DaemonAction {
-    /// Write ~/Library/LaunchAgents/com.agentd.daemon.plist for the agentd
-    /// installed next to this agentctl, unpack the notification icons, build
-    /// the branded notifiers, and (re)load the daemon.
+    /// Write ~/Library/LaunchAgents/com.agentd.daemon.plist for the daemon
+    /// from this same install, unpack the notification icons, build the
+    /// branded notifiers, and (re)load the daemon.
     Install {
         /// Only print the rendered launchd unit; change nothing.
         #[arg(long)]
@@ -134,6 +143,15 @@ pub enum DaemonAction {
     Restart,
     /// Stop the daemon and remove its launchd unit (state and logs stay).
     Uninstall,
+    /// Run the daemon itself in the foreground — what the launchd unit
+    /// starts. Everything after `run` goes to the daemon (`run --help`
+    /// lists its flags).
+    #[command(disable_help_flag = true)]
+    Run {
+        /// The daemon's own flags, e.g. `--once` or `--tick-seconds 10`.
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<std::ffi::OsString>,
+    },
 }
 
 /// Resources listable via `agentctl get`.

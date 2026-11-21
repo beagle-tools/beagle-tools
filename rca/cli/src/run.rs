@@ -67,6 +67,7 @@ impl Mode {
 /// command's tool contract). `--help` works; `update` and `version list`
 /// are `beagle`'s own commands, so here they are usage errors.
 pub fn run(args: Vec<OsString>) -> ExitCode {
+    crate::agentd::set_unified();
     main_with(args, Mode::Unified)
 }
 

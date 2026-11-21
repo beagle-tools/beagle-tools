@@ -32,6 +32,32 @@ Four tools share one state store:
 `scripts/agentman` (bash) wires which manifest roots the machine uses;
 `scripts/build-notifier.sh` builds the branded notifier apps.
 
+### How users run it: `beagle agent`
+
+The three crates are **library entry points** (`run_as(program, args)`),
+linked into the unified `beagle` command by `../cli/crates/agent` as
+`beagle agent …` ([`../cli/AGENTS.md`](../cli/AGENTS.md)):
+
+- agentctl owns the surface. `top` runs agenttop and `daemon run` runs
+  agentd, so `beagle agent` alone covers CLI, TUI and daemon (bare
+  `beagle agent` opens the dashboard). Standalone `agentctl top` /
+  `agentctl daemon run` work the same.
+- Each `main.rs` is a thin wrapper for the standalone binaries, still
+  released as `beagle-workflows` until they are retired.
+- Hints name the command the user has: `agent_core::ctl::name()` is
+  `agentctl` or `beagle agent`, set once by `agentctl::run_as`. Never
+  hard-code `agentctl` in a user-facing string.
+- Under `beagle`, `daemon install` writes a unit running
+  `<stable beagle path> agent daemon run`; the process is then named
+  `beagle`, so `agent_core::daemon`'s heartbeat-less fallback also matches
+  that command line (keep `launchd::HOSTED_DAEMON_ARGS` and its pgrep
+  query in step).
+- Runs get `$AGENTD_CTL`: the control command from the daemon's own install
+  (`<beagle> agent`, or the sibling `agentctl`), worked out in
+  `agentd/src/ctlcmd.rs`. Scripts start child runs with
+  `${AGENTD_CTL:-agentctl} run …`, never a bare `agentctl` (a `beagle`-only
+  install has none).
+
 ## Layout
 
 ```
@@ -90,7 +116,7 @@ assets/notify/      notification icons; one notifier app is built per png
   the running daemon predates is rejected and its agent silently dropped from
   the store on the next tick. So `make install` always restarts the daemon
   (`make restart-daemon`); never install without it. Brew installs restart
-  with `agentctl daemon restart` (`make restart-daemon` only finds a
+  with `beagle agent daemon restart` (`make restart-daemon` only finds a
   `~/.cargo/bin` agentd).
 - **tmux sessions are targeted by exact name** (`=name`) through
   `agent_core::tmux` — tmux's default prefix match can hit the wrong run.
@@ -117,9 +143,9 @@ make restart-daemon   # launchctl kill + kickstart com.agentd.daemon, verified
 make check            # delegates to the repo root's `make check-workflows`
 ```
 
-Deploying the daemon: `agentctl daemon install|restart|uninstall`
+Deploying the daemon: `beagle agent daemon install|restart|uninstall` (or `agentctl daemon …`)
 (`crates/agentctl/src/daemon.rs`, pure parts in `launchd.rs`). The binary
-embeds `deploy/com.agentd.daemon.plist` (a template with `__AGENTD_BIN__`,
+embeds `deploy/com.agentd.daemon.plist` (a template with `__PROGRAM_ARGUMENTS__`,
 `__CARGO_BIN_DIR__`, `__LOG_DIR__` placeholders), `assets/notify/*.png` and
 `scripts/build-notifier.sh`, so a brew or tarball install needs no
 checkout — keep it that way: anything the setup reads from the repo at run
@@ -130,7 +156,7 @@ Daemon logs: `~/Library/Logs/agentd/agentd.{out,err}.log`.
 
 Notifications prefer `terminal-notifier` (icons) and fall back to
 `osascript`. macOS only shows the sending app's own icon, so after adding a
-png to `assets/notify/` re-run `agentctl daemon install` (or
+png to `assets/notify/` re-run `beagle agent daemon install` (or
 `scripts/build-notifier.sh`); a test fails until the new png is embedded.
 agentd looks for its stock icons next to the manifests repo, then in
 `<state dir>/assets/notify/` (where `daemon install` unpacks them).
@@ -176,3 +202,8 @@ version, their `Cargo.lock` entries, and Agentdesk's `package.json` and
 
 Agentdesk's in-app version list (`src-tauri/src/commands/updates.rs`) shows
 only `beagle-workflows-v*` releases that carry a `latest.json`.
+
+The unified `beagle` command compiles `crates/`, `deploy/`,
+`assets/notify/`, `scripts/build-notifier.sh` and `Cargo.toml` in, so a
+change to any of them also releases `beagle-cli-v*`
+([`../docs/RELEASING.md`](../docs/RELEASING.md)).

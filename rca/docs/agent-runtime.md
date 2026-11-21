@@ -36,9 +36,10 @@ desktop/                the desktop app's Agents view (Tauri commands + a live
 ## Quick start
 
 ```sh
-# 1. Build the daemon and put it on PATH (or set BEAGLE_AGENTD to its path).
-cargo build --release -p beagle-agentd
-cp target/release/beagle-agentd /usr/local/bin/
+# 1. Install `beagle`: the daemon is `beagle rca agentd run` inside it.
+#    (The standalone rca binary instead needs `beagle-agentd` on PATH, or
+#    BEAGLE_AGENTD set to its path.)
+brew install beagle-tools/tap/beagle
 
 # 2. Configure at least one agent.
 mkdir -p ~/.config/beagle
@@ -120,8 +121,12 @@ beagle rca agent status       # query the running daemon over its control socket
   `WantedBy=default.target`). To keep it running without an active login:
   `loginctl enable-linger $USER`.
 
-`beagle-agentd` also runs directly: `beagle-agentd` loops; `beagle-agentd once`
-runs a single tick per agent and exits (handy for a manual end-to-end).
+Under `beagle`, the unit runs `<beagle> rca agentd run` (the binary's
+upgrade-proof path, never a Homebrew keg); `$BEAGLE_AGENTD` overrides it.
+
+The daemon also runs directly: `beagle rca agentd run` loops;
+`beagle rca agentd once` runs a single tick per agent and exits (handy for a
+manual end-to-end). The standalone `beagle-agentd` takes the same `run`/`once`.
 
 ## Watching agents
 

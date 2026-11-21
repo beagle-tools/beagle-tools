@@ -1,118 +1,22 @@
-//! `agentctl` — the kubectl of the agentd stack.
+//! The standalone `agentctl` binary: [`agentctl::run_as`] under its own
+//! name. Users of the unified `beagle` command run the same code as
+//! `beagle agent …`.
 //!
-//! Reads and writes the shared `SQLite` store (and shells out to tmux for
-//! kill/attach); never talks to the daemon directly.
-
-mod apply;
-mod cli;
-mod daemon;
-mod errors;
-mod fmt;
-mod get;
-mod job;
-mod launchd;
-mod logs;
-mod preflight;
-mod run_cmd;
-mod status;
+//! Deprecated: kept for one release so scripts and services set up before
+//! the switch keep working, then removed.
 
 use std::process::ExitCode;
 
-use agent_core::state::Store;
-use anyhow::Result;
-use clap::Parser;
-
-use crate::cli::{Cli, Command, DaemonAction, GetResource};
-
 fn main() -> ExitCode {
-    match dispatch(Cli::parse()) {
-        Ok(code) => code,
-        Err(e) => {
-            eprintln!("error: {e:#}");
-            ExitCode::FAILURE
-        }
+    // Only at a terminal: scripts (and runs started through `$AGENTD_CTL`)
+    // keep a clean stderr.
+    if std::io::IsTerminal::is_terminal(&std::io::stderr()) {
+        eprintln!(
+            "note: `agentctl` is deprecated and goes away in the next release; use `beagle agent`"
+        );
     }
-}
-
-fn dispatch(cli: Cli) -> Result<ExitCode> {
-    // `-j` is the job form and takes precedence; it needs no subcommand.
-    if let Some(job) = &cli.job {
-        job::run(
-            &Store::open_default()?,
-            job,
-            &cli.param,
-            cli.model.as_deref(),
-        )?;
-        return Ok(ExitCode::SUCCESS);
-    }
-    let Some(command) = cli.command else {
-        // No subcommand and no -j: show help rather than silently succeeding.
-        <Cli as clap::CommandFactory>::command().print_help()?;
-        println!();
-        return Ok(ExitCode::FAILURE);
-    };
-    match command {
-        Command::Apply { manifests } => return apply::apply(manifests.as_deref()),
-        Command::Get { resource } => {
-            let store = Store::open_default()?;
-            match resource {
-                GetResource::Projects => get::projects(&store)?,
-                GetResource::Jobs => get::jobs(&store)?,
-                GetResource::Agents { project } => get::agents(&store, project.as_deref())?,
-                GetResource::Runs {
-                    project,
-                    agent,
-                    state,
-                    limit,
-                } => {
-                    get::runs(&store, project, agent, state.as_deref(), limit)?;
-                }
-            }
-        }
-        Command::Run {
-            target,
-            parent,
-            param,
-            model,
-        } => {
-            run_cmd::run(
-                &Store::open_default()?,
-                &target,
-                parent.as_deref(),
-                &param,
-                model.as_deref(),
-            )?;
-        }
-        Command::Logs {
-            target,
-            follow,
-            kind,
-        } => {
-            logs::logs(&Store::open_default()?, &target, follow, kind.as_deref())?;
-        }
-        Command::Resume { run_id } => run_cmd::resume(&Store::open_default()?, &run_id)?,
-        Command::Kill { run_id } => run_cmd::kill(&Store::open_default()?, &run_id)?,
-        Command::Attach { run_id } => run_cmd::attach(&Store::open_default()?, &run_id)?,
-        Command::Status => status::status(&Store::open_default()?)?,
-        Command::Errors {
-            since,
-            since_last,
-            max_hours,
-            json,
-            write,
-        } => errors::errors(
-            &Store::open_default()?,
-            since.as_deref(),
-            since_last.as_deref(),
-            max_hours,
-            json,
-            write.as_deref(),
-        )?,
-        Command::Daemon { action } => match action {
-            DaemonAction::Install { print } => daemon::install(print)?,
-            DaemonAction::Restart => daemon::restart()?,
-            DaemonAction::Uninstall => daemon::uninstall()?,
-        },
-    }
-    Ok(ExitCode::SUCCESS)
+    agentctl::run_as(
+        agent_core::ctl::STANDALONE,
+        std::env::args_os().skip(1).collect(),
+    )
 }

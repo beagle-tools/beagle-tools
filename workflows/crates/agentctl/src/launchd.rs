@@ -3,7 +3,7 @@
 //! rendering and parsing rules. No I/O here, so all of it is unit-tested;
 //! [`crate::daemon`] does the filesystem and `launchctl` work.
 
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 /// launchd label of the agentd unit (also the plist's file stem).
 pub const LABEL: &str = "com.agentd.daemon";
@@ -29,15 +29,43 @@ pub const NOTIFY_ICONS: &[(&str, &[u8])] = &[
     ),
 ];
 
-/// Render the launchd unit for an `agentd` at `agentd_bin`, logging into
-/// `log_dir`. The binary's directory goes first on the unit's PATH, so
-/// runs find `agentctl` (and its siblings) from the same install.
-pub fn render_plist(agentd_bin: &Path, log_dir: &Path) -> String {
-    let bin_dir = agentd_bin.parent().unwrap_or_else(|| Path::new("/"));
+/// What the launchd unit runs: a binary plus its arguments.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Program {
+    /// The binary, at a path that survives upgrades.
+    pub bin: PathBuf,
+    /// Its arguments (`agent daemon run` for the unified `beagle`).
+    pub args: Vec<String>,
+}
+
+/// The arguments that make the unified `beagle` binary run the daemon. The
+/// process lookup in `agent_core::daemon` matches on them, so keep the two
+/// in step.
+pub const HOSTED_DAEMON_ARGS: [&str; 3] = ["agent", "daemon", "run"];
+
+/// Render the launchd unit running `program`, logging into `log_dir`. The
+/// binary's directory goes first on the unit's PATH, so runs find the
+/// control CLI (and its siblings) from the same install.
+pub fn render_plist(program: &Program, log_dir: &Path) -> String {
+    let bin_dir = program.bin.parent().unwrap_or_else(|| Path::new("/"));
+    let arguments: Vec<String> = std::iter::once(program.bin.to_string_lossy().into_owned())
+        .chain(program.args.iter().cloned())
+        .map(|arg| format!("    <string>{}</string>", xml_escape(&arg)))
+        .collect();
     PLIST_TEMPLATE
-        .replace("__AGENTD_BIN__", &xml_escape(&agentd_bin.to_string_lossy()))
+        .replace("__PROGRAM_ARGUMENTS__", &arguments.join("\n"))
         .replace("__CARGO_BIN_DIR__", &xml_escape(&bin_dir.to_string_lossy()))
         .replace("__LOG_DIR__", &xml_escape(&log_dir.to_string_lossy()))
+}
+
+/// The unit's program when this code runs inside the unified `beagle`
+/// binary at `exe`: that same binary (at its upgrade-proof path), told to
+/// run the daemon.
+pub fn hosted_program(exe: &Path) -> Program {
+    Program {
+        bin: beagle_utils::paths::stable_exe(exe),
+        args: HOSTED_DAEMON_ARGS.iter().map(|a| (*a).to_owned()).collect(),
+    }
 }
 
 /// Escape the characters that are not allowed verbatim in XML text.
@@ -45,22 +73,6 @@ fn xml_escape(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
-}
-
-/// A bin dir that survives upgrades. Homebrew runs binaries from a
-/// versioned keg (`<prefix>/Cellar/<formula>/<version>/bin`) that the next
-/// `brew upgrade` deletes, so a unit pointing there would break; the
-/// `<prefix>/bin` symlinks are stable. Anything else is used as-is.
-pub fn stable_bin_dir(dir: &Path) -> PathBuf {
-    let parts: Vec<Component<'_>> = dir.components().collect();
-    match parts
-        .iter()
-        .position(|c| c.as_os_str() == "Cellar")
-        .filter(|&i| i > 0)
-    {
-        Some(i) => parts[..i].iter().collect::<PathBuf>().join("bin"),
-        None => dir.to_path_buf(),
-    }
 }
 
 /// Which `agentd` the unit should run: the one installed next to this
@@ -73,7 +85,7 @@ pub fn resolve_agentd(
 ) -> Option<PathBuf> {
     let sibling = exe
         .and_then(Path::parent)
-        .map(|dir| stable_bin_dir(dir).join("agentd"))
+        .map(|dir| beagle_utils::paths::stable_bin_dir(dir).join("agentd"))
         .filter(|p| exists(p));
     sibling.or(on_path)
 }
@@ -93,15 +105,22 @@ pub fn parse_pid(print_output: &str) -> Option<u32> {
 mod tests {
     use super::*;
 
+    fn standalone(bin: &str) -> Program {
+        Program {
+            bin: PathBuf::from(bin),
+            args: Vec::new(),
+        }
+    }
+
     #[test]
     fn rendering_fills_every_placeholder() {
         let out = render_plist(
-            Path::new("/opt/homebrew/bin/agentd"),
+            &standalone("/opt/homebrew/bin/agentd"),
             Path::new("/Users/me/Library/Logs/agentd"),
         );
         assert!(!out.contains("__"), "unrendered placeholder in:\n{out}");
         assert!(out.contains(&format!("<string>{LABEL}</string>")));
-        assert!(out.contains("<string>/opt/homebrew/bin/agentd</string>"));
+        assert!(out.contains("<array>\n    <string>/opt/homebrew/bin/agentd</string>\n  </array>"));
         assert!(out.contains("<string>/opt/homebrew/bin:/opt/homebrew/bin:"));
         assert!(out.contains("/Users/me/Library/Logs/agentd/agentd.err.log"));
         assert!(out.trim_start().starts_with("<?xml"));
@@ -109,22 +128,24 @@ mod tests {
     }
 
     #[test]
-    fn rendering_escapes_xml_metacharacters() {
-        let out = render_plist(Path::new("/a&b/<x>/agentd"), Path::new("/logs"));
-        assert!(out.contains("<string>/a&amp;b/&lt;x&gt;/agentd</string>"));
-        assert!(!out.contains("/a&b/"));
+    fn hosted_units_run_beagle_agent_daemon_run() {
+        let program = hosted_program(Path::new("/opt/homebrew/Cellar/beagle/1.0.0/bin/beagle"));
+        assert_eq!(program.bin, PathBuf::from("/opt/homebrew/bin/beagle"));
+        let out = render_plist(&program, Path::new("/logs"));
+        assert!(out.contains(
+            "    <string>/opt/homebrew/bin/beagle</string>\n    <string>agent</string>\n    \
+             <string>daemon</string>\n    <string>run</string>\n  </array>"
+        ));
+        assert!(out.contains("<string>/opt/homebrew/bin:/opt/homebrew/bin:"));
+        // agent_core::daemon finds a heartbeat-less daemon by this command line.
+        assert_eq!(HOSTED_DAEMON_ARGS.join(" "), "agent daemon run");
     }
 
     #[test]
-    fn cellar_kegs_map_to_the_stable_prefix_bin() {
-        assert_eq!(
-            stable_bin_dir(Path::new("/opt/homebrew/Cellar/beagle-workflows/1.2.3/bin")),
-            PathBuf::from("/opt/homebrew/bin")
-        );
-        assert_eq!(
-            stable_bin_dir(Path::new("/Users/me/.cargo/bin")),
-            PathBuf::from("/Users/me/.cargo/bin")
-        );
+    fn rendering_escapes_xml_metacharacters() {
+        let out = render_plist(&standalone("/a&b/<x>/agentd"), Path::new("/logs"));
+        assert!(out.contains("<string>/a&amp;b/&lt;x&gt;/agentd</string>"));
+        assert!(!out.contains("/a&b/"));
     }
 
     #[test]

@@ -13,7 +13,8 @@ the tool.
 
 | Tool | Crate | Where it lives |
 |---|---|---|
-| `rca` | `beagle` (renamed `beagle-rca` in `Cargo.toml`) | `../rca/cli` — also builds the standalone rca binary until it is retired |
+| `agent` | `beagle-agent-tool` → `agentctl` (which runs `agenttop` as `top` and `agentd` as `daemon run`) | `crates/agent`, over `../workflows/crates/*` — which also build the standalone binaries until they are retired |
+| `rca` | `beagle` (renamed `beagle-rca` in `Cargo.toml`), plus `beagle-agentd` for `beagle rca agentd` (routed in `tools.rs`: the daemon depends on rca, so rca can't link it) | `../rca/cli`, `../rca/crates/beagle-agentd` — also build the standalone binaries until they are retired |
 | `recap` | `beagle-recap` | `crates/recap` |
 | `scout` | `beagle-scout` | `crates/scout` |
 | `serve` | `beagle-serve` | `crates/serve` — the tools' stores as a read-only HTTPS JSON API ([`../docs/serve-api.md`](../docs/serve-api.md)); it reads each store through that tool's crate |
@@ -23,7 +24,16 @@ the tool.
 A tool that lives with its own app is a path dependency in the workspace
 `Cargo.toml`. A change to it releases `beagle` too
 ([`../docs/RELEASING.md`](../docs/RELEASING.md)), and its own gate
-(`make check-rca`, `make check-tandem`) still applies.
+(`make check-rca`, `make check-tandem`, `make check-workflows`) still
+applies.
+
+**Daemons are `beagle` too.** Every long-running service is a subcommand,
+and the unit it installs runs this binary: `beagle agent daemon install`
+writes a launchd unit for `<beagle> agent daemon run`, `beagle rca agent
+install` a launchd/systemd unit for `<beagle> rca agentd run`. Both take
+the running binary's path through `beagle_utils::paths::stable_exe`, so a
+Homebrew keg path never lands in a unit (it would break on upgrade). Only
+the desktop apps stay separate.
 
 ## The tool contract
 
@@ -65,10 +75,11 @@ tool may be named after one:
   in place. `beagle update` runs the new binary's `setup --only
   rca-skills,scout-skills` afterwards. A tool with a new install step adds
   it to `STEPS`.
-- `doctor`: old standalone binaries (`scout`, `recap`, `standup`, another
-  `beagle`) still on `PATH`, and (macOS) whether the `beagle serve` launchd
-  agent is running — both fail it — plus setup checks that only warn
-  (`health.rs`: `gh` signed in, `beagle-agentd`, `tmux`, skills, scout
+- `doctor`: old standalone binaries (`scout`, `recap`, `standup`,
+  `agentctl`, `agenttop`, `agentd`, another `beagle`) still on `PATH`, and
+  (macOS) whether the `beagle serve` launchd agent is running — both fail
+  it — plus setup checks that only warn (`health.rs`: `gh` signed in,
+  agent services still running a retired binary, `tmux`, skills, scout
   hooks).
 
 **Tools never update themselves under `beagle`.** One tool's download

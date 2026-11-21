@@ -30,18 +30,21 @@ with you in control.
 Underneath them, [`utils/`](utils/README.md) (`beagle-utils`) holds the Rust helpers two or more
 apps share.
 
-The terminal tools ship as **one binary, `beagle`** ([`cli/`](cli/README.md)): `beagle rca`,
-`beagle recap`, `beagle scout`, `beagle standup` and `beagle tandem` (Tandem's data from a script).
+Every terminal tool and daemon ships as **one binary, `beagle`** ([`cli/`](cli/README.md)):
+`beagle agent` (agentd: CLI, TUI and daemon), `beagle rca` (and its daemon, `beagle rca agentd`),
+`beagle recap`, `beagle scout`, `beagle standup` and `beagle tandem` (Tandem's data from a
+script). Only the desktop apps install separately.
 
 ## Install
 
 <details open>
-<summary><b>beagle</b> — the one CLI: rca, recap, scout, standup, tandem</summary>
+<summary><b>beagle</b> — the one CLI: agent, rca, recap, scout, standup, tandem</summary>
 
 ```sh
 brew install beagle-tools/tap/beagle
 beagle setup                  # every tool's one-time steps: agent skills, scout hooks + store
-beagle doctor                 # checks gh, beagle-agentd, tmux, skills and hooks
+beagle doctor                 # checks gh, agent services, tmux, skills and hooks
+beagle agent daemon install   # (macOS) run the agentd scheduler under launchd
 beagle help                   # every tool it holds
 beagle update                 # later: update every tool at once (and refresh the skills)
 ```
@@ -49,7 +52,11 @@ beagle update                 # later: update every tool at once (and refresh th
 Tarballs and `cargo install`: [`cli/README.md`](cli/README.md). Coming from the standalone rca
 CLI (`brew install beagle-tools/tap/beagle-rca`)? Both install a `beagle`, so switch with
 `brew uninstall beagle-rca && brew install beagle-tools/tap/beagle`; every old `beagle <cmd>` is
-now `beagle rca <cmd>`. `beagle doctor` lists old standalone binaries still on your `PATH`.
+now `beagle rca <cmd>`. From the standalone agentd CLIs: `agentctl …` is `beagle agent …`,
+`agenttop` is `beagle agent`, and `agentd` is `beagle agent daemon run` — re-run
+`beagle agent daemon install` so launchd starts the new binary (and `beagle rca agent install`
+for rca's daemon, now `beagle rca agentd run`). The old names keep working for one release. `beagle doctor` lists old
+standalone binaries still on your `PATH`.
 
 </details>
 
@@ -79,17 +86,17 @@ Direct downloads for every platform: [`tandem/README.md`](tandem/README.md#insta
 brew install --cask beagle-tools/tap/beagle-rca-desktop   # the desktop app (macOS)
 ```
 
-The `beagle-agentd` daemon and other routes: [`rca/README.md`](rca/README.md#install--run).
+The agent daemon is `beagle rca agentd`, installed as a login service with
+`beagle rca agent install`; other routes: [`rca/README.md`](rca/README.md#install--run).
 
 </details>
 
 <details>
-<summary><b>agentd + Agentdesk</b> — daemon, CLIs and desktop app (macOS)</summary>
+<summary><b>Agentdesk</b> — desktop app for agentd (macOS; the CLI, TUI and daemon are <code>beagle agent</code>)</summary>
 
 ```sh
-brew install beagle-tools/tap/beagle-workflows          # agentd, agentctl, agenttop
 brew install --cask beagle-tools/tap/beagle-agentdesk   # the Agentdesk app (optional)
-agentctl daemon install
+beagle agent daemon install                             # the scheduler, under launchd
 ```
 
 Direct downloads and the tmux/notifier setup: [`workflows/README.md`](workflows/README.md#install).
@@ -117,21 +124,21 @@ referenced from there), then run the free, script-only `writeup` job:
 ```sh
 mkdir -p ~/.config/agentd/manifests
 cp -R workflows/manifests/demo ~/.config/agentd/manifests/
-agentctl apply
-agentctl get agents
-agentctl -j writeup
-agenttop
+beagle agent apply
+beagle agent get agents
+beagle agent -j writeup
+beagle agent              # the live dashboard
 ```
 
 ## How they fit together
 
 ```mermaid
 flowchart LR
-    agentd["agentd<br/>scheduled agent runs"]
+    agentd["beagle agent (agentd)<br/>scheduled agent runs"]
     agent["Agent<br/>claude · codex + /beagle skill"]
     rca[("Beagle RCA workspace<br/>plain files on disk")]
     viewer["beagle rca TUI · Beagle desktop<br/>live render"]
-    bagentd["beagle-agentd<br/>implements remediation.md"]
+    bagentd["beagle rca agentd<br/>implements remediation.md"]
     pr["Pull request"]
     tandem["Tandem<br/>review with agents"]
     gh["GitHub"]
@@ -147,7 +154,7 @@ flowchart LR
 
 Each tool stands on its own; together they cover an incident end to end. An agent — started by
 you or by agentd — writes its investigation into a Beagle workspace that you watch live. When you
-hand the RCA off, `beagle-agentd` implements the fix and opens a PR, which you review in Tandem
+hand the RCA off, `beagle rca agentd` implements the fix and opens a PR, which you review in Tandem
 before anything reaches GitHub.
 
 ## Principles
@@ -164,8 +171,8 @@ before anything reaches GitHub.
 | ----------------------------------- | -------------------------------------------------------------------------------------------- |
 | [`tandem/`](tandem/README.md)       | Tandem desktop app (Tauri 2 + Rust + React)                                                  |
 | [`cli/`](cli/README.md)             | The one `beagle` command: every terminal tool linked into a single binary                    |
-| [`rca/`](rca/README.md)             | Beagle RCA: the `beagle rca` CLI/TUI crate, `beagle-agentd`, desktop app and postmortem site |
-| [`workflows/`](workflows/README.md) | agentd, agentctl, agenttop and the Agentdesk desktop app                                     |
+| [`rca/`](rca/README.md)             | Beagle RCA: the `beagle rca` CLI/TUI and daemon crates, desktop app and postmortem site      |
+| [`workflows/`](workflows/README.md) | agentd (`beagle agent`: CLI, TUI and daemon crates) and the Agentdesk desktop app            |
 | [`utils/`](utils/README.md)         | `beagle-utils`, Rust helpers shared by two or more apps                                      |
 | [`skills/`](skills/README.md)       | Agent skills: `/beagle`, `/beagle-review`, `/beagle-create-issue`, `/beagle-complete-issue`  |
 | [`standards/`](standards/)          | Shared lint and compiler config every app uses unchanged                                     |

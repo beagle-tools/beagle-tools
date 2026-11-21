@@ -203,7 +203,7 @@ the file parses).
 github_user = "octocat"
 # Run after a PR is queued, so the review starts now rather than on the
 # reviewer's next scheduled tick. Omit to only queue.
-kick = ["agentctl", "run", "demo/review-queue"]
+kick = ["beagle", "agent", "run", "demo/review-queue"]
 ```
 
 GitHub access goes through the `gh` CLI: log in with `gh auth login`

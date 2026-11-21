@@ -59,8 +59,10 @@ USAGE:
                                             toolbox.md + systems/ templates
     beagle rca config                     edit the config file and validate it
     beagle rca skill [status|install]     show or install the /beagle skills
-    beagle rca agent <action>             manage the beagle-agentd daemon:
+    beagle rca agent <action>             manage the agent daemon as a service:
                                             install|uninstall|start|stop|status
+    beagle rca agentd [run|once]          run the agent daemon itself in the
+                                            foreground (what the service runs)
     beagle rca version                    print rca's version
     beagle rca banner                     print the BEAGLE banner
     beagle rca --help | --version

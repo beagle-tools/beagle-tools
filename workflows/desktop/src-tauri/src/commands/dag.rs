@@ -106,7 +106,7 @@ pub fn read_manifest(
     };
     if source.as_os_str().is_empty() {
         return Err(AppError::new(format!(
-            "{project}/{agent} has no manifest path recorded — re-run `agentctl apply`"
+            "{project}/{agent} has no manifest path recorded — re-run `beagle agent apply`"
         )));
     }
     std::fs::read_to_string(&source)

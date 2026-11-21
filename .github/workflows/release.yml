@@ -241,7 +241,8 @@ jobs:
       version: ${{ needs.plan.outputs.workflows_version }}
 
   # ---- cli (the unified `beagle` command) -----------------------------------
-  # Links rca/cli and tandem/crates/tandem-cli in, so it also releases when
+  # Links rca/cli (and rca's daemon), tandem-cli and the workflows crates
+  # in, so it also releases when
   # those change (scripts/release/lib.mjs).
   cli-build:
     needs: plan

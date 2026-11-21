@@ -5,13 +5,13 @@ use std::path::PathBuf;
 use beagle_utils::paths;
 
 use super::{
-    find_agentd, install_store_root, remove_if_present, render_unit, run_checked, NO_HOME, UNIT,
+    daemon_command, install_store_root, remove_if_present, render_unit, run_checked, NO_HOME, UNIT,
 };
 
 // ---- Linux (systemd --user) ----
 
 pub(super) fn systemd_install() -> Result<String, String> {
-    let program = find_agentd()?;
+    let (program, args) = daemon_command()?;
     let path = unit_path()?;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)
@@ -21,6 +21,7 @@ pub(super) fn systemd_install() -> Result<String, String> {
         &path,
         render_unit(
             &program,
+            &args,
             &beagle_utils::process::augmented_path(),
             install_store_root().as_deref(),
         ),

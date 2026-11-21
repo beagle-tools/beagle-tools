@@ -38,7 +38,7 @@ pub fn trigger_job(
         .map_err(|e| AppError::new(format!("could not read agent {project}/{agent}: {e}")))?
         .ok_or_else(|| {
             AppError::new(format!(
-                "agent {project}/{agent} is not in the store — run `agentctl apply` to sync manifests"
+                "agent {project}/{agent} is not in the store — run `beagle agent apply` to sync manifests"
             ))
         })?;
 

@@ -158,7 +158,7 @@ defaults you applied. Link related issues/PRs.>
 
 ## Acceptance criteria
 
-- [ ] <Observable, testable statement — "Running `agentctl list --archived`
+- [ ] <Observable, testable statement — "Running `beagle agent get runs --archived`
       prints archived jobs", not "archiving works".>
 - [ ] <Error case behaves as specified.>
 - [ ] `make check-<app>` and `make standards` pass.

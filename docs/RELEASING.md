@@ -16,11 +16,11 @@ releases the app if any **release-relevant** path changed:
 | tandem    | `tandem/**`                                                                                                                                                         |
 | rca       | `rca/**`, `skills/beagle/**`, `skills/beagle-review/**` (embedded in the binary)                                                                                    |
 | workflows | `workflows/**`                                                                                                                                                      |
-| cli       | `cli/**`; the crates it links from other apps: `rca/cli/**`, `tandem/crates/tandem-cli/**`, `tandem/crates/tandem-core/**`, `tandem/Cargo.toml`; and the rca skills |
+| cli       | `cli/**`; the crates it links from other apps: `rca/cli/**`, `rca/crates/beagle-agent{,d}/**`, `rca/Cargo.toml`, `tandem/crates/tandem-{cli,core,tui,cache,github}/**`, `tandem/Cargo.toml`, `workflows/crates/{agent-core,agentctl,agentd,agenttop}/**` (plus what agentctl embeds: `workflows/{deploy,assets/notify}/**`, `workflows/scripts/build-notifier.sh`, `workflows/Cargo.toml`); and the rca skills |
 | all four  | `utils/**`, `rust-toolchain.toml` (compiled into every app)                                                                                                         |
 
 `cli` is the unified `beagle` command. It compiles rca's CLI crate and
-`tandem-cli` in, so a change there releases both that app and `cli`.
+`tandem-cli` in, plus rca's daemon (`beagle rca agentd`) and the agentd stack (`beagle agent`), so a change there releases both that app and `cli`.
 
 Excluded everywhere: `**/*.md` and `<app>/docs/**`. Docs-only merges don't
 release. Markdown an app embeds with `include_str!` is the exception: the
@@ -135,8 +135,10 @@ CLI tarballs hold the binaries at the tarball root:
 - `beagle-workflows-<target>.tar.gz` holds `agentd`, `agentctl` and
   `agenttop`. Targets: the two macOS targets.
 - `beagle-cli-<target>.tar.gz` holds `beagle`, the unified command, and
-  rca's `beagle-agentd` (built from `rca/` with the same version stamped,
-  via `_release-cli.yml`'s `extra-*` inputs). Targets:
+  rca's standalone `beagle-agentd` (built from `rca/` with the same version
+  stamped, via `_release-cli.yml`'s `extra-*` inputs). `beagle` runs that
+  daemon itself (`beagle rca agentd run`); the separate binary stays for one
+  release so services installed before the switch keep working, then goes. Targets:
   `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-musl`.
   `beagle update` installs these; it lists only `beagle-cli-v*` tags, so the
   standalone rca `beagle` (also named `beagle`) is never offered.
@@ -185,7 +187,7 @@ because the next release overwrites the tap.
 - `beagle` and `beagle-rca` both install a `beagle` binary, so each
   formula declares `conflicts_with` the other. Users switch with
   `brew uninstall beagle-rca && brew install beagle-tools/tap/beagle`.
-  Both also ship `beagle-agentd`.
+  Both also ship `beagle-agentd` (deprecated; see above).
 - The cli app's formula is `beagle` but its tarballs are `beagle-cli-*`:
   `scripts/release/apps.sh` sets `APP_ASSET` apart from `APP_FORMULA` for it.
 - **Casks** (`Casks/*.rb`) are static: `version :latest` and
