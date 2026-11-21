@@ -28,3 +28,22 @@ test("a job's Shape tab draws every branch it has taken", async ({ page }) => {
   await expect(tree).toContainText("fix");
   await expect(tree).toContainText("report");
 });
+
+test("f shows only running jobs, a shows every job again, r does nothing", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".jobblock")).toHaveCount(2);
+  const all = page.getByRole("button", { name: "All", exact: true });
+  const running = page.getByRole("button", { name: /^Running/ });
+
+  await page.keyboard.press("r");
+  await expect(all).toHaveAttribute("aria-pressed", "true");
+
+  await page.keyboard.press("f");
+  await expect(running).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".jobblock")).toHaveCount(0);
+  await expect(page.getByText("Nothing running right now")).toBeVisible();
+
+  await page.keyboard.press("a");
+  await expect(all).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".jobblock")).toHaveCount(2);
+});
