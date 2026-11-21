@@ -1,7 +1,10 @@
 // Unit tests for the release-planning rules:
 //   node --test scripts/release/plan.test.mjs
 import assert from "node:assert/strict";
+import { readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   appVersions,
   bumpFromLabels,
@@ -77,6 +80,24 @@ test("repo tooling outside the apps does not release", () => {
   assert.equal(isReleaseRelevant("rca", "rca/web/docs/page.astro"), true);
   // Prefix match must be on a whole path segment.
   assert.equal(isReleaseRelevant("rca", "rcadir/x.rs"), false);
+});
+
+test("an app's formula template or cask releases that app", () => {
+  assert.deepEqual(changedApps(["packaging/homebrew/Formula/beagle-rca.rb.tmpl"]), ["rca"]);
+  assert.deepEqual(changedApps(["packaging/homebrew/Formula/beagle.rb.tmpl"]), ["cli"]);
+  assert.deepEqual(changedApps(["packaging/homebrew/Casks/beagle-tandem.rb"]), ["tandem"]);
+  assert.deepEqual(changedApps(["packaging/homebrew/Casks/beagle-agentdesk.rb"]), ["workflows"]);
+});
+
+test("every formula template and cask belongs to exactly one app", () => {
+  // A new one must be added to PACKAGING_FILES, or editing it releases nothing.
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+  for (const dir of ["Formula", "Casks"]) {
+    for (const name of readdirSync(join(root, "packaging/homebrew", dir))) {
+      const path = `packaging/homebrew/${dir}/${name}`;
+      assert.equal(changedApps([path]).length, 1, path);
+    }
+  }
 });
 
 test("unknown before SHAs", () => {

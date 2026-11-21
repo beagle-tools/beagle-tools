@@ -27,7 +27,7 @@ rca's CLI is a **library entry point**: `cli/src/run.rs` exposes `ABOUT` +
 ([`../cli/AGENTS.md`](../cli/AGENTS.md)), which links this crate as
 `beagle rca …`. That is how users run it. `cli/src/main.rs` is a thin
 wrapper (`run_standalone`) for the standalone rca `beagle` binary, still
-released as `beagle-rca` until it is retired.
+released as `beagle-rca` (a deprecated formula) until it is retired.
 
 - Help, hints and the skills always say `beagle rca <cmd>`. The standalone
   binary drops a leading `rca`, so that spelling works there too.
