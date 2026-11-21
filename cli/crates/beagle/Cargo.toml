@@ -12,6 +12,8 @@ name = "beagle"
 path = "src/main.rs"
 
 [dependencies]
+beagle-agent-tool.workspace = true
+beagle-agentd.workspace = true
 beagle-rca.workspace = true
 beagle-recap.workspace = true
 beagle-scout.workspace = true

@@ -1,11 +1,11 @@
 //! `beagle doctor`: finds the old standalone binaries this command
-//! replaces that are still on `PATH` — `scout`, `recap`, `standup`, and
-//! another `beagle` (the standalone rca 0.x binary, or a second copy of
-//! this one) that shadows or duplicates the running `beagle`.
+//! replaces that are still on `PATH` — `scout`, `recap`, `standup`, the
+//! agentd stack (`agentctl`, `agenttop`, `agentd`), and another `beagle`
+//! (the standalone rca 0.x binary, or a second copy of this one) that shadows or duplicates the running `beagle`.
 //!
 //! On macOS it also reports whether the `beagle serve` launchd agent is
 //! running (`launchctl print`, read-only), and it runs the setup checks in
-//! `health` (gh, beagle-agentd, tmux, skills, scout hooks), which only
+//! `health` (gh, agent services, tmux, skills, scout hooks), which only
 //! warn: the exit code is non-zero only for old binaries or a down service.
 //!
 //! The PATH scan only reads directory entries; it never runs what it finds.
@@ -14,8 +14,27 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-/// Tools that used to ship as their own binary and are now `beagle <name>`.
-const RETIRED: &[&str] = &["scout", "recap", "standup"];
+/// Binaries that used to ship on their own, and the `beagle` command that
+/// replaces each.
+const RETIRED: &[(&str, &str)] = &[
+    ("scout", "beagle scout"),
+    ("recap", "beagle recap"),
+    ("standup", "beagle standup"),
+    ("agentctl", "beagle agent"),
+    ("agenttop", "beagle agent top"),
+    ("agentd", "beagle agent daemon run"),
+    // `beagle-agentd` is not here: the beagle formula still ships it for one
+    // release so rca services installed before `beagle rca agentd run` keep
+    // working. `health.rs` warns while a service still runs it.
+];
+
+/// The `beagle` command that replaces the retired binary `name`.
+fn replacement(name: &str) -> &'static str {
+    RETIRED
+        .iter()
+        .find(|(old, _)| *old == name)
+        .map_or("beagle", |(_, now)| now)
+}
 
 /// One binary on `PATH` worth telling the user about.
 #[derive(Debug, PartialEq, Eq)]
@@ -111,7 +130,7 @@ pub fn scan(path_var: &OsStr, this: Option<&Path>) -> Vec<Finding> {
             }
             seen.push(resolved);
         }
-        for name in RETIRED {
+        for (name, _) in RETIRED {
             let path = dir.join(name);
             if is_executable(&path) && !seen.contains(&resolve(&path)) {
                 seen.push(resolve(&path));
@@ -125,8 +144,9 @@ pub fn scan(path_var: &OsStr, this: Option<&Path>) -> Vec<Finding> {
 fn describe(finding: &Finding) -> String {
     match finding {
         Finding::Retired { name, path } => format!(
-            "• {} — the old standalone `{name}`; it is `beagle {name}` now",
-            path.display()
+            "• {} — the old standalone `{name}`; it is `{}` now",
+            path.display(),
+            replacement(name)
         ),
         Finding::Shadowing(path) => format!(
             "• {} — another `beagle` EARLIER on PATH runs instead of this one; likely \

@@ -22,9 +22,14 @@ pub struct Tool {
 /// Every registered tool, in the order `beagle help` lists them.
 pub const TOOLS: &[Tool] = &[
     Tool {
+        name: "agent",
+        about: agent_tool::ABOUT,
+        run: agent_tool::run,
+    },
+    Tool {
         name: "rca",
         about: beagle_rca::ABOUT,
-        run: beagle_rca::run,
+        run: rca,
     },
     Tool {
         name: "recap",
@@ -52,6 +57,35 @@ pub const TOOLS: &[Tool] = &[
         run: tandem,
     },
 ];
+
+/// What `beagle rca …` runs: its daemon for `agentd`, else rca itself.
+#[derive(Debug, PartialEq, Eq)]
+enum RcaRoute {
+    /// `beagle rca agentd …`, with the arguments after `agentd`.
+    Daemon(Vec<OsString>),
+    /// Every other rca command, arguments unchanged.
+    Rca(Vec<OsString>),
+}
+
+fn route_rca(mut args: Vec<OsString>) -> RcaRoute {
+    if args.first().is_some_and(|a| a == "agentd") {
+        args.remove(0);
+        RcaRoute::Daemon(args)
+    } else {
+        RcaRoute::Rca(args)
+    }
+}
+
+/// `beagle rca`: rca, plus its daemon as `beagle rca agentd run|once`. The
+/// daemon depends on rca's crate, so rca can't link it itself; this binary
+/// links both and routes here. `beagle rca agent install` points the
+/// service at exactly this command.
+fn rca(args: Vec<OsString>) -> ExitCode {
+    match route_rca(args) {
+        RcaRoute::Daemon(rest) => beagle_agentd::run_as("beagle rca agentd", rest),
+        RcaRoute::Rca(args) => beagle_rca::run(args),
+    }
+}
 
 /// `beagle tandem`: tandem-cli under the name the user typed, so its help
 /// and errors say `beagle tandem`, its `update` defers to ours, and
@@ -86,9 +120,44 @@ mod tests {
 
     #[test]
     fn every_tool_is_findable() {
-        for name in ["rca", "recap", "scout", "serve", "standup", "tandem"] {
+        for name in ["agent", "rca", "recap", "scout", "serve", "standup", "tandem"] {
             assert!(find(name).is_some(), "{name}");
         }
         assert!(find("update").is_none());
+    }
+
+    fn args(list: &[&str]) -> Vec<OsString> {
+        list.iter().map(OsString::from).collect()
+    }
+
+    #[test]
+    fn rca_agentd_routes_to_the_daemon_and_the_rest_to_rca() {
+        assert_eq!(
+            route_rca(args(&["agentd", "run"])),
+            RcaRoute::Daemon(args(&["run"]))
+        );
+        assert_eq!(route_rca(args(&["agentd"])), RcaRoute::Daemon(Vec::new()));
+        // The service manager is `agent`, not `agentd`: it stays rca's.
+        assert_eq!(
+            route_rca(args(&["agent", "install"])),
+            RcaRoute::Rca(args(&["agent", "install"]))
+        );
+        assert_eq!(route_rca(Vec::new()), RcaRoute::Rca(Vec::new()));
+        assert_eq!(
+            route_rca(args(&["list", "agentd"])),
+            RcaRoute::Rca(args(&["list", "agentd"]))
+        );
+    }
+
+    #[test]
+    fn the_service_commands_match_the_routes() {
+        // What `beagle rca agent install` writes must reach the daemon.
+        let rca_service: Vec<OsString> = beagle_rca::agentd::UNIFIED_DAEMON_ARGS[1..]
+            .iter()
+            .map(OsString::from)
+            .collect();
+        assert_eq!(beagle_rca::agentd::UNIFIED_DAEMON_ARGS[0], "rca");
+        assert!(matches!(route_rca(rca_service), RcaRoute::Daemon(_)));
+        assert_eq!(agent_tool::PROGRAM, "beagle agent");
     }
 }

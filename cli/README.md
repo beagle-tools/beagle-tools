@@ -1,11 +1,12 @@
 # beagle
 
-One command for every beagle-tools terminal tool. Install one binary,
-`beagle`, and each tool is a subcommand:
+One command for every beagle-tools terminal tool and daemon. Install one
+binary, `beagle`, and each tool is a subcommand:
 
 | Command | What it does |
 |---|---|
-| `beagle rca` | Root-cause analysis workspaces: a live TUI plus commands for agents ([`../rca/`](../rca/README.md)) |
+| `beagle agent` | Schedule and run coding agents (agentd): the live dashboard (bare, or `top`), the control CLI (`apply`, `get`, `-j <job>`, `logs`, `errors`, …) and the daemon (`daemon run`, `daemon install`) ([`../workflows/`](../workflows/README.md)) |
+| `beagle rca` | Root-cause analysis workspaces: a live TUI plus commands for agents, and the daemon that implements handed-off RCAs (`rca agentd run`, installed by `rca agent install`) ([`../rca/`](../rca/README.md)) |
 | `beagle recap` | PR recaps: the diff plus a plain-language write-up ([`crates/recap/`](crates/recap/README.md)) |
 | `beagle scout` | Watch agent work as projects of small, ordered tasks ([`crates/scout/`](crates/scout/README.md)) |
 | `beagle serve` | Every tool's data, read-only over HTTPS on your Tailscale address, for the phone app ([`../docs/serve-api.md`](../docs/serve-api.md)) |
@@ -47,19 +48,30 @@ its tool's name:
 | `beagle list`, `beagle new …` (the rca CLI, `brew install beagle-tools/tap/beagle-rca`) | `beagle rca list`, `beagle rca new …` |
 | `scout`, `recap`, `standup` | `beagle scout`, `beagle recap`, `beagle standup` |
 | `tandem-cli …` | `beagle tandem …` (the copy inside the Tandem app keeps working) |
+| `agentctl …` | `beagle agent …` |
+| `agenttop` | `beagle agent` (or `beagle agent top`) |
+| `agentd` | `beagle agent daemon run` |
+| `beagle-agentd` | `beagle rca agentd run` |
 
 The `beagle-rca` formula also installs a `beagle`, so the two formulas
 conflict. Switch with:
 
 ```sh
-brew uninstall beagle-rca
+brew uninstall beagle-rca beagle-workflows
 brew install beagle-tools/tap/beagle
-beagle setup               # agent skills (which now say `beagle rca …`), scout hooks + store
-beagle doctor              # checks the setup; lists old standalone binaries still on your PATH
+beagle setup                  # agent skills (which now say `beagle rca …`), scout hooks + store
+beagle agent daemon install   # repoint launchd from agentd at `beagle agent daemon run`
+beagle rca agent install      # repoint the rca daemon's service at `beagle rca agentd run`
+beagle doctor                 # checks the setup; lists old standalone binaries still on your PATH
 ```
 
-The rca agent daemon, `beagle-agentd`, is installed alongside `beagle`
-(and `beagle update` updates both); set it up with `beagle rca agent install`.
+The old names (`agentctl`, `agenttop`, `agentd`, `beagle-agentd`) keep
+working for one more release so services installed before the switch don't
+break; `beagle doctor` warns while a service still runs one of them.
+
+Agent scripts that start other runs should call `${AGENTD_CTL:-agentctl}
+run …`: the daemon sets `$AGENTD_CTL` to the control command from its own
+install (`<beagle> agent`).
 
 ## Use
 
