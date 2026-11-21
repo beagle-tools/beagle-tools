@@ -106,6 +106,31 @@ pub fn expand_tilde_with(path: &Path, home: Option<&OsStr>) -> PathBuf {
     }
 }
 
+/// A bin dir that survives upgrades. Homebrew runs binaries from a
+/// versioned keg (`<prefix>/Cellar/<formula>/<version>/bin`) that the next
+/// `brew upgrade` deletes, so a service unit pointing there would break; the
+/// `<prefix>/bin` symlinks are stable. Anything else is returned as-is.
+pub fn stable_bin_dir(dir: &Path) -> PathBuf {
+    let parts: Vec<std::path::Component<'_>> = dir.components().collect();
+    match parts
+        .iter()
+        .position(|c| c.as_os_str() == "Cellar")
+        .filter(|&i| i > 0)
+    {
+        Some(i) => parts[..i].iter().collect::<PathBuf>().join("bin"),
+        None => dir.to_path_buf(),
+    }
+}
+
+/// [`stable_bin_dir`] applied to a binary's own path: the same file name in
+/// the stable bin dir. A path with no parent or file name is returned as-is.
+pub fn stable_exe(exe: &Path) -> PathBuf {
+    match (exe.parent(), exe.file_name()) {
+        (Some(dir), Some(name)) => stable_bin_dir(dir).join(name),
+        _ => exe.to_path_buf(),
+    }
+}
+
 fn env(var: &str) -> Option<std::ffi::OsString> {
     std::env::var_os(var)
 }
@@ -120,6 +145,23 @@ mod tests {
 
     fn os(s: &str) -> &OsStr {
         OsStr::new(s)
+    }
+
+    #[test]
+    fn cellar_kegs_map_to_the_stable_prefix_bin() {
+        assert_eq!(
+            stable_bin_dir(Path::new("/opt/homebrew/Cellar/beagle/1.2.3/bin")),
+            PathBuf::from("/opt/homebrew/bin")
+        );
+        assert_eq!(
+            stable_bin_dir(Path::new("/Users/me/.cargo/bin")),
+            PathBuf::from("/Users/me/.cargo/bin")
+        );
+        assert_eq!(
+            stable_exe(Path::new("/opt/homebrew/Cellar/beagle/1.2.3/bin/beagle")),
+            PathBuf::from("/opt/homebrew/bin/beagle")
+        );
+        assert_eq!(stable_exe(Path::new("/")), PathBuf::from("/"));
     }
 
     #[test]
