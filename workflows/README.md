@@ -17,7 +17,9 @@ All of it is one command, `beagle agent`, in the unified `beagle` binary
 
 The crates still build the standalone `agentctl`, `agenttop` and `agentd`
 binaries (same commands: `agentctl <cmd>` = `beagle agent <cmd>`) for the
-`beagle-workflows` release until it is retired; `beagle doctor` flags them.
+deprecated `beagle-workflows` formula until it is removed; `beagle doctor`
+flags them. Switch with `brew uninstall beagle-workflows && brew install
+beagle-tools/tap/beagle`, then `beagle agent daemon install`.
 
 ## A manifest
 
@@ -150,7 +152,7 @@ release, whose assets keep stable names:
 | Asset | What |
 |---|---|
 | `Agentdesk-macos-arm64.dmg` / `Agentdesk-macos-x64.dmg` | the app |
-| `beagle-workflows-<target>.tar.gz` (+ `.sha256`) | the standalone `agentd`, `agentctl`, `agenttop` (until retired) |
+| `beagle-workflows-<target>.tar.gz` (+ `.sha256`) | the standalone `agentd`, `agentctl`, `agenttop` (deprecated, until removed) |
 
 Versioned releases are tagged `beagle-workflows-vX.Y.Z`.
 

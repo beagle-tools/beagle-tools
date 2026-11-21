@@ -133,7 +133,8 @@ CLI tarballs hold the binaries at the tarball root:
 - `beagle-rca-<target>.tar.gz` holds `beagle` and `beagle-agentd`. Targets:
   `aarch64-apple-darwin`, `x86_64-apple-darwin`, `x86_64-unknown-linux-musl`.
 - `beagle-workflows-<target>.tar.gz` holds `agentd`, `agentctl` and
-  `agenttop`. Targets: the two macOS targets.
+  `agenttop` (the deprecated `beagle-workflows` formula; `beagle agent`
+  replaces them). Targets: the two macOS targets.
 - `beagle-cli-<target>.tar.gz` holds `beagle`, the unified command, and
   rca's standalone `beagle-agentd` (built from `rca/` with the same version
   stamped, via `_release-cli.yml`'s `extra-*` inputs). `beagle` runs that
@@ -172,7 +173,7 @@ filters releases by the tag prefix `beagle-<app>-v`.
 ```sh
 brew install beagle-tools/tap/beagle                  # the unified beagle command (macOS, Linux x86_64)
 brew install beagle-tools/tap/beagle-rca              # standalone rca beagle + beagle-agentd (deprecated)
-brew install beagle-tools/tap/beagle-workflows        # agentd, agentctl, agenttop (macOS)
+brew install beagle-tools/tap/beagle-workflows        # standalone agentd, agentctl, agenttop (deprecated)
 brew install --cask beagle-tools/tap/beagle-tandem    # Tandem.app
 brew install --cask beagle-tools/tap/beagle-rca-desktop  # Beagle.app
 brew install --cask beagle-tools/tap/beagle-agentdesk    # Agentdesk.app
@@ -187,11 +188,13 @@ because the next release overwrites the tap.
 - The tap only gets an app's formula and casks when that app releases, so
   a change to one of them releases its app (`PACKAGING_FILES` in
   `scripts/release/lib.mjs`; a test fails for a formula or cask no app owns).
-- `beagle-rca` is **deprecated** (`deprecate!` in its template: `brew`
-  warns on install and upgrade, pointing at `beagle`). It is deleted one
-  release later: drop the template, its `PACKAGING_FILES` entry and rca's
-  `APP_FORMULA` in `scripts/release/apps.sh`, and remove `Formula/beagle-rca.rb` from the
-  tap by hand (release CI never deletes tap files).
+- `beagle-rca` and `beagle-workflows` are **deprecated** (`deprecate!` in
+  their templates: `brew` warns on install and upgrade, pointing at
+  `beagle`, whose `beagle rca …` / `beagle agent …` replace them). Each is
+  deleted one release later: drop the template, its `PACKAGING_FILES` entry
+  and the app's `APP_FORMULA` in `scripts/release/apps.sh`, and remove
+  `Formula/<name>.rb` from the tap by hand (release CI never deletes tap
+  files).
 - `beagle` and `beagle-rca` both install a `beagle` binary, so each
   formula declares `conflicts_with` the other. Users switch with
   `brew uninstall beagle-rca && brew install beagle-tools/tap/beagle`.
