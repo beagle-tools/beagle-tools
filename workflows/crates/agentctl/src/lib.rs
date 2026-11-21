@@ -55,7 +55,7 @@ pub fn run_as(program: &'static str, args: Vec<OsString>) -> ExitCode {
     match dispatch(cli, program) {
         Ok(code) => code,
         Err(e) => {
-            eprintln!("error: {e:#}");
+            eprintln!("{program}: {e:#}");
             ExitCode::FAILURE
         }
     }

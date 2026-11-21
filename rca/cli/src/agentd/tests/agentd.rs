@@ -108,6 +108,7 @@ fn the_unified_beagle_runs_the_daemon_as_rca_agentd_run() {
         args: args.clone(),
         log_dir: PathBuf::from("/tmp/logs"),
         path: "/usr/bin".to_string(),
+        working_dir: None,
     });
     assert!(
         plist.contains(
@@ -117,7 +118,7 @@ fn the_unified_beagle_runs_the_daemon_as_rca_agentd_run() {
         ),
         "{plist}"
     );
-    let unit = render_unit(&program, &args, "/usr/bin");
+    let unit = render_unit(&program, &args, "/usr/bin", None);
     assert!(
         unit.contains("ExecStart=/opt/homebrew/bin/beagle rca agentd run\n"),
         "{unit}"
@@ -207,6 +208,7 @@ fn the_units_run_in_the_store_beagle_rca_resolved() {
     let plist = render_plist(&LaunchdConfig {
         label: "com.beagle.agentd".to_string(),
         program: PathBuf::from("/opt/homebrew/bin/beagle-agentd"),
+        args: Vec::new(),
         log_dir: PathBuf::from("/tmp/logs"),
         path: "/usr/bin".to_string(),
         working_dir: Some(PathBuf::from("/Users/me/rcas & co")),
@@ -217,6 +219,7 @@ fn the_units_run_in_the_store_beagle_rca_resolved() {
     );
     let unit = render_unit(
         &PathBuf::from("/usr/local/bin/beagle-agentd"),
+        &[],
         "/usr/bin",
         Some(&PathBuf::from("/home/me/my rcas")),
     );
@@ -225,7 +228,7 @@ fn the_units_run_in_the_store_beagle_rca_resolved() {
         "{unit}"
     );
     // Without one, neither unit mentions it.
-    assert!(!render_unit(&PathBuf::from("/x"), "/usr/bin", None).contains("WorkingDirectory"));
+    assert!(!render_unit(&PathBuf::from("/x"), &[], "/usr/bin", None).contains("WorkingDirectory"));
 }
 
 #[test]

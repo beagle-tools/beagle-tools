@@ -1,5 +1,5 @@
 //! `beagle doctor`'s setup checks: what the tools need around them — `gh`
-//! signed in, `beagle-agentd` and `tmux` installed, agent skills current,
+//! signed in, agent services running `beagle`, `tmux` installed, agent skills current,
 //! scout's hooks in place. Every problem here is a warning with the fix,
 //! never a failure: each is only needed by some tools.
 
@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use beagle_utils::process;
 
-/// How long a probe (`gh auth status`, `beagle-agentd --version`) may take.
+/// How long a probe (`gh auth status`) may take.
 const PROBE_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// One check's result.
@@ -38,7 +38,7 @@ impl Check {
 pub fn checks(home: &Path, path_var: &OsStr) -> Vec<Check> {
     vec![
         gh(path_var),
-        agentd(path_var),
+        agent_services(home),
         tmux(path_var),
         skills(home),
         scout_hooks(home),
@@ -62,25 +62,56 @@ fn gh(path_var: &OsStr) -> Check {
     }
 }
 
-/// `beagle-agentd` (rca's agent daemon) on PATH, and its version.
-fn agentd(path_var: &OsStr) -> Check {
-    let Some(agentd) = process::which_in("beagle-agentd", path_var) else {
-        return Check::Warn(
-            "beagle-agentd is not on PATH — RCA agents (`beagle rca agent …`) need it; \
-             `brew install beagle-tools/tap/beagle` installs it"
-                .to_owned(),
-        );
-    };
-    let version =
-        process::output_with_timeout(Command::new(&agentd).arg("--version"), PROBE_TIMEOUT)
-            .ok()
-            .filter(|o| o.status.success())
-            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_owned())
-            .filter(|v| !v.is_empty());
-    Check::Ok(match version {
-        Some(v) => format!("{v} at {}", agentd.display()),
-        None => format!("beagle-agentd at {}", agentd.display()),
-    })
+/// The agent services installed before the daemons moved under `beagle`:
+/// (unit file under `$HOME`, the retired binary it may still run, the
+/// command that rewrites it).
+const SERVICES: &[(&str, &str, &str)] = &[
+    (
+        "Library/LaunchAgents/com.agentd.daemon.plist",
+        "agentd",
+        "beagle agent daemon install",
+    ),
+    (
+        "Library/LaunchAgents/com.beagle.agentd.plist",
+        "beagle-agentd",
+        "beagle rca agent install",
+    ),
+    (
+        ".config/systemd/user/beagle-agentd.service",
+        "beagle-agentd",
+        "beagle rca agent install",
+    ),
+];
+
+/// Whether a launchd plist or systemd unit runs the binary `name` (its
+/// program is `…/<name>`), rather than `beagle`.
+fn runs_retired(unit: &str, name: &str) -> bool {
+    unit.contains(&format!("/{name}</string>"))
+        || unit.lines().any(|line| {
+            line.strip_prefix("ExecStart=")
+                .and_then(|exec| exec.split_whitespace().next())
+                .is_some_and(|program| program.ends_with(&format!("/{name}")))
+        })
+}
+
+/// Agent services (agentd's, rca's) still running a retired binary, which
+/// goes away in the next release.
+fn agent_services(home: &Path) -> Check {
+    let stale: Vec<String> = SERVICES
+        .iter()
+        .filter(|(unit, name, _)| {
+            std::fs::read_to_string(home.join(unit)).is_ok_and(|text| runs_retired(&text, name))
+        })
+        .map(|(_, name, fix)| format!("`{name}` (run `{fix}`)"))
+        .collect();
+    if stale.is_empty() {
+        Check::Ok("agent services run `beagle` (or none are installed)".to_owned())
+    } else {
+        Check::Warn(format!(
+            "an agent service still runs {}, which goes away in the next release",
+            stale.join(" and ")
+        ))
+    }
 }
 
 /// `tmux` on PATH.

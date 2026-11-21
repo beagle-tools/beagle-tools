@@ -3,8 +3,8 @@
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::Duration;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 use beagle_utils::paths;
 use beagle_utils::process::output_with_timeout;

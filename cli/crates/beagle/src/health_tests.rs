@@ -25,12 +25,13 @@ fn an_empty_machine_warns_about_everything_with_the_fix() {
     let checks = checks(home.path(), empty.as_os_str());
     assert_eq!(checks.len(), 5);
     for check in &checks {
-        assert!(matches!(check, Check::Warn(_)), "{check:?}");
+        // No agent services installed is fine; everything else is missing.
+        let services = matches!(check, Check::Ok(s) if s.starts_with("agent services"));
+        assert!(services || matches!(check, Check::Warn(_)), "{check:?}");
     }
     let text: Vec<String> = checks.iter().map(Check::line).collect();
     let text = text.join("\n");
     assert!(text.contains("gh is not installed"));
-    assert!(text.contains("beagle-agentd is not on PATH"));
     assert!(text.contains("tmux is not installed"));
     assert!(text.contains("run `beagle setup`"));
 }
@@ -40,11 +41,9 @@ fn installed_and_signed_in_tools_pass() {
     let home = tempfile::tempdir().unwrap();
     let bin = home.path().join("bin");
     program(&bin, "gh", "Logged in", 0);
-    program(&bin, "beagle-agentd", "beagle-agentd 1.2.3", 0);
     program(&bin, "tmux", "", 0);
     let path = bin.as_os_str();
     assert_eq!(gh(path), Check::Ok("gh is signed in".to_owned()));
-    assert!(matches!(agentd(path), Check::Ok(s) if s.starts_with("beagle-agentd 1.2.3 at ")));
     assert_eq!(tmux(path), Check::Ok("tmux is installed".to_owned()));
 }
 
@@ -81,4 +80,48 @@ fn hooks_and_skills_pass_once_installed() {
     beagle_scout::hooks::install(&mut settings, "/usr/local/bin/beagle scout hook");
     beagle_scout::hooks::save(&path, &settings).unwrap();
     assert!(matches!(scout_hooks(home.path()), Check::Ok(_)));
+}
+
+#[test]
+fn services_still_running_a_retired_binary_warn_with_the_fix() {
+    let home = tempfile::tempdir().unwrap();
+    let agents = home.path().join("Library/LaunchAgents");
+    fs::create_dir_all(&agents).unwrap();
+    fs::write(
+        agents.join("com.agentd.daemon.plist"),
+        "<array>\n<string>/opt/homebrew/bin/agentd</string>\n</array>",
+    )
+    .unwrap();
+    fs::write(
+        agents.join("com.beagle.agentd.plist"),
+        "<array>\n<string>/opt/homebrew/bin/beagle</string>\n<string>rca</string>\n\
+         <string>agentd</string>\n<string>run</string>\n</array>",
+    )
+    .unwrap();
+    let check = agent_services(home.path());
+    assert!(matches!(check, Check::Warn(_)), "{check:?}");
+    let text = check.line();
+    assert!(
+        text.contains("`agentd` (run `beagle agent daemon install`)"),
+        "{text}"
+    );
+    assert!(!text.contains("beagle-agentd"), "{text}");
+}
+
+#[test]
+fn a_systemd_unit_running_beagle_agentd_warns() {
+    let home = tempfile::tempdir().unwrap();
+    let dir = home.path().join(".config/systemd/user");
+    fs::create_dir_all(&dir).unwrap();
+    let unit = dir.join("beagle-agentd.service");
+    fs::write(&unit, "[Service]\nExecStart=/usr/local/bin/beagle-agentd\n").unwrap();
+    assert!(
+        matches!(agent_services(home.path()), Check::Warn(t) if t.contains("beagle rca agent install"))
+    );
+    fs::write(
+        &unit,
+        "[Service]\nExecStart=/usr/local/bin/beagle rca agentd run\n",
+    )
+    .unwrap();
+    assert!(matches!(agent_services(home.path()), Check::Ok(_)));
 }

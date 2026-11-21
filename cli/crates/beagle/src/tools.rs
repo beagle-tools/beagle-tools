@@ -120,7 +120,9 @@ mod tests {
 
     #[test]
     fn every_tool_is_findable() {
-        for name in ["agent", "rca", "recap", "scout", "serve", "standup", "tandem"] {
+        for name in [
+            "agent", "rca", "recap", "scout", "serve", "standup", "tandem",
+        ] {
             assert!(find(name).is_some(), "{name}");
         }
         assert!(find("update").is_none());

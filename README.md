@@ -54,7 +54,8 @@ CLI (`brew install beagle-tools/tap/beagle-rca`)? Both install a `beagle`, so sw
 `brew uninstall beagle-rca && brew install beagle-tools/tap/beagle`; every old `beagle <cmd>` is
 now `beagle rca <cmd>`. From the standalone agentd CLIs: `agentctl …` is `beagle agent …`,
 `agenttop` is `beagle agent`, and `agentd` is `beagle agent daemon run` — re-run
-`beagle agent daemon install` so launchd starts the new binary. `beagle doctor` lists old
+`beagle agent daemon install` so launchd starts the new binary (and `beagle rca agent install`
+for rca's daemon, now `beagle rca agentd run`). The old names keep working for one release. `beagle doctor` lists old
 standalone binaries still on your `PATH`.
 
 </details>
