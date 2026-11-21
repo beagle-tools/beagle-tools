@@ -189,12 +189,13 @@ binds `w` to nothing else. Arrows or `h`/`l` change the width in 2-column
 steps within 20–100 columns while the main pane keeps 40, `0` restores the
 default, `Esc`/`Enter`/`w`/`q` leave (never quit), and every other key is
 ignored while resizing. The width is not saved. The footer shows
-`pane_resize::HINT` while resizing and the `?` help lists `w`. agenttop is
-out of scope for now (its `w` opens a step's write-up). Details in
+`pane_resize::HINT` while resizing and the `?` help lists `w`. agenttop
+(`beagle agent top`) has no resizable side pane, so it has no resize mode
+and its `w` reads a step's write-up. Details in
 [`utils/README.md`](../utils/README.md).
 
-**One keymap for every TUI.** rca, scout, recap, standup and Tandem's review
-TUI use the same key for the same job, so a key never refreshes in one tool
+**One keymap for every TUI.** rca, scout, recap, standup, agenttop and
+Tandem's review TUI use the same key for the same job, so a key never refreshes in one tool
 and writes to GitHub in another:
 
 | Job | Keys |
@@ -222,7 +223,10 @@ and writes to GitHub in another:
   in recap and standup, tabs in rca); open is `Enter`, back is `Esc` or `b`.
 - **Tab always cycles tabs.** Where a screen has two focusable panes, focus
   moves with `Enter` (in) and `Esc` (out), not `Tab`.
-- agenttop is out of scope for now, as for `w`.
+- **agenttop** follows the table except `w` (see resize above): its levels
+  (jobs → runs → log) are entered with `Enter`, not tabs, and its own
+  actions use other keys (`f` running only, `L` every job's runs, `t` tmux,
+  `x` kill, `R` run/resume behind a confirm).
 - **Enforced in CI.** The table is data in `beagle_tui::keymap::STANDARD`,
   mirrored in `standards/tui-standards.json`. Each TUI's
   `*_follows_the_standard_keymap` test walks that data with an exhaustive

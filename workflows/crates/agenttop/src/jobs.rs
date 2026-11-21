@@ -90,7 +90,7 @@ impl App {
         self.jobs().into_iter().nth(self.dag_selected)
     }
 
-    /// The agent whose manifest `e` edits and the CONFIG pane shows: the
+    /// The agent whose manifest `E` edits and the CONFIG pane shows: the
     /// opened job on the runs screen, otherwise the job under the cursor.
     pub fn dag_selected_agent(&self) -> Option<&AgentSpec> {
         if self.all_runs {
@@ -123,7 +123,7 @@ impl App {
             let wanted = match job {
                 Some((project, name)) => &root.project == project && &root.agent == name,
                 // Every job's chains — less the projects ui.yaml hides,
-                // and, with `r`, less the chains that have finished.
+                // and, with `f`, less the chains that have finished.
                 None => {
                     (self.show_hidden || !self.view.hides(&root.project))
                         && (!self.all_running_only
@@ -167,7 +167,7 @@ impl App {
         self.job_steps().get(self.job_step_selected).copied()
     }
 
-    /// True on a runs screen — one job's (`enter`) or every job's (`A`).
+    /// True on a runs screen — one job's (`enter`) or every job's (`L`).
     pub fn runs_open(&self) -> bool {
         self.job_open.is_some() || self.all_runs
     }
@@ -188,7 +188,7 @@ impl App {
         root
     }
 
-    /// `A` on the jobs list: every job's runs on one live page.
+    /// `L` on the jobs list: every job's runs on one live page.
     pub fn open_all_runs(&mut self) {
         self.all_runs = true;
         self.job_open = None;
@@ -198,12 +198,22 @@ impl App {
 
     /// j/k: job to job on the list, step to step inside a job.
     pub fn dag_move(&mut self, down: bool) {
+        self.dag_move_by(down, 1);
+    }
+
+    /// Move `rows` at once (ctrl-d/ctrl-u; `usize::MAX` for g/G),
+    /// clamped to the list.
+    pub fn dag_move_by(&mut self, down: bool, rows: usize) {
         let (len, at) = if self.runs_open() {
             (self.job_steps().len(), self.job_step_selected)
         } else {
             (self.jobs().len(), self.dag_selected)
         };
-        let next = if down { at + 1 } else { at.saturating_sub(1) };
+        let next = if down {
+            at.saturating_add(rows)
+        } else {
+            at.saturating_sub(rows)
+        };
         let next = clamp_selection(next, len);
         if self.runs_open() {
             // Moving means you want to look at something: stop following.

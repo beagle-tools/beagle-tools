@@ -65,8 +65,8 @@ the pane when it is hidden), and while `pane.is_active()` hand every key to
 - The width is not saved: a restart returns to the default. Show
   `pane_resize::HINT` in the footer while resizing and list
   `pane_resize::HELP` in the `?` overlay.
-- agenttop (`workflows/`) is out of scope for now: it keeps `w` for its
-  write-up viewer and does not depend on `beagle-tui`.
+- agenttop (`workflows/`) has no resizable side pane, so it has no resize
+  mode: its `w` reads a step's write-up.
 
 ## Rules
 

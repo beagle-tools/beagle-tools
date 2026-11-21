@@ -1,25 +1,34 @@
 //! Rendering: the jobs screens (`dag.rs` — jobs, then a job's runs), the
-//! log view on top when one is open, and the help overlay.
+//! log view on top when one is open, the footer, and the help overlay.
+//! The `?` sheet and the footer are `beagle_tui::chrome`'s, the same in
+//! every beagle TUI.
 //!
 //! There used to be a second top-level screen, an ACTIVE / RECENT / EVENTS
 //! dashboard behind `d`. The jobs screens replaced everything it showed, so
 //! it is gone.
 
-use ratatui::layout::Rect;
+use beagle_tui::chrome::{self, HelpFilter, Tone};
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Clear, Paragraph, Wrap};
+use ratatui::widgets::{Clear, Paragraph};
 use ratatui::Frame;
 
 use crate::app::App;
 
+/// The log view's footer hints.
+const LOG_HINTS: &str =
+    "esc:back  j/k:scroll  g/G:top/bottom  h/l:pan  /:search  y:copy  q:quit  ?:help";
+
 pub fn draw(frame: &mut Frame<'_>, app: &App) {
+    let [body, footer] =
+        Layout::vertical([Constraint::Min(4), Constraint::Length(1)]).areas(frame.area());
     // The log view first: a log is always the screen on top, whichever
     // screen opened it.
     if let Some(view) = &app.log_view {
-        crate::logs::draw(frame, view, app.status_message());
+        crate::logs::draw(frame, view, body);
     } else {
-        crate::dag::draw(frame, app);
+        crate::dag::draw(frame, app, body);
         if app.show_run_detail {
             crate::detail::draw_overlay(frame, app);
         }
@@ -27,15 +36,30 @@ pub fn draw(frame: &mut Frame<'_>, app: &App) {
             crate::confirm::draw(frame, confirm);
         }
     }
+    let status = app.status_message().map(|s| (s, Tone::Info));
+    chrome::draw_footer(frame, footer, footer_hints(app), status, false);
     draw_daemon_bar(frame, app);
     if app.show_help {
-        draw_help(frame);
+        chrome::draw_help(frame, crate::keys::HELP, HelpFilter::Off);
+    }
+}
+
+/// The footer's key hints for the screen on top.
+fn footer_hints(app: &App) -> &'static str {
+    if app.log_view.is_some() {
+        LOG_HINTS
+    } else if app.all_runs {
+        crate::jobruns::ALL_RUNS_HINTS
+    } else if app.runs_open() {
+        crate::jobruns::RUNS_HINTS
+    } else {
+        crate::dag::JOBS_HINTS
     }
 }
 
 /// A stopped (or hung) agentd looks exactly like an idle one in the store:
 /// the same rows, just nothing new. So when it is not running, the bottom
-/// row of EVERY screen says so, in red, over whatever is there.
+/// row of EVERY screen (the footer) says so, in red, over whatever is there.
 fn draw_daemon_bar(frame: &mut Frame<'_>, app: &App) {
     let Some(text) = app
         .daemon
@@ -68,51 +92,4 @@ fn draw_daemon_bar(frame: &mut Frame<'_>, app: &App) {
         ])),
         bar,
     );
-}
-
-fn draw_help(frame: &mut Frame<'_>) {
-    let lines = [
-        "jobs         j/k select a job · enter its runs · / search",
-        "             R run it (asks first) · r only running jobs · a all jobs",
-        "             e edit manifest · y copy its name (work/inbox-sweep)",
-        "             A every job's runs on one live page",
-        "             H show the projects ui.yaml hides (demo) · H again hides",
-        "runs         j/k select a step · enter its log · w its write-up",
-        "             o its draft PR · m details · x kill it if running",
-        "             R resume the chain at this failed step (within a week),",
-        "               or run the job again from the start (asks first)",
-        "             t attach to its tmux session (detach: ctrl-b d)",
-        "             y copy its run id (for the logs and resume commands)",
-        "all runs     the runs screen for every job, newest first, live",
-        "             r only chains still running · a every chain again",
-        "             W watch: the cursor rides the newest step (j/k stops it)",
-        "logs         j/k scroll · h/l pan · / search · n/N next/prev · y copy",
-        "",
-        "esc          back one level · q quits from the jobs list",
-        "ctrl-c       quit from anywhere (the screens refresh themselves)",
-        "? / esc      close this help",
-    ];
-    let height = u16::try_from(lines.len())
-        .unwrap_or(u16::MAX)
-        .saturating_add(2);
-    let area = centered_rect(72, height, frame.area());
-    let text: Vec<Line<'_>> = lines.iter().map(|line| Line::from(*line)).collect();
-    frame.render_widget(Clear, area);
-    frame.render_widget(
-        Paragraph::new(text)
-            .block(crate::dag::pane_block("HELP"))
-            .wrap(Wrap { trim: false }),
-        area,
-    );
-}
-
-fn centered_rect(width: u16, height: u16, area: Rect) -> Rect {
-    let w = width.min(area.width);
-    let h = height.min(area.height);
-    Rect {
-        x: area.x + (area.width - w) / 2,
-        y: area.y + (area.height - h) / 2,
-        width: w,
-        height: h,
-    }
 }

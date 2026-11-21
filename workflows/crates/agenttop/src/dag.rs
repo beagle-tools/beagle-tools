@@ -22,24 +22,24 @@ use ratatui::Frame;
 use crate::app::App;
 use crate::format::ago_coarse;
 use crate::jobs::JobEntry;
-pub(crate) use crate::widgets::{badge, hints, pane_block, state_style, tree_prefixes, window};
+pub(crate) use crate::widgets::{badge, pane_block, state_style, tree_prefixes, window};
 
-const JOBS_HINTS: &str =
-    "j/k:job  enter:runs  A:all runs  R:run  y:copy name  r:running  a:all  /:search  e:edit  q:quit  ?:help";
+/// The jobs list's footer hints.
+pub(crate) const JOBS_HINTS: &str = "j/k:job  enter:runs  L:all runs  R:run  y:copy name  f:running  a:all  /:search  E:edit  r:reload  q:quit  ?:help";
 
-pub fn draw(frame: &mut Frame<'_>, app: &App) {
+/// Draws the jobs screens into `area` (the frame minus the footer row).
+pub fn draw(frame: &mut Frame<'_>, app: &App, area: Rect) {
     if app.runs_open() {
-        crate::jobruns::draw(frame, app);
+        crate::jobruns::draw(frame, app, area);
     } else {
-        draw_jobs_screen(frame, app);
+        draw_jobs_screen(frame, app, area);
     }
 }
 
 // ---- jobs screen --------------------------------------------------------
 
-fn draw_jobs_screen(frame: &mut Frame<'_>, app: &App) {
-    let [header, main] =
-        Layout::vertical([Constraint::Length(1), Constraint::Min(3)]).areas(frame.area());
+fn draw_jobs_screen(frame: &mut Frame<'_>, app: &App, area: Rect) {
+    let [header, main] = Layout::vertical([Constraint::Length(1), Constraint::Min(3)]).areas(area);
     let [list, config] =
         Layout::horizontal([Constraint::Percentage(45), Constraint::Percentage(55)]).areas(main);
 
@@ -94,8 +94,6 @@ fn draw_jobs_screen(frame: &mut Frame<'_>, app: &App) {
             },
             Style::new().add_modifier(Modifier::DIM),
         ));
-    } else {
-        spans.push(hints(app, JOBS_HINTS));
     }
     // The store failing to open or query used to show in the old dashboard's
     // ACTIVE pane; here it leads the header, or it would be invisible.
@@ -318,7 +316,7 @@ fn draw_config(frame: &mut Frame<'_>, agent: Option<&AgentSpec>, area: Rect) {
                     agent.source.display()
                 ))],
             };
-            (format!("CONFIG · {name} · e to edit"), lines)
+            (format!("CONFIG · {name} · E to edit"), lines)
         }
     };
     let mut lines = lines;

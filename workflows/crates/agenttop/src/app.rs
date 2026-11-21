@@ -73,7 +73,7 @@ pub struct App {
     pub job_search: String,
     /// True while that filter is being typed; keys are text, not moves.
     pub job_search_input: bool,
-    /// `r` on the jobs page: only jobs with a run live. `a` clears it.
+    /// `f` on the jobs page: only jobs with a run live. `a` clears it.
     pub job_running_only: bool,
     /// `~/.config/agentd/ui.yaml`, re-read every refresh: the projects
     /// (demo, usually) the jobs page leaves out, ticket links, and where
@@ -86,10 +86,10 @@ pub struct App {
     /// The job drilled into with enter: `(project, name)`. `None` is the
     /// jobs list; `Some` is that job's runs screen.
     pub job_open: Option<(String, String)>,
-    /// `A` on the jobs list: the runs screen for EVERY job at once — each
+    /// `L` on the jobs list: the runs screen for EVERY job at once — each
     /// chain under its partition, newest first, refreshing live.
     pub all_runs: bool,
-    /// `r` on that page: only chains with a step still pending or running.
+    /// `f` on that page: only chains with a step still pending or running.
     pub all_running_only: bool,
     /// `W` on a runs screen: the cursor rides the newest step at the top
     /// as runs arrive. j/k turns it off.

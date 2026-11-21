@@ -10,7 +10,7 @@ All of it is one command, `beagle agent`, in the unified `beagle` binary
 
 | Command | What it does |
 |---|---|
-| `beagle agent` (or `beagle agent top`) | Live terminal UI, jobs → runs → logs: watch, run, resume, attach, kill |
+| `beagle agent` (or `beagle agent top`) | Live terminal UI, jobs → runs → logs: watch, run, resume, attach, kill. Same keys as every beagle TUI (`?` lists them): `Enter` open, `Esc`/`b` back, `/` search, `r` reload, `E` edit, `y`/`Y`/`i` copy; plus `f` running only, `L` every job's runs, `w` a step's write-up |
 | `beagle agent <cmd>` | kubectl-style CLI: `apply`, `get`, `run`, `logs`, `kill`, `attach`, `resume`, `errors`, `status`, and `-j <job> -p k=v` |
 | `beagle agent daemon run` | The daemon: reconciles manifests, fires cron schedules, spawns and watches runs, sends macOS notifications. `daemon install` runs it under launchd |
 | Agentdesk | The same view as a macOS app — see [desktop/README.md](desktop/README.md) |

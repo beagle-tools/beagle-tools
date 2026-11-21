@@ -13,21 +13,21 @@ use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
 use crate::app::App;
-use crate::dag::{badge, hints, pane_block, state_style, tree_prefixes, window};
+use crate::dag::{badge, pane_block, state_style, tree_prefixes, window};
 use crate::format::{cost, elapsed_between};
 use crate::jobs::RunRow;
 
-const RUNS_HINTS: &str =
-    "j/k:step  enter:logs  y:copy id  W:watch  w:write-up  o:open PR  m:details  R:resume/run  x:kill  esc:back";
-const ALL_RUNS_HINTS: &str =
-    "j/k:step  enter:logs  y:copy id  W:watch  r:running  a:all  w:write-up  o:PR  R:resume/run  esc:back";
+/// A job's runs screen's footer hints.
+pub(crate) const RUNS_HINTS: &str = "j/k:step  enter:logs  y:copy id  Y:copy PR  W:watch  w:write-up  o:open PR  m:details  R:resume/run  x:kill  esc:back  ?:help";
+/// The all-runs page's footer hints.
+pub(crate) const ALL_RUNS_HINTS: &str = "j/k:step  enter:logs  y:copy id  W:watch  f:running  a:all  w:write-up  o:PR  R:resume/run  esc:back  ?:help";
 /// Width of the guide + step name column, so state lines up down the
 /// whole tree whatever the depth.
 const NAME_COL: usize = 34;
 
-pub fn draw(frame: &mut Frame<'_>, app: &App) {
-    let [header, main] =
-        Layout::vertical([Constraint::Length(1), Constraint::Min(3)]).areas(frame.area());
+/// Draws the runs screen into `area` (the frame minus the footer row).
+pub fn draw(frame: &mut Frame<'_>, app: &App, area: ratatui::layout::Rect) {
+    let [header, main] = Layout::vertical([Constraint::Length(1), Constraint::Min(3)]).areas(area);
     let [runs_area, detail_area] =
         Layout::horizontal([Constraint::Percentage(62), Constraint::Percentage(38)]).areas(main);
 
@@ -173,14 +173,6 @@ fn draw_header(
         ));
         head.push(Span::raw("  "));
     }
-    head.push(hints(
-        app,
-        if app.all_runs {
-            ALL_RUNS_HINTS
-        } else {
-            RUNS_HINTS
-        },
-    ));
     frame.render_widget(Paragraph::new(Line::from(head)), header);
 }
 
