@@ -46,7 +46,7 @@ export function JobsPage({ onOpen }: { onOpen: (p: PipelineSummary) => void }): 
   const pipelines = useStore((s) => s.pipelines);
   const loading = useStore((s) => s.loading);
   const [query, setQuery] = useState("");
-  // The All | Running toggle (`a` / `r`, as in agenttop).
+  // The All | Running toggle (`a` / `r`; agenttop's `a` / `f`).
   const [onlyRunning, setOnlyRunning] = useState(false);
   // ui.yaml's hidden projects (demo): off the page until this is ticked.
   const [showHidden, setShowHidden] = useState(false);

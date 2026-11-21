@@ -83,9 +83,9 @@ fn width_changes_line_indices_so_search_must_share_it() {
 
 #[test]
 fn body_metrics_match_the_layout() {
-    // header row (1) + top and bottom border (2) = 3 rows of chrome,
-    // and the borders take a column each side.
-    assert_eq!(body_metrics(100, 40), (98, 37));
+    // header row (1) + top and bottom border (2) + footer row (1) = 4
+    // rows of chrome, and the borders take a column each side.
+    assert_eq!(body_metrics(100, 40), (98, 36));
     // Never zero, however small the window.
     assert_eq!(body_metrics(1, 1), (0, 1));
 }

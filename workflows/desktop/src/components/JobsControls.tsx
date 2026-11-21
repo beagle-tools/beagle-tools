@@ -1,8 +1,8 @@
 import { useEffect, type ReactElement, type RefObject } from "react";
 
-// `/` focuses the search; `r` / `a` switch Running / All, `H` toggles the
-// hidden projects — as in agenttop. Never while typing: an `r` in the
-// search box is an `r`.
+// `/` focuses the search; `r` / `a` switch Running / All (agenttop: `f` /
+// `a`, its `r` reloads), `H` toggles the hidden projects. Never while
+// typing: an `r` in the search box is an `r`.
 export function useJobsKeys(
   input: RefObject<HTMLInputElement | null>,
   setOnlyRunning: (v: boolean) => void,

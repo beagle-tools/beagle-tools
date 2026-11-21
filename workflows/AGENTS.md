@@ -25,7 +25,12 @@ Four tools share one state store:
   `attach`, `logs`, `resume`, `errors`, and `-j <job> -p k=v` to start a job
   with checked params.
 - **`agenttop`** — live TUI, jobs → runs → logs: watch, run, resume, attach,
-  kill, read logs.
+  kill, read logs. Its keys follow the shared beagle TUI keymap
+  (`docs/CODING_STANDARDS.md` "Terminal UIs") except `w` (a step's
+  write-up; no pane resize), and it draws its `?` sheet and footer with
+  `beagle_tui::chrome`. `keys.rs` maps keys and holds the `?` rows,
+  `input.rs` applies them without a terminal (effects run in `lib.rs`),
+  and `tests/keymap.rs` walks the standard.
 - **Agentdesk** (`desktop/`) — the Tauri desktop view of the same store; see
   [`desktop/AGENTS.md`](desktop/AGENTS.md).
 

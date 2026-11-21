@@ -1,5 +1,5 @@
 //! Small drawing helpers every jobs screen shares: tree guides, the
-//! scrolling window, badges, hints, pane borders and state colours.
+//! scrolling window, badges, pane borders and state colours.
 //!
 //! Split from `dag.rs` (the screens themselves); re-exported there.
 
@@ -8,8 +8,6 @@ use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Block;
-
-use crate::app::App;
 
 /// Box-drawing guides for rows given in depth-first order, row 0 being
 /// the root (which gets none). `├─` for a node with a later sibling,
@@ -58,16 +56,6 @@ pub(crate) fn badge(text: &str) -> Span<'static> {
             .bg(Color::Magenta)
             .add_modifier(Modifier::BOLD),
     )
-}
-
-pub(crate) fn hints(app: &App, default: &'static str) -> Span<'static> {
-    match app.status_message() {
-        Some(status) => Span::styled(
-            format!(" {status} "),
-            Style::new().fg(Color::Magenta).add_modifier(Modifier::BOLD),
-        ),
-        None => Span::styled(default, Style::new().add_modifier(Modifier::DIM)),
-    }
 }
 
 pub(crate) fn pane_block(title: &str) -> Block<'static> {

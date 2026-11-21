@@ -13,19 +13,18 @@ use crate::app::LogView;
 use crate::format::wrap_text;
 use agent_core::transcript::prettify;
 
-const LOG_KEY_HINTS: &str = "esc/q:back  j/k:scroll  h/l:pan  /:search  y:copy  ?:help";
 /// Columns for the `HH:MM:SS ` prefix and the padded tag column.
 const TS_COLS: usize = 9;
 const TAG_COLS: usize = 12;
 
-pub fn draw(frame: &mut Frame<'_>, view: &LogView, status: Option<&str>) {
-    let [header, body] =
-        Layout::vertical([Constraint::Length(1), Constraint::Min(3)]).areas(frame.area());
-    draw_header(frame, view, status, header);
+/// Draws the log view into `area` (the frame minus the footer row).
+pub fn draw(frame: &mut Frame<'_>, view: &LogView, area: Rect) {
+    let [header, body] = Layout::vertical([Constraint::Length(1), Constraint::Min(3)]).areas(area);
+    draw_header(frame, view, header);
     draw_body(frame, view, body);
 }
 
-fn draw_header(frame: &mut Frame<'_>, view: &LogView, status: Option<&str>, area: Rect) {
+fn draw_header(frame: &mut Frame<'_>, view: &LogView, area: Rect) {
     let run = &view.run;
     let mut spans = vec![
         Span::styled(
@@ -84,31 +83,21 @@ fn draw_header(frame: &mut Frame<'_>, view: &LogView, status: Option<&str>, area
             " n:fwd  N:back  esc:clear ",
             Style::new().add_modifier(Modifier::DIM),
         ));
-    } else if let Some(status) = status {
-        spans.push(Span::styled(
-            format!(" {status} "),
-            Style::new().fg(Color::Magenta).add_modifier(Modifier::BOLD),
-        ));
-    } else {
-        spans.push(Span::styled(
-            LOG_KEY_HINTS,
-            Style::new().add_modifier(Modifier::DIM),
-        ));
     }
     frame.render_widget(Paragraph::new(Line::from(spans)), area);
 }
 
 /// Body width and visible height for a given frame size.
 ///
-/// `draw` splits the frame into a 1-row header and the bordered body, so the
-/// body wraps at `width - 2` and shows `height - 3` lines. Search has to use
+/// The frame is a 1-row header, the bordered body and the 1-row footer
+/// (`ui.rs`), so the body wraps at `width - 2` and shows `height - 4` lines. Search has to use
 /// the SAME numbers: wrapping decides how many lines each event becomes, so a
 /// different width yields different line indices and a hit lands on the wrong
 /// row. (It did — search computed at a hardcoded 80.)
 pub fn body_metrics(frame_width: u16, frame_height: u16) -> (usize, usize) {
     (
         usize::from(frame_width.saturating_sub(2)),
-        usize::from(frame_height.saturating_sub(3)).max(1),
+        usize::from(frame_height.saturating_sub(4)).max(1),
     )
 }
 
