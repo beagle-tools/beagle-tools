@@ -64,7 +64,7 @@ share the window with a run list it has no use for.
 | `esc`     | unpin; if nothing is pinned, back to Runs                                                    |
 | `x`       | kill the selected run                                                                        |
 | `/`       | Jobs page: fuzzy-search jobs, steps and projects (`enter` opens the top match, `esc` clears) |
-| `r` / `a` | Jobs page: only jobs with something running / all jobs (also the All · Running toggle)       |
+| `f` / `a` | Jobs page: only jobs with something running / all jobs (also the All · Running toggle)       |
 | `H`       | Jobs page: show / hide the projects ui.yaml hides (also the "Show hidden" box)               |
 | `⋯`       | Jobs: Run now… (confirms; asks for required params). Failed steps: Restart… resumes in place |
 
