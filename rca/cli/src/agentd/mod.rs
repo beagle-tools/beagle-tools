@@ -27,7 +27,10 @@ pub use client::{
 };
 pub use paths::{config_path, config_path_from, socket_path, state_dir};
 pub use root::{store_root, store_root_from};
-pub use service::{install, render_plist, render_unit, start, stop, uninstall, LaunchdConfig};
+pub use service::{
+    install, render_plist, render_unit, set_unified, start, stop, unified_command, uninstall,
+    LaunchdConfig, UNIFIED_DAEMON_ARGS,
+};
 
 #[cfg(test)]
 use client::{format_snapshot, parse_status};

@@ -1,14 +1,10 @@
-//! `beagle-agentd` — the always-on daemon that hosts beagle's agent engine.
-//!
-//! On startup it kills any process groups a previous run leaked, loads the
-//! agent config, and builds one [`Orchestrator`] per enabled agent. Then it
-//! ticks them: `beagle-agentd once` runs a single tick per agent and exits
-//! (handy for a manual end-to-end), while `beagle-agentd` loops, ticking every
-//! poll interval and serving the control socket so the TUI and desktop can
-//! query status and start/stop agents (epic #137).
+//! The daemon proper. On startup it kills any process groups a previous run
+//! leaked, loads the agent config, and builds one [`Orchestrator`] per
+//! enabled agent. Then it ticks them once, or forever while serving the
+//! control socket so the TUI and desktop can query status and start/stop
+//! agents (epic #137).
 
 use std::path::{Path, PathBuf};
-use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::thread;
@@ -36,34 +32,6 @@ const BRANCH_PREFIX: &str = "agent";
 /// How many recent job summaries to keep per agent.
 const RESULT_HISTORY: usize = 8;
 
-fn main() -> ExitCode {
-    match std::env::args().nth(1).as_deref() {
-        Some("version" | "--version" | "-V") => {
-            println!("beagle-agentd {}", env!("CARGO_PKG_VERSION"));
-            ExitCode::SUCCESS
-        }
-        Some("once") => dispatch(true),
-        None => dispatch(false),
-        Some(other) => {
-            eprintln!(
-                "beagle-agentd: unknown argument `{other}` (use `once`, `version`, or no argument)"
-            );
-            ExitCode::from(2)
-        }
-    }
-}
-
-/// Runs the daemon, reporting a fatal setup error as a non-zero exit.
-fn dispatch(once: bool) -> ExitCode {
-    match run(once) {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(err) => {
-            eprintln!("beagle-agentd: {err}");
-            ExitCode::FAILURE
-        }
-    }
-}
-
 /// One agent's live state, shared between the tick loop (writer) and the control
 /// server (reader).
 struct AgentState {
@@ -88,7 +56,7 @@ struct Shared {
 }
 
 /// Sets up state, builds the enabled agents, then ticks them once or forever.
-fn run(once: bool) -> Result<(), String> {
+pub(crate) fn run(once: bool) -> Result<(), String> {
     let state_dir = state_dir()?;
     std::fs::create_dir_all(&state_dir).map_err(|err| format!("creating state dir: {err}"))?;
 

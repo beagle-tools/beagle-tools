@@ -10,6 +10,7 @@ fn plist_has_label_program_and_keepalive() {
     let plist = render_plist(&LaunchdConfig {
         label: "com.beagle.agentd".to_string(),
         program: PathBuf::from("/usr/local/bin/beagle-agentd"),
+        args: Vec::new(),
         log_dir: PathBuf::from("/home/me/.local/state/beagle-agent/logs"),
         path: "/opt/homebrew/bin:/usr/bin".to_string(),
         working_dir: None,
@@ -32,6 +33,7 @@ fn plist_has_label_program_and_keepalive() {
 fn unit_has_execstart_and_restart() {
     let unit = render_unit(
         &PathBuf::from("/usr/local/bin/beagle-agentd"),
+        &[],
         "/usr/bin",
         None,
     );
@@ -49,6 +51,7 @@ fn plist_sets_the_daemon_path_so_it_finds_gh_and_claude() {
     let plist = render_plist(&LaunchdConfig {
         label: "com.beagle.agentd".to_string(),
         program: PathBuf::from("/opt/homebrew/bin/beagle-agentd"),
+        args: Vec::new(),
         log_dir: PathBuf::from("/tmp/logs"),
         path: "/opt/homebrew/bin:/Users/me/.local/bin:/usr/bin:/bin".to_string(),
         working_dir: None,
@@ -67,6 +70,7 @@ fn plist_escapes_xml_in_paths() {
     let plist = render_plist(&LaunchdConfig {
         label: "com.beagle.agentd".to_string(),
         program: PathBuf::from("/Users/a&b/bin/beagle-agentd"),
+        args: Vec::new(),
         log_dir: PathBuf::from("/tmp/logs"),
         path: "/x<y>:/bin".to_string(),
         working_dir: None,
@@ -79,11 +83,43 @@ fn plist_escapes_xml_in_paths() {
 fn unit_sets_a_quoted_path_environment() {
     let unit = render_unit(
         &PathBuf::from("/usr/local/bin/beagle-agentd"),
+        &[],
         "/opt/homebrew/bin:/home/me/100%/bin:/usr/bin",
         None,
     );
     assert!(
         unit.contains("Environment=\"PATH=/opt/homebrew/bin:/home/me/100%%/bin:/usr/bin\"\n"),
+        "{unit}"
+    );
+}
+
+#[test]
+fn the_unified_beagle_runs_the_daemon_as_rca_agentd_run() {
+    let (program, args) = unified_command(std::path::Path::new(
+        "/opt/homebrew/Cellar/beagle/1.0.0/bin/beagle",
+    ));
+    // A Homebrew keg path would break on the next `brew upgrade`.
+    assert_eq!(program, PathBuf::from("/opt/homebrew/bin/beagle"));
+    assert_eq!(args, ["rca", "agentd", "run"]);
+
+    let plist = render_plist(&LaunchdConfig {
+        label: "com.beagle.agentd".to_string(),
+        program: program.clone(),
+        args: args.clone(),
+        log_dir: PathBuf::from("/tmp/logs"),
+        path: "/usr/bin".to_string(),
+    });
+    assert!(
+        plist.contains(
+            "<array>\n        <string>/opt/homebrew/bin/beagle</string>\n        \
+             <string>rca</string>\n        <string>agentd</string>\n        \
+             <string>run</string>\n    </array>"
+        ),
+        "{plist}"
+    );
+    let unit = render_unit(&program, &args, "/usr/bin");
+    assert!(
+        unit.contains("ExecStart=/opt/homebrew/bin/beagle rca agentd run\n"),
         "{unit}"
     );
 }
