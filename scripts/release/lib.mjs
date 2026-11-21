@@ -30,6 +30,23 @@ const EMBEDDED_PREFIXES = {
   ],
 };
 /**
+ * Each app's own Homebrew formula template and casks. Release CI renders and
+ * pushes them to the tap only when the app releases, so a change to one must
+ * release its app or it never reaches users.
+ */
+const PACKAGING_FILES = {
+  tandem: new Set(["packaging/homebrew/Casks/beagle-tandem.rb"]),
+  rca: new Set([
+    "packaging/homebrew/Formula/beagle-rca.rb.tmpl",
+    "packaging/homebrew/Casks/beagle-rca-desktop.rb",
+  ]),
+  workflows: new Set([
+    "packaging/homebrew/Formula/beagle-workflows.rb.tmpl",
+    "packaging/homebrew/Casks/beagle-agentdesk.rb",
+  ]),
+  cli: new Set(["packaging/homebrew/Formula/beagle.rb.tmpl"]),
+};
+/**
  * Code outside `<app>/` that an app compiles in (path dependencies on
  * another app's crates). The `.md` exclusion still applies.
  */
@@ -79,6 +96,7 @@ export function isUnknownBefore(before) {
  * an app embeds (EMBEDDED_PREFIXES).
  */
 export function isReleaseRelevant(app, path) {
+  if (PACKAGING_FILES[app]?.has(path)) return true;
   if ((EMBEDDED_PREFIXES[app] ?? []).some((p) => path.startsWith(p))) return true;
   if (path.endsWith(".md")) return false;
   if (SHARED_FILES.has(path)) return true;

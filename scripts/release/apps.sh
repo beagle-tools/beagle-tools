@@ -70,8 +70,10 @@ app_install_notes() {
       echo "- Linux: \`Tandem-linux-x86_64.AppImage\` or \`Tandem-linux-amd64.deb\`"
       ;;
     rca)
-      echo "- CLI (\`beagle\` + \`beagle-agentd\`): \`brew install beagle-tools/tap/beagle-rca\`,"
-      echo "  or a \`beagle-rca-<target>.tar.gz\` below (macOS arm64/x64, Linux x86_64 musl)"
+      echo "- CLI: \`brew install beagle-tools/tap/beagle\` (the unified command, \`beagle rca …\`)."
+      echo "  The standalone \`beagle-rca\` formula is deprecated and will be removed; switch with"
+      echo "  \`brew uninstall beagle-rca && brew install beagle-tools/tap/beagle\`. The standalone"
+      echo "  tarballs (\`beagle-rca-<target>.tar.gz\`) are below until then"
       echo "- Desktop: \`brew install --cask beagle-tools/tap/beagle-rca-desktop\`,"
       echo "  or the \`Beagle-*.dmg\` / \`.AppImage\` / \`.deb\` below"
       echo "- Web: \`docker pull ghcr.io/beagle-tools/beagle-rca-web:$version\`"

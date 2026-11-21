@@ -171,7 +171,7 @@ filters releases by the tag prefix `beagle-<app>-v`.
 
 ```sh
 brew install beagle-tools/tap/beagle                  # the unified beagle command (macOS, Linux x86_64)
-brew install beagle-tools/tap/beagle-rca              # standalone rca beagle + beagle-agentd (being retired)
+brew install beagle-tools/tap/beagle-rca              # standalone rca beagle + beagle-agentd (deprecated)
 brew install beagle-tools/tap/beagle-workflows        # agentd, agentctl, agenttop (macOS)
 brew install --cask beagle-tools/tap/beagle-tandem    # Tandem.app
 brew install --cask beagle-tools/tap/beagle-rca-desktop  # Beagle.app
@@ -184,6 +184,14 @@ because the next release overwrites the tap.
 - **Formulas** (`Formula/*.rb.tmpl`) are versioned. Release CI fills in
   `@VERSION@` and a sha256 per target (`@SHA_<TARGET>@`) from the release's
   `.sha256` assets.
+- The tap only gets an app's formula and casks when that app releases, so
+  a change to one of them releases its app (`PACKAGING_FILES` in
+  `scripts/release/lib.mjs`; a test fails for a formula or cask no app owns).
+- `beagle-rca` is **deprecated** (`deprecate!` in its template: `brew`
+  warns on install and upgrade, pointing at `beagle`). It is deleted one
+  release later: drop the template, its `PACKAGING_FILES` entry and rca's
+  `APP_FORMULA` in `scripts/release/apps.sh`, and remove `Formula/beagle-rca.rb` from the
+  tap by hand (release CI never deletes tap files).
 - `beagle` and `beagle-rca` both install a `beagle` binary, so each
   formula declares `conflicts_with` the other. Users switch with
   `brew uninstall beagle-rca && brew install beagle-tools/tap/beagle`.

@@ -9,6 +9,12 @@ class BeagleRca < Formula
   version "@VERSION@"
   license "Apache-2.0"
 
+  # Replaced by the unified `beagle` formula (`beagle rca …`). Deleted one
+  # release after this deprecation shipped.
+  deprecate! date: "2026-11-20",
+             because: "is replaced by the beagle formula: " \
+                      "brew uninstall beagle-rca && brew install beagle-tools/tap/beagle"
+
   on_macos do
     on_arm do
       url "https://github.com/beagle-tools/beagle-tools/releases/download/beagle-rca-v@VERSION@/beagle-rca-aarch64-apple-darwin.tar.gz"

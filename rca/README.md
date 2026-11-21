@@ -84,7 +84,8 @@ release tarball, beside the standalone CLI) runs the same daemon until it is
 retired.
 
 **The standalone rca `beagle` binary** (`brew install beagle-tools/tap/beagle-rca`,
-v0.x) still ships while it is retired. It installs a `beagle` too, so the two
+v0.x) is deprecated: brew warns on install and upgrade, and the formula is
+removed in a coming release. It installs a `beagle` too, so the two
 formulas conflict: `brew uninstall beagle-rca && brew install beagle-tools/tap/beagle`
 switches. The standalone binary accepts the `beagle rca …` spelling below
 as well as its old `beagle …` one.
