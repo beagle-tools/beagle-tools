@@ -16,11 +16,11 @@ releases the app if any **release-relevant** path changed:
 | tandem    | `tandem/**`                                                                                                                                                         |
 | rca       | `rca/**`, `skills/beagle/**`, `skills/beagle-review/**` (embedded in the binary)                                                                                    |
 | workflows | `workflows/**`                                                                                                                                                      |
-| cli       | `cli/**`; the crates it links from other apps: `rca/cli/**`, `tandem/crates/tandem-cli/**`, `tandem/crates/tandem-core/**`, `tandem/Cargo.toml`; and the rca skills |
+| cli       | `cli/**`; the crates it links from other apps: `rca/cli/**`, `rca/crates/beagle-agent{,d}/**`, `rca/Cargo.toml`, `tandem/crates/tandem-{cli,core}/**`, `tandem/Cargo.toml`, `workflows/crates/**` (plus what agentctl embeds: `workflows/{deploy,assets/notify}/**`, `workflows/scripts/build-notifier.sh`, `workflows/Cargo.toml`); and the rca skills |
 | all four  | `utils/**`, `rust-toolchain.toml` (compiled into every app)                                                                                                         |
 
 `cli` is the unified `beagle` command. It compiles rca's CLI crate and
-`tandem-cli` in, so a change there releases both that app and `cli`.
+`tandem-cli` in, plus rca's daemon (`beagle rca agentd`) and the agentd stack (`beagle agent`), so a change there releases both that app and `cli`.
 
 Excluded everywhere: `**/*.md` and `<app>/docs/**`. Docs-only merges don't
 release. Markdown an app embeds with `include_str!` is the exception: the
