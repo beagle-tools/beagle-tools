@@ -43,7 +43,7 @@ linked into the unified `beagle` command by `../cli/crates/agent` as
   `beagle agent` opens the dashboard). Standalone `agentctl top` /
   `agentctl daemon run` work the same.
 - Each `main.rs` is a thin wrapper for the standalone binaries, still
-  released as `beagle-workflows` until they are retired.
+  released as the deprecated `beagle-workflows` formula until it is removed.
 - Hints name the command the user has: `agent_core::ctl::name()` is
   `agentctl` or `beagle agent`, set once by `agentctl::run_as`. Never
   hard-code `agentctl` in a user-facing string.
@@ -195,7 +195,8 @@ version, their `Cargo.lock` entries, and Agentdesk's `package.json` and
 `tauri.conf.json` (never committed). The release ships:
 
 - `beagle-workflows-<target>.tar.gz` (agentd, agentctl, agenttop) for
-  aarch64/x86_64-apple-darwin → the `beagle-workflows` brew formula;
+  aarch64/x86_64-apple-darwin → the `beagle-workflows` brew formula
+  (deprecated: `deprecate!` in its template points at `beagle`);
 - `Agentdesk-macos-{arm64,x64}.dmg` plus signed updater bundles and
   `latest.json`, mirrored to the rolling `beagle-workflows-latest` release
   that Agentdesk's updater polls and the `beagle-agentdesk` cask installs.

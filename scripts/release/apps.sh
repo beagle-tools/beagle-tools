@@ -79,8 +79,11 @@ app_install_notes() {
       echo "- Web: \`docker pull ghcr.io/beagle-tools/beagle-rca-web:$version\`"
       ;;
     workflows)
-      echo "- CLIs (\`agentd\`, \`agentctl\`, \`agenttop\`): \`brew install beagle-tools/tap/beagle-workflows\`,"
-      echo "  or a \`beagle-workflows-<target>.tar.gz\` below (macOS arm64/x64)"
+      echo "- CLI, TUI and daemon: \`brew install beagle-tools/tap/beagle\` (the unified command, \`beagle agent …\`)."
+      echo "  The standalone \`beagle-workflows\` formula (\`agentd\`, \`agentctl\`, \`agenttop\`) is deprecated and"
+      echo "  will be removed; switch with \`brew uninstall beagle-workflows && brew install beagle-tools/tap/beagle\`,"
+      echo "  then \`beagle agent daemon install\`. The standalone tarballs (\`beagle-workflows-<target>.tar.gz\`)"
+      echo "  are below until then"
       echo "- Agentdesk: \`brew install --cask beagle-tools/tap/beagle-agentdesk\`, or the \`.dmg\` below"
       ;;
     cli)

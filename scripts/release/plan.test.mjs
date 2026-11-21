@@ -96,6 +96,10 @@ test("repo tooling outside the apps does not release", () => {
 test("an app's formula template or cask releases that app", () => {
   assert.deepEqual(changedApps(["packaging/homebrew/Formula/beagle-rca.rb.tmpl"]), ["rca"]);
   assert.deepEqual(changedApps(["packaging/homebrew/Formula/beagle.rb.tmpl"]), ["cli"]);
+  assert.deepEqual(
+    changedApps(["packaging/homebrew/Formula/beagle-workflows.rb.tmpl"]),
+    ["workflows"],
+  );
   assert.deepEqual(changedApps(["packaging/homebrew/Casks/beagle-tandem.rb"]), ["tandem"]);
   assert.deepEqual(changedApps(["packaging/homebrew/Casks/beagle-agentdesk.rb"]), ["workflows"]);
 });

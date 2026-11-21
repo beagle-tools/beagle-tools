@@ -118,7 +118,8 @@ fn locate_program() -> Result<Program> {
     }
     let bin = resolve_agentd(exe.as_deref(), which("agentd"), Path::is_file).context(
         "could not find the agentd binary next to agentctl or on PATH — \
-         install it (brew install beagle-tools/tap/beagle-workflows, or `make install`)",
+         install it with `make install`, or switch to `beagle agent daemon install` \
+         (brew install beagle-tools/tap/beagle)",
     )?;
     Ok(Program {
         bin,
