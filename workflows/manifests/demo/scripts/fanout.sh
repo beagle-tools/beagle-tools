@@ -13,6 +13,6 @@ cat "$AGENTD_DATA_DIR/finding.txt"
 # Branching logic lives HERE, in plain code — an if/threshold/dedup could
 # gate these triggers. The demo always fires both, in parallel.
 echo "fanout: triggering demo/report-claude and demo/report-codex"
-agentctl run demo/report-claude --parent "$AGENTD_RUN_ID"
-agentctl run demo/report-codex  --parent "$AGENTD_RUN_ID"
+${AGENTD_CTL:-agentctl} run demo/report-claude --parent "$AGENTD_RUN_ID"
+${AGENTD_CTL:-agentctl} run demo/report-codex  --parent "$AGENTD_RUN_ID"
 echo "fanout: done — children are queued"

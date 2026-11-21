@@ -133,10 +133,11 @@ pub(crate) fn write_env_file(path: &Path, body: &str) -> Result<()> {
 /// The run's environment: `AGENTD_RUN_ID`/`PROJECT`/`AGENT`/`DATA_DIR`; for
 /// triggered runs `AGENTD_PARENT_RUN_ID`/`PARENT_DATA_DIR`;
 /// `AGENTD_PARAM_<K>` for each `--param`; `AGENTD_DB` when `database: true`;
+/// `AGENTD_CTL` (how a script starts another run from the same install);
 /// the manifest's `env:` map; and the git guard's `core.hooksPath`.
 /// `~/.cargo/bin` and `~/.local/bin` are prepended to PATH: the daemon runs
 /// under launchd, whose PATH has neither, so without them a run cannot call
-/// `agentctl` or a user-installed CLI like `beagle`.
+/// a user-installed CLI like `beagle`.
 pub(crate) fn env_exports(
     spec: &AgentSpec,
     run: &Run,
@@ -154,6 +155,9 @@ pub(crate) fn env_exports(
         ),
         ("AGENTD_ROOT_RUN_ID".to_owned(), root.to_owned()),
     ];
+    // How a script starts another run from the same install (see ctlcmd.rs);
+    // use it unquoted: `$AGENTD_CTL run <project>/<agent> --parent …`.
+    vars.push(("AGENTD_CTL".to_owned(), crate::ctlcmd::get().to_owned()));
     // The job's job-purpose.md, for a script that wants to point at it.
     if let Some(purpose) = purpose {
         vars.push((

@@ -37,7 +37,10 @@ pub fn status(store: &Store) -> Result<()> {
         *by_project.entry(agent.project.as_str()).or_default() += 1;
     }
     if by_project.is_empty() {
-        println!("No agents found. Run `agentctl apply` first.");
+        println!(
+            "No agents found. Run `{} apply` first.",
+            agent_core::ctl::name()
+        );
     } else {
         let mut table = Table::new(&["PROJECT", "AGENTS"]);
         for (project, count) in &by_project {

@@ -15,7 +15,7 @@ run_id=${claimed%% *}
 printf '%s\n' "$run_id" > "$AGENTD_DATA_DIR/run_id"
 echo "review-queue: claimed run $run_id (${claimed#* })"
 
-if ! agentctl run demo/review-pr --parent "$AGENTD_RUN_ID"; then
+if ! ${AGENTD_CTL:-agentctl} run demo/review-pr --parent "$AGENTD_RUN_ID"; then
     beagle tandem fail --run "$run_id" --error "could not start the reviewer"
     exit 1
 fi

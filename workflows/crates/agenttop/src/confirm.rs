@@ -70,9 +70,10 @@ impl App {
             .collect();
         if !missing.is_empty() {
             self.set_status(&format!(
-                "{} needs {} — run it with: agentctl run {}/{} --param …",
+                "{} needs {} — run it with: {} run {}/{} --param …",
                 spec.name,
                 missing.join(", "),
+                agent_core::ctl::name(),
                 spec.project,
                 spec.name
             ));

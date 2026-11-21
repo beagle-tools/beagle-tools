@@ -5,12 +5,19 @@ Kubernetes runs pods: declare agents in YAML manifests, and a small daemon
 schedules them, runs each one in its own tmux session, and records every run
 in a local SQLite store.
 
-| Tool | What it does |
+All of it is one command, `beagle agent`, in the unified `beagle` binary
+([`../cli/`](../cli/README.md)):
+
+| Command | What it does |
 |---|---|
-| `agentd` | The daemon: reconciles manifests, fires cron schedules, spawns and watches runs, sends macOS notifications |
-| `agentctl` | kubectl-style CLI: `apply`, `get`, `run`, `logs`, `kill`, `attach`, `resume`, `errors`, and `-j <job> -p k=v` |
-| `agenttop` | Live terminal UI, jobs → runs → logs: watch, run, resume, attach, kill |
+| `beagle agent` (or `beagle agent top`) | Live terminal UI, jobs → runs → logs: watch, run, resume, attach, kill |
+| `beagle agent <cmd>` | kubectl-style CLI: `apply`, `get`, `run`, `logs`, `kill`, `attach`, `resume`, `errors`, `status`, and `-j <job> -p k=v` |
+| `beagle agent daemon run` | The daemon: reconciles manifests, fires cron schedules, spawns and watches runs, sends macOS notifications. `daemon install` runs it under launchd |
 | Agentdesk | The same view as a macOS app — see [desktop/README.md](desktop/README.md) |
+
+The crates still build the standalone `agentctl`, `agenttop` and `agentd`
+binaries (same commands: `agentctl <cmd>` = `beagle agent <cmd>`) for the
+`beagle-workflows` release until it is retired; `beagle doctor` flags them.
 
 ## A manifest
 
@@ -45,7 +52,7 @@ frees (`crates/agentd/src/caps.rs`; no manifest can raise it).
 
 A job — scheduled, declared `entrypoint: true`, or not triggered by any
 sibling — must have `<project>/jobs/<job>/job-purpose.md`, or it **does not
-load** (`agentctl apply` reports it). Steps need none; their job's file
+load** (`beagle agent apply` reports it). Steps need none; their job's file
 covers them. Sections: `# <project>/<job>`, `## How it starts`, `## Steps`,
 `## Where things live`, `## Known failure modes`, `## Rules a repair must
 keep`, `## Verify a fix` (see [`manifests/demo/jobs/`](manifests/demo/jobs/)).
@@ -56,10 +63,10 @@ file; scripts get the path as `$AGENTD_JOB_PURPOSE`.
 ### When something breaks
 
 ```sh
-agentctl errors                          # what broke in the last 48h, deduplicated
-agentctl errors --since 2026-10-27T12:00:00Z --json
-agentctl errors --since-last <project>/<agent> --write DIR
-agentctl resume <run-id>                 # re-run a failed step in its chain
+beagle agent errors                          # what broke in the last 48h, deduplicated
+beagle agent errors --since 2026-10-27T12:00:00Z --json
+beagle agent errors --since-last <project>/<agent> --write DIR
+beagle agent resume <run-id>                 # re-run a failed step in its chain
 ```
 
 `errors` lists failed and timed-out runs plus `ERROR` lines in runs that
@@ -68,7 +75,7 @@ Logs are pruned after 4 hours, but a run's state, result and `ERROR` lines
 stay in the store for a week, and so does its data directory (the handover
 between steps). That week is what makes `resume` work: a new run of the
 step with the same parent, params and model, which joins the same chain.
-agenttop's `R` and Agentdesk's Restart… do the same, after a confirmation.
+The dashboard's `R` and Agentdesk's Restart… do the same, after a confirmation.
 
 ## Configuration
 
@@ -76,7 +83,7 @@ Two optional files in `~/.config/agentd/` (`$AGENTD_CONFIG_DIR` moves both).
 Unknown keys are ignored, so a newer file still loads.
 
 ```yaml
-# ui.yaml — how agenttop and Agentdesk show things
+# ui.yaml — how the dashboard and Agentdesk show things
 ticket_url: https://tracker.example.com/issue/{key}   # where a `ticket` param links
 investigations_dir: ~/notes/investigations           # <dir>/<run id>/OUTPUT.md write-ups
 hidden_projects: [demo]                               # left off the jobs screens (H shows them)
@@ -117,7 +124,7 @@ must write sets `allow_github_writes: true` in its manifest; there is no
 environment switch.
 
 agentd also writes a heartbeat every tick (`~/.local/state/agentd/agentd.heartbeat`);
-`agentctl status`, agenttop and Agentdesk show a red banner when the daemon
+`beagle agent status`, the dashboard and Agentdesk show a red banner when the daemon
 is stopped or stalled. Runs keep the Mac awake (`caffeinate -i`) while they
 run, and get `~/.cargo/bin` and `~/.local/bin` on `PATH`.
 
@@ -128,40 +135,43 @@ macOS only (the daemon runs under launchd and runs agents in tmux).
 ### Homebrew
 
 ```sh
-brew install beagle-tools/tap/beagle-workflows          # agentd, agentctl, agenttop
+brew install beagle-tools/tap/beagle                    # the beagle command (beagle agent …)
 brew install --cask beagle-tools/tap/beagle-agentdesk   # the Agentdesk app (optional)
 brew install tmux terminal-notifier                     # runs live in tmux; notifier = icons
 ```
 
 ### Direct download
 
-Every release refreshes the rolling
+The `beagle` tarballs: [`../cli/README.md`](../cli/README.md). Agentdesk:
+every workflows release refreshes the rolling
 [`beagle-workflows-latest`](https://github.com/beagle-tools/beagle-tools/releases/tag/beagle-workflows-latest)
 release, whose assets keep stable names:
 
 | Asset | What |
 |---|---|
-| `beagle-workflows-aarch64-apple-darwin.tar.gz` (+ `.sha256`) | CLIs, Apple silicon |
-| `beagle-workflows-x86_64-apple-darwin.tar.gz` (+ `.sha256`) | CLIs, Intel |
 | `Agentdesk-macos-arm64.dmg` / `Agentdesk-macos-x64.dmg` | the app |
+| `beagle-workflows-<target>.tar.gz` (+ `.sha256`) | the standalone `agentd`, `agentctl`, `agenttop` (until retired) |
 
-Each tarball holds `agentd`, `agentctl` and `agenttop` at its root; put them
-together in a directory on your `PATH`. Versioned releases are tagged
-`beagle-workflows-vX.Y.Z`.
+Versioned releases are tagged `beagle-workflows-vX.Y.Z`.
 
 ### Start the daemon
 
-The binaries carry everything the daemon setup needs (launchd plist
+The binary carries everything the daemon setup needs (launchd plist
 template, notification icons, notifier build script), so this works the
 same for a brew, tarball or source install:
 
 ```sh
-agentctl daemon install   # writes ~/Library/LaunchAgents/com.agentd.daemon.plist
-                          # for the agentd next to agentctl, unpacks the icons,
-                          # builds the branded notifiers (if terminal-notifier
-                          # is installed) and loads the daemon
-agentctl daemon install --print   # just show the plist it would write
+beagle agent daemon install   # writes ~/Library/LaunchAgents/com.agentd.daemon.plist
+                              # running `<beagle> agent daemon run`, unpacks the
+                              # icons, builds the branded notifiers (if
+                              # terminal-notifier is installed) and loads it
+beagle agent daemon install --print   # just show the plist it would write
 ```
+
+Coming from the standalone binaries? Re-run `beagle agent daemon install`:
+the old unit points at the `agentd` binary. Scripts that start other runs
+should call `$AGENTD_CTL run …` (the daemon sets it to the control command
+from its own install) instead of a hard-coded `agentctl`.
 
 Then give it manifests (see [`manifests/`](manifests/) for examples) and
 check it sees them:
@@ -169,19 +179,19 @@ check it sees them:
 ```sh
 mkdir -p ~/.config/agentd/manifests   # one subdirectory per project
 cp -R manifests/demo ~/.config/agentd/manifests/   # from a checkout of this repo
-agentctl apply
-agentctl get agents
-agentctl -j fanout
-agenttop
+beagle agent apply
+beagle agent get agents
+beagle agent -j fanout
+beagle agent
 ```
 
 Daemon logs: `~/Library/Logs/agentd/agentd.{out,err}.log`.
-`agentctl daemon uninstall` stops it and removes the unit (state and logs
+`beagle agent daemon uninstall` stops it and removes the unit (state and logs
 stay).
 
 ### Updating
 
-- **CLIs:** `brew upgrade beagle-workflows`, **then `agentctl daemon restart`**.
+- **CLI and daemon:** `beagle update`, **then `beagle agent daemon restart`**.
   A running daemon keeps the old binary; manifests are parsed strictly, so
   an old daemon silently drops agents that use newer fields.
 - **Agentdesk** updates itself: an *Update to vX.Y.Z* pill appears in the
@@ -192,8 +202,9 @@ stay).
 ### From source
 
 ```sh
-make install          # cargo install the three binaries + restart the daemon
-make install-daemon   # first time only: agentctl daemon install
+make install          # cargo install the standalone binaries + restart the daemon
+# or, for the unified command: cargo install --path ../cli/crates/beagle
+make install-daemon   # first time only: agentctl daemon install (standalone binaries)
 ```
 
 ## Development

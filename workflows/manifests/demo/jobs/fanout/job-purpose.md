@@ -7,7 +7,7 @@ data dirs, mixed runners).
 
 ## How it starts
 
-Manual only: `agentctl -j fanout`. No params.
+Manual only: `beagle agent -j fanout`. No params.
 
 ## Steps
 
@@ -22,7 +22,7 @@ Manual only: `agentctl -j fanout`. No params.
 - Manifests: `manifests/demo/*.yaml` under `workflows/`, linked at
   `~/.config/agentd/manifests/demo`.
 - Run data: `~/.local/state/agentd/data/<run-id>/` (kept a week).
-- Logs: `agentctl logs <run-id>`.
+- Logs: `beagle agent logs <run-id>`.
 
 ## Known failure modes
 
@@ -38,5 +38,5 @@ Manual only: `agentctl -j fanout`. No params.
 
 ## Verify a fix
 
-`sh -n scripts/fanout.sh`, then `agentctl -j fanout` and check both children
-succeed (`agentctl get runs | grep report-`).
+`sh -n scripts/fanout.sh`, then `beagle agent -j fanout` and check both children
+succeed (`beagle agent get runs | grep report-`).

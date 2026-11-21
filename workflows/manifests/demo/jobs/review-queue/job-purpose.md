@@ -7,9 +7,9 @@ and a verdict. Nothing is posted to GitHub; the user does that from the TUI.
 
 ## How it starts
 
-Manual: `agentctl -j review-queue`, no params. The TUI starts it right after
+Manual: `beagle agent -j review-queue`, no params. The TUI starts it right after
 a PR is queued when `~/.config/beagle/tandem.toml` has
-`kick = ["agentctl", "run", "demo/review-queue"]`. Add a `schedule` to also drain
+`kick = ["beagle", "agent", "run", "demo/review-queue"]`. Add a `schedule` to also drain
 the queue on a clock.
 
 ## Steps
@@ -49,5 +49,5 @@ the queue on a clock.
 ## Verify a fix
 
 `sh -n scripts/review-queue.sh`, then `beagle tandem add acme/widgets#1
---no-kick` with a PR you can read, `agentctl -j review-queue`, and check the
+--no-kick` with a PR you can read, `beagle agent -j review-queue`, and check the
 PR turns `ready` in `beagle tandem list`.

@@ -30,7 +30,10 @@ pub fn run(
     let (project, agent) = parse_qualified(target)
         .ok_or_else(|| anyhow!("expected <project>/<agent>, got {target:?}"))?;
     if store.get_agent(project, agent)?.is_none() {
-        bail!("agent {project}/{agent} not found in the store; run `agentctl apply` to sync manifests");
+        bail!(
+            "agent {project}/{agent} not found in the store; run `{} apply` to sync manifests",
+            agent_core::ctl::name()
+        );
     }
     if let Some(parent_id) = parent {
         if store.get_run(parent_id)?.is_none() {
@@ -47,7 +50,11 @@ pub fn run(
         model,
     )?;
     println!("{}", created.id);
-    println!("watch with: agentctl logs {} -f", created.id);
+    println!(
+        "watch with: {} logs {} -f",
+        agent_core::ctl::name(),
+        created.id
+    );
     crate::fmt::warn_if_daemon_down();
     Ok(())
 }
@@ -75,7 +82,11 @@ pub fn resume(store: &Store, run_id: &str) -> Result<()> {
     let data = agent_core::paths::data_dir()?;
     let created = agent_core::resume::resume_run(store, run_id, &data)?;
     println!("{}", created.id);
-    println!("watch with: agentctl logs {} -f", created.id);
+    println!(
+        "watch with: {} logs {} -f",
+        agent_core::ctl::name(),
+        created.id
+    );
     crate::fmt::warn_if_daemon_down();
     Ok(())
 }

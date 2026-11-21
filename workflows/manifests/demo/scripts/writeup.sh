@@ -69,5 +69,5 @@ MD
 echo "writeup: wrote $summaries/$AGENTD_RUN_ID.md"
 
 echo "writeup: triggering the child stage"
-agentctl run demo/writeup-stage --parent "$AGENTD_RUN_ID"
+${AGENTD_CTL:-agentctl} run demo/writeup-stage --parent "$AGENTD_RUN_ID"
 echo "writeup: done"

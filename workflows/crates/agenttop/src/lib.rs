@@ -1,8 +1,8 @@
 //! agenttop — a live TUI over the agentd store: jobs → runs → logs.
 //!
-//! Thin entry point: terminal setup/teardown plus the event loop. Data lives
-//! in [`app`], rendering in [`ui`], input mapping in [`keys`], tmux glue in
-//! [`tmux`], pure helpers in [`mod@format`].
+//! Thin entry point ([`run_as`]): terminal setup/teardown plus the event
+//! loop. Data lives in `app`, rendering in `ui`, input mapping in `keys`,
+//! tmux glue in `tmux`, pure helpers in `format`.
 
 mod app;
 mod clip;
@@ -33,7 +33,10 @@ use anyhow::{Context, Result};
 /// Mirrors the key agentd writes when retention hits a problem. Duplicated
 /// rather than shared because agenttop depends on agent-core, not agentd.
 pub const RETENTION_PROBLEM_KEY: &str = "retention_problem";
-use clap::Parser;
+use std::ffi::OsString;
+use std::process::ExitCode;
+
+use clap::{CommandFactory, FromArgMatches, Parser};
 use crossterm::event::{self, Event, KeyEventKind};
 use ratatui::DefaultTerminal;
 
@@ -43,14 +46,38 @@ use crate::keys::Action;
 const POLL_TIMEOUT: Duration = Duration::from_millis(250);
 const REFRESH_EVERY: Duration = Duration::from_secs(1);
 
+/// The standalone TUI's program name.
+pub const STANDALONE: &str = "agenttop";
+
 /// btop-style live dashboard over the agentd store. Takes no arguments
 /// beyond `--help` / `--version`; everything else is interactive.
 #[derive(Debug, Parser)]
 #[command(name = "agenttop", version, about = "Live dashboard for agentd runs")]
 struct Cli {}
 
-fn main() -> Result<()> {
-    Cli::parse();
+/// Open the dashboard as `program` (`agenttop`, or `beagle agent top`
+/// under the unified command) with the arguments after it.
+pub fn run_as(program: &str, args: Vec<OsString>) -> ExitCode {
+    let command_line = std::iter::once(OsString::from(program)).chain(args);
+    let parsed = Cli::command()
+        .name(program.to_owned())
+        .bin_name(program.to_owned())
+        .try_get_matches_from(command_line)
+        .and_then(|m| Cli::from_arg_matches(&m));
+    if let Err(e) = parsed {
+        let _ = e.print();
+        return ExitCode::from(u8::try_from(e.exit_code()).unwrap_or(2));
+    }
+    match open() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("error: {e:#}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+fn open() -> Result<()> {
     // try_init installs a panic hook that restores the terminal before the
     // panic message prints; the explicit restore below covers the Err path.
     let mut terminal = ratatui::try_init().context("initialize terminal")?;

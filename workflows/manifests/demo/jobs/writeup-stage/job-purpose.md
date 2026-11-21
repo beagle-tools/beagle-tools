@@ -6,7 +6,7 @@ notes render. No real work.
 
 ## How it starts
 
-Manual only: `agentctl -j writeup-stage`. No params.
+Manual only: `beagle agent -j writeup-stage`. No params.
 
 ## Steps
 
@@ -29,4 +29,4 @@ Manual only: `agentctl -j writeup-stage`. No params.
 
 ## Verify a fix
 
-`sh -n scripts/writeup-stage.sh`, then `agentctl -j writeup-stage`.
+`sh -n scripts/writeup-stage.sh`, then `beagle agent -j writeup-stage`.

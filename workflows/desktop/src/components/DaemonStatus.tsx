@@ -29,7 +29,7 @@ export function DaemonBar(): ReactElement | null {
   return (
     <div className="daemonbar">
       <strong>■ {daemon}</strong>
-      <code>agentctl daemon restart</code>
+      <code>beagle agent daemon restart</code>
     </div>
   );
 }

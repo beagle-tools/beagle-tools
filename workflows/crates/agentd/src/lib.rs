@@ -4,8 +4,12 @@
 //! spawns pending runs in tmux, and monitors running ones. Killing the daemon
 //! is always safe: runs keep going in their tmux sessions, and a startup
 //! recovery pass finalizes anything that finished while it was down.
+//!
+//! A library entry point ([`run_as`]): the unified `beagle` command runs it
+//! as `beagle agent daemon run`, and `main.rs` is the standalone `agentd`.
 
 mod caps;
+mod ctlcmd;
 mod gitguard;
 mod loglib;
 mod monitor;
@@ -21,14 +25,19 @@ mod summaries;
 mod tmux;
 mod usage;
 
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
+use std::process::ExitCode;
 
 use agent_core::paths;
 use agent_core::state::Store;
 use anyhow::{Context, Result};
 use chrono::Utc;
-use clap::Parser;
+use clap::{CommandFactory, FromArgMatches, Parser};
 use tracing::{error, info};
+
+/// The standalone daemon's program name.
+pub const STANDALONE: &str = "agentd";
 
 /// Daemon that reconciles agent manifests, schedules cron runs, and
 /// supervises tmux-hosted runs.
@@ -76,8 +85,39 @@ struct Cli {
     notify_sound_failure: String,
 }
 
-fn main() -> Result<()> {
-    let cli = Cli::parse();
+/// Run the daemon as `program` (`agentd`, `agentctl daemon run` or
+/// `beagle agent daemon run`) with the arguments after it. Returns only on
+/// `--once`, `--help`/`--version`, or a fatal error.
+pub fn run_as(program: &str, args: Vec<OsString>) -> ExitCode {
+    let command_line = std::iter::once(OsString::from(program)).chain(args);
+    let parsed = Cli::command()
+        .name(program.to_owned())
+        .bin_name(program.to_owned())
+        .try_get_matches_from(command_line)
+        .and_then(|m| Cli::from_arg_matches(&m));
+    let cli = match parsed {
+        Ok(cli) => cli,
+        Err(e) => {
+            let _ = e.print();
+            return ExitCode::from(u8::try_from(e.exit_code()).unwrap_or(2));
+        }
+    };
+    let exe = std::env::current_exe().ok();
+    let sibling = exe
+        .as_deref()
+        .and_then(ctlcmd::sibling)
+        .is_some_and(|p| p.is_file());
+    ctlcmd::set(ctlcmd::command(program, exe.as_deref(), sibling));
+    match run(cli) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("error: {e:#}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+fn run(cli: Cli) -> Result<()> {
     beagle_utils::log::init("info");
 
     let manifests = match cli.manifests {

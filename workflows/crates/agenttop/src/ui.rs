@@ -82,7 +82,7 @@ fn draw_help(frame: &mut Frame<'_>) {
         "             R resume the chain at this failed step (within a week),",
         "               or run the job again from the start (asks first)",
         "             t attach to its tmux session (detach: ctrl-b d)",
-        "             y copy its run id (for agentctl logs / resume)",
+        "             y copy its run id (for the logs and resume commands)",
         "all runs     the runs screen for every job, newest first, live",
         "             r only chains still running · a every chain again",
         "             W watch: the cursor rides the newest step (j/k stops it)",

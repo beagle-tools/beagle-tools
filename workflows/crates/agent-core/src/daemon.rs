@@ -15,7 +15,7 @@
 //! - process gone                     → [`DaemonStatus::Stopped`]
 //!
 //! With no heartbeat file (a daemon from before it existed), a running
-//! process named `agentd` still counts as running.
+//! `agentd` process (or `beagle agent daemon run`) still counts as running.
 
 use std::path::PathBuf;
 use std::process::Command;
@@ -154,9 +154,16 @@ fn pid_alive(pid: u32) -> bool {
     .is_ok_and(|o| o.status.success())
 }
 
+/// The `pgrep` arguments that find a daemon by process: the standalone
+/// `agentd` binary by exact name, and the one hosted by the unified
+/// `beagle` command, whose process is named `beagle`, by its command line.
+const PGREP_QUERIES: [[&str; 2]; 2] = [["-x", "agentd"], ["-f", "beagle agent daemon run"]];
+
 fn any_agentd() -> bool {
-    output_with_timeout(Command::new("pgrep").args(["-x", "agentd"]), PROBE_TIMEOUT)
-        .is_ok_and(|o| o.status.success())
+    PGREP_QUERIES.iter().any(|args| {
+        output_with_timeout(Command::new("pgrep").args(args), PROBE_TIMEOUT)
+            .is_ok_and(|o| o.status.success())
+    })
 }
 
 /// The daemon's status now. Cheap: one file read and one `kill -0`.
@@ -178,6 +185,14 @@ pub fn status() -> DaemonStatus {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn process_lookup_finds_standalone_and_hosted_daemons() {
+        assert!(PGREP_QUERIES.contains(&["-x", "agentd"]));
+        // Must match what `beagle agent daemon install` writes into the
+        // launchd unit, or a heartbeat-less hosted daemon reads as stopped.
+        assert!(PGREP_QUERIES.contains(&["-f", "beagle agent daemon run"]));
+    }
 
     #[test]
     fn a_heartbeat_parses() {

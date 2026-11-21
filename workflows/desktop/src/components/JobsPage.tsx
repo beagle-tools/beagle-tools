@@ -78,7 +78,7 @@ export function JobsPage({ onOpen }: { onOpen: (p: PipelineSummary) => void }): 
 
   if (loading) return <div className="empty muted">Loading…</div>;
   if (pipelines.length === 0) {
-    return <div className="empty muted">No jobs. Add a manifest and run `agentctl apply`.</div>;
+    return <div className="empty muted">No jobs. Add a manifest and run `beagle agent apply`.</div>;
   }
 
   const running = shown.filter((p) => p.active_runs > 0);

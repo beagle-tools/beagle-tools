@@ -6,7 +6,7 @@ change sits behind it.
 
 ## How it starts
 
-Manual only: `agentctl -j writeup`. No params.
+Manual only: `beagle agent -j writeup`. No params.
 
 ## Steps
 
@@ -32,4 +32,4 @@ Manual only: `agentctl -j writeup`. No params.
 
 ## Verify a fix
 
-`sh -n scripts/writeup.sh`, then `agentctl -j writeup` and open the summary.
+`sh -n scripts/writeup.sh`, then `beagle agent -j writeup` and open the summary.

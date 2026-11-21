@@ -9,6 +9,8 @@ repository.workspace = true
 [dependencies]
 beagle-utils = { workspace = true }
 agent-core = { workspace = true }
+agentd = { workspace = true }
+agenttop = { workspace = true }
 anyhow = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true }

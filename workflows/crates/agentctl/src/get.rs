@@ -28,7 +28,10 @@ pub fn projects(store: &Store) -> Result<()> {
         rows.entry(agent.project).or_default().1 += 1;
     }
     if rows.is_empty() {
-        println!("No projects found. Run `agentctl apply` first.");
+        println!(
+            "No projects found. Run `{} apply` first.",
+            agent_core::ctl::name()
+        );
         return Ok(());
     }
     let mut table = Table::new(&["NAME", "DESCRIPTION", "AGENTS"]);
@@ -63,7 +66,10 @@ pub fn agents(store: &Store, project: Option<&str>) -> Result<()> {
         ]);
     }
     if table.is_empty() {
-        println!("No agents found. Run `agentctl apply` first.");
+        println!(
+            "No agents found. Run `{} apply` first.",
+            agent_core::ctl::name()
+        );
         return Ok(());
     }
     table.print();
@@ -132,7 +138,10 @@ pub fn jobs(store: &Store) -> Result<()> {
     }
     table.print();
     if agents.iter().any(|a| !a.params.is_empty()) {
-        println!("\n* = required. Run one with: agentctl -j <job> -p key=value");
+        println!(
+            "\n* = required. Run one with: {} -j <job> -p key=value",
+            agent_core::ctl::name()
+        );
     }
     Ok(())
 }

@@ -14,21 +14,20 @@ use anyhow::{anyhow, bail, Result};
 /// Find the agent a `-j` name refers to: `<project>/<agent>`, or a bare
 /// `<agent>` when exactly one project declares that name.
 pub fn resolve(store: &Store, job: &str) -> Result<AgentSpec> {
+    let ctl = agent_core::ctl::name();
     let agents = store.list_agents()?;
     if agents.is_empty() {
-        bail!("no agents in the store; run `agentctl apply` to sync manifests");
+        bail!("no agents in the store; run `{ctl} apply` to sync manifests");
     }
     if let Some((project, name)) = job.split_once('/') {
         return agents
             .into_iter()
             .find(|a| a.project == project && a.name == name)
-            .ok_or_else(|| anyhow!("no job {job:?}; list them with `agentctl get jobs`"));
+            .ok_or_else(|| anyhow!("no job {job:?}; list them with `{ctl} get jobs`"));
     }
     let mut matches: Vec<AgentSpec> = agents.into_iter().filter(|a| a.name == job).collect();
     match matches.len() {
-        0 => Err(anyhow!(
-            "no job {job:?}; list them with `agentctl get jobs`"
-        )),
+        0 => Err(anyhow!("no job {job:?}; list them with `{ctl} get jobs`")),
         1 => Ok(matches.remove(0)),
         _ => {
             let names: Vec<String> = matches.iter().map(AgentSpec::qualified_name).collect();
@@ -65,7 +64,11 @@ pub fn run(store: &Store, job: &str, entries: &[String], model: Option<&str>) ->
         model,
     )?;
     println!("{}", created.id);
-    println!("watch with: agentctl logs {} -f", created.id);
+    println!(
+        "watch with: {} logs {} -f",
+        agent_core::ctl::name(),
+        created.id
+    );
     crate::fmt::warn_if_daemon_down();
     Ok(())
 }
