@@ -225,11 +225,12 @@ and the comment together.
 
 ## Secrets
 
-| Secret                      | Used by                | Notes                                                                                         |
-| --------------------------- | ---------------------- | --------------------------------------------------------------------------------------------- |
-| `TAURI_SIGNING_PRIVATE_KEY` | `_release-tauri.yml`   | Updater signing key, no password. The workflow sets `TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""`. |
-| `HOMEBREW_TAP_DEPLOY_KEY`   | `_release-publish.yml` | SSH deploy key with write access to `beagle-tools/homebrew-tap`. Preferred.                   |
-| `HOMEBREW_TAP_TOKEN`        | `_release-publish.yml` | Fallback: a token with contents:write on the tap. Used only when there's no deploy key.       |
+| Secret                               | Used by                | Notes                                                                                   |
+| ------------------------------------ | ---------------------- | --------------------------------------------------------------------------------------- |
+| `TAURI_SIGNING_PRIVATE_KEY`          | `_release-tauri.yml`   | Updater signing key, password-protected.                                                |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | `_release-tauri.yml`   | The signing key's password. The maintainer keeps a copy in their own password store.    |
+| `HOMEBREW_TAP_DEPLOY_KEY`            | `_release-publish.yml` | SSH deploy key with write access to `beagle-tools/homebrew-tap`. Preferred.             |
+| `HOMEBREW_TAP_TOKEN`                 | `_release-publish.yml` | Fallback: a token with contents:write on the tap. Used only when there's no deploy key. |
 
 If neither tap secret is set, the homebrew job logs a warning and skips. The
 release itself still completes. `GITHUB_TOKEN` handles everything else: tags,
