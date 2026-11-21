@@ -59,6 +59,48 @@ fn missing_gh_says_how_to_install_it() {
     );
 }
 
+const TWO_ACCOUNTS_JSON: &str = r#"{"hosts":{"github.com":[
+  {"state":"success","active":true,"host":"github.com","login":"octo-work","tokenSource":"keyring"},
+  {"state":"success","active":false,"host":"github.com","login":"octo-personal","tokenSource":"keyring"}
+],"ghe.example.com":[{"active":true,"host":"ghe.example.com","login":"elsewhere"}]}}"#;
+
+fn account(login: &str, active: bool) -> Account {
+    Account {
+        login: login.to_owned(),
+        active,
+    }
+}
+
+#[test]
+fn status_json_lists_github_com_accounts_in_order() {
+    assert_eq!(
+        parse_status_json(TWO_ACCOUNTS_JSON).unwrap(),
+        vec![account("octo-work", true), account("octo-personal", false)]
+    );
+    assert_eq!(parse_status_json(r#"{"hosts":{}}"#).unwrap(), vec![]);
+    assert_eq!(parse_status_json("unknown flag: --json"), None);
+}
+
+#[test]
+fn status_text_from_an_older_gh() {
+    let text = "github.com
+  ✓ Logged in to github.com account octo-work (keyring)
+  - Active account: false
+  - Token scopes: 'repo'
+
+  ✓ Logged in to github.com account octo-personal (keyring)
+  - Active account: true
+";
+    assert_eq!(
+        parse_status_text(text),
+        vec![account("octo-work", false), account("octo-personal", true)]
+    );
+    assert_eq!(
+        parse_status_text("You are not logged into any GitHub hosts."),
+        vec![]
+    );
+}
+
 #[cfg(unix)]
 mod fake_gh {
     use super::*;
@@ -104,6 +146,56 @@ mod fake_gh {
         let state = pr_state_from(&gh, "7", Some("acme/widgets"), Duration::from_secs(5)).unwrap();
         assert_eq!(state, PrState::Draft);
         let err = pr_state_from(&gh, "7", None, Duration::from_secs(5)).unwrap_err();
+        assert!(matches!(err, Error::Unexpected(_)), "{err:?}");
+    }
+
+    #[test]
+    fn accounts_reads_gh_auth_status_json_even_on_a_failed_exit() {
+        let dir = tempfile::tempdir().unwrap();
+        let gh = fake(
+            dir.path(),
+            &format!(
+                "[ \"$*\" = \"auth status --json hosts\" ] && echo '{}'; exit 1",
+                TWO_ACCOUNTS_JSON.replace('\n', " ")
+            ),
+        );
+        let got = accounts_from(&gh, Duration::from_secs(5)).unwrap();
+        assert_eq!(
+            got.iter().map(|a| a.login.as_str()).collect::<Vec<_>>(),
+            ["octo-work", "octo-personal"]
+        );
+    }
+
+    #[test]
+    fn accounts_falls_back_to_text_for_an_old_gh() {
+        let dir = tempfile::tempdir().unwrap();
+        let gh = fake(
+            dir.path(),
+            r#"case "$*" in
+  *--json*) echo 'unknown flag: --json' >&2; exit 1 ;;
+  "auth status") printf 'github.com\n  ✓ Logged in to github.com account octo-solo (keyring)\n' >&2 ;;
+esac"#,
+        );
+        assert_eq!(
+            accounts_from(&gh, Duration::from_secs(5)).unwrap(),
+            vec![account("octo-solo", false)]
+        );
+        let other = tempfile::tempdir().unwrap();
+        let broken = fake(other.path(), "echo 'gh exploded' >&2; exit 2");
+        let err = accounts_from(&broken, Duration::from_secs(5)).unwrap_err();
+        assert!(err.to_string().contains("gh exploded"), "{err}");
+    }
+
+    #[test]
+    fn token_for_names_the_account() {
+        let dir = tempfile::tempdir().unwrap();
+        let gh = fake(
+            dir.path(),
+            r#"[ "$*" = "auth token -u octo-personal" ] && echo ' tok-personal ' || echo ''"#,
+        );
+        let got = token_from(&gh, "octo-personal", Duration::from_secs(5)).unwrap();
+        assert_eq!(got, "tok-personal");
+        let err = token_from(&gh, "octo-work", Duration::from_secs(5)).unwrap_err();
         assert!(matches!(err, Error::Unexpected(_)), "{err:?}");
     }
 }

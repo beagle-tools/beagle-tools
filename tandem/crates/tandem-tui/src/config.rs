@@ -15,8 +15,9 @@
 //!   `<data dir>/tandem-tui/cache.sqlite3`.
 //!
 //! ```toml
-//! # the gh account reads, posts and approvals use (`gh auth token -u`);
-//! # omit to use gh's active account
+//! # the gh account posts and approvals use (`gh auth token -u`); `u` in
+//! # the TUI picks one and saves it here. Unset with several gh accounts,
+//! # the TUI asks before the first write (never gh's active account).
 //! github_user = "octocat"
 //! # run after a PR is queued, so the review starts now rather than on
 //! # the next scheduled tick; omit to only queue
@@ -56,7 +57,7 @@ pub struct Config {
 impl Config {
     /// The config file, or defaults when there is none. A file that does
     /// not parse warns on stderr (naming the file) and the defaults apply,
-    /// so the TUI acts as gh's active account until it is fixed.
+    /// so no account is configured and the TUI asks before writing.
     #[must_use]
     pub fn load() -> Self {
         let Some(path) = config_path() else {
@@ -112,6 +113,65 @@ pub(crate) fn pick_config(config_home: &Path, legacy: Option<PathBuf>) -> PathBu
         return new;
     }
     legacy.filter(|p| p.is_file()).unwrap_or(new)
+}
+
+/// Saves `user` as `github_user` in the config file `path` (created when
+/// missing): rewrites only the `github_user` line (or adds one at the
+/// top), checks the result still loads with that account, then replaces
+/// the file. A file that does not parse is left alone, not overwritten.
+///
+/// # Errors
+/// The message to show when it can't be saved; the choice then lasts only
+/// for this session.
+pub(crate) fn save_github_user_to(path: &Path, user: &str) -> std::result::Result<(), String> {
+    if user.is_empty() || !user.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+        return Err(format!("{user:?} is not a GitHub login"));
+    }
+    let text = match std::fs::read_to_string(path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(e) => return Err(format!("{}: {e}", path.display())),
+    };
+    let toml = path.extension().is_some_and(|e| e == "toml");
+    let line = if toml {
+        format!("github_user = \"{user}\"")
+    } else {
+        format!("github_user: {user}")
+    };
+    let new = with_line(&text, "github_user", &line);
+    let shown = path.display();
+    let dir = path.parent().ok_or_else(|| format!("{shown}: no parent"))?;
+    std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("yaml");
+    let tmp = dir.join(format!(".tandem-saving-{}.{ext}", std::process::id()));
+    std::fs::write(&tmp, new).map_err(|e| format!("{}: {e}", tmp.display()))?;
+    let (saved, warning) = load_from(&tmp);
+    if warning.is_some() || saved.github_user.as_deref() != Some(user) {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(format!(
+            "{shown} does not parse; fix it to save the account"
+        ));
+    }
+    std::fs::rename(&tmp, path).map_err(|e| format!("{shown}: {e}"))
+}
+
+/// `text` with its top-level `key` line replaced by `line`, or with `line`
+/// added first (before any TOML table) when there is none.
+fn with_line(text: &str, key: &str, line: &str) -> String {
+    let is_key = |l: &str| {
+        l.strip_prefix(key)
+            .is_some_and(|rest| matches!(rest.trim_start().chars().next(), Some('=' | ':')))
+    };
+    if text.lines().any(is_key) {
+        let mut out: Vec<&str> = text
+            .lines()
+            .map(|l| if is_key(l) { line } else { l })
+            .collect();
+        out.push("");
+        out.join("\n")
+    } else {
+        format!("{line}\n{text}")
+    }
 }
 
 /// The store: see the module docs for the order.

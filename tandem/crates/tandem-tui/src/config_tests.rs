@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use super::{db_path_from, load_from, pick_config, DIRS};
+use super::{db_path_from, load_from, pick_config, save_github_user_to, DIRS};
 
 /// A fresh directory under the system temp dir, removed on drop.
 struct Scratch(PathBuf);
@@ -78,4 +78,61 @@ fn the_store_follows_env_then_old_var_then_config_then_data_dir() {
         Path::new("/data/tandem-tui/cache.sqlite3")
     );
     assert!(db_path_from(None, None, None, None).is_err());
+}
+
+#[test]
+fn saving_the_account_rewrites_only_its_line() {
+    let tmp = Scratch::new();
+    let toml = tmp.path().join("tandem.toml");
+    std::fs::write(
+        &toml,
+        "# mine\ngithub_user = \"octo-work\"\nkick = [\"agentctl\", \"run\"]\n",
+    )
+    .unwrap();
+    save_github_user_to(&toml, "octo-personal").unwrap();
+    assert_eq!(
+        std::fs::read_to_string(&toml).unwrap(),
+        "# mine\ngithub_user = \"octo-personal\"\nkick = [\"agentctl\", \"run\"]\n"
+    );
+    let loaded = load_from(&toml).0;
+    assert_eq!(loaded.github_user.as_deref(), Some("octo-personal"));
+    assert_eq!(loaded.kick, ["agentctl", "run"]);
+
+    // No line yet: added first, before anything else.
+    std::fs::write(&toml, "root = \"/tmp/x\"\n").unwrap();
+    save_github_user_to(&toml, "octo-work").unwrap();
+    assert_eq!(load_from(&toml).0.github_user.as_deref(), Some("octo-work"));
+    assert_eq!(load_from(&toml).0.root.as_deref(), Some("/tmp/x"));
+
+    // The older YAML file keeps YAML.
+    let yaml = tmp.path().join("config.yaml");
+    std::fs::write(&yaml, "github_user: octo-work\nkick: [a]\n").unwrap();
+    save_github_user_to(&yaml, "octo-personal").unwrap();
+    assert_eq!(
+        std::fs::read_to_string(&yaml).unwrap(),
+        "github_user: octo-personal\nkick: [a]\n"
+    );
+
+    // No file: created, with its folder.
+    let fresh = tmp.path().join("new/beagle/tandem.toml");
+    save_github_user_to(&fresh, "octo-solo").unwrap();
+    assert_eq!(
+        load_from(&fresh).0.github_user.as_deref(),
+        Some("octo-solo")
+    );
+}
+
+#[test]
+fn saving_leaves_a_broken_file_alone_and_rejects_non_logins() {
+    let tmp = Scratch::new();
+    let toml = tmp.path().join("tandem.toml");
+    std::fs::write(&toml, "github_usr = 1\n").unwrap();
+    let err = save_github_user_to(&toml, "octo-work").unwrap_err();
+    assert!(err.contains("does not parse"), "{err}");
+    assert_eq!(std::fs::read_to_string(&toml).unwrap(), "github_usr = 1\n");
+    // Nothing left behind but the file itself.
+    assert_eq!(std::fs::read_dir(tmp.path()).unwrap().count(), 1);
+    for bad in ["", "octo work", "x\"\nkick = 1"] {
+        assert!(save_github_user_to(&toml, bad).is_err(), "{bad:?}");
+    }
 }

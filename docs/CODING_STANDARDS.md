@@ -216,7 +216,8 @@ and writes to GitHub in another:
   `X` close. `make standards` fails a TUI whose source binds one of these
   capitals unless `standards/tui-standards.json` declares that write for
   it under `tui_github_writes`. Other actions use lowercase keys (rca:
-  `m` agents, `u` attach a PR, `d` delete; recap: `s` the archive).
+  `m` agents, `u` attach a PR, `d` delete; recap: `s` the archive;
+  Tandem's review TUI: `u` the gh account its writes go out as).
 - **`h`/`l` and the arrow keys are free** for each TUI's own use (panning
   in recap and standup, tabs in rca); open is `Enter`, back is `Esc` or `b`.
 - **Tab always cycles tabs.** Where a screen has two focusable panes, focus

@@ -22,6 +22,7 @@ pub const CHECK_STATES: Duration = Duration::from_secs(120);
 
 pub fn run(cache: Cache, db: PathBuf, config: Config) -> Result<()> {
     let mut app = App::new(cache, config);
+    app.config_file = crate::config::config_path();
     app.start_worker(db);
     app.reload()?;
     let mut terminal = ratatui::init();

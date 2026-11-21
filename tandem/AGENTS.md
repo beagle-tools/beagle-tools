@@ -74,7 +74,8 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
 - **GitHub writes are user-only.** The only write paths are
   `tandem-github/src/write.rs`, reached from
   `src-tauri/src/commands/github_write.rs` and `merge.rs`, and from the
-  review TUI's `ui/worker.rs` (via `gh.rs`), and they run only on
+  review TUI's `ui/worker.rs` (via `gh.rs`, always as a named gh account —
+  `ui/account.rs`, never gh's active one by default), and they run only on
   explicit user clicks or confirmed keypresses (post a chosen comment,
   approve, merge, commit a suggestion, and so on). An agent run must never be able to
   write to GitHub, and the runner enforces it: `beagle_utils::agent_env::deny_github`

@@ -172,6 +172,12 @@ add / `a` ──▶ queued ──claim──▶ reviewing ──ingest──▶ 
   suggestion), `A` approves. `x` dismisses a comment, `m` marks the PR
   gone-through, `a` queues another, `e` reviews it again, `r` refreshes
   from GitHub, `?` lists every key.
+- **The posting account is always named.** The footer shows who the next
+  post or approval goes out as; `u` picks among the accounts gh is logged
+  into and saves the choice as `github_user`. With no `github_user` and
+  more than one gh account, the first `P`/`A` asks which account before
+  its confirmation; with exactly one, that one is used. The TUI never
+  falls back to gh's active account for a write.
 
 The TUI keeps **its own store**, `<data dir>/tandem-tui/cache.sqlite3`
 (`$BEAGLE_TANDEM_ROOT` or config `root` name a folder for its
@@ -187,12 +193,13 @@ All optional, in `~/.config/beagle/tandem.toml` (`$XDG_CONFIG_HOME`
 honoured; `$TANDEM_TUI_CONFIG` names another file). The older
 `~/.config/tandem-tui/config.yaml` is still read while the new file doesn't
 exist. A file with unknown keys or that doesn't parse prints a warning
-naming it and the TUI runs on defaults — so it acts as gh's active account
-until you fix it.
+naming it and the TUI runs on defaults — so no account is configured and
+the first write asks which one (picking one with `u` then can't save until
+the file parses).
 
 ```toml
-# The gh account reads, posts and approvals use (`gh auth token -u`).
-# Omit to use gh's active account.
+# The gh account posts and approvals use (`gh auth token -u`); `u` in the
+# TUI sets it. Unset: the only gh account, or the TUI asks before writing.
 github_user = "octocat"
 # Run after a PR is queued, so the review starts now rather than on the
 # reviewer's next scheduled tick. Omit to only queue.
@@ -201,7 +208,7 @@ kick = ["agentctl", "run", "demo/review-queue"]
 
 GitHub access goes through the `gh` CLI: log in with `gh auth login`
 (with `github_user` set, that account must be one of gh's logged-in
-accounts).
+accounts; reads use it too, or gh's active account while none is chosen).
 
 ### The reviewer
 
