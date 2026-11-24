@@ -2,9 +2,11 @@
 // Fails when any app drifts from the shared standards in standards/.
 // Every app must use the same lint levels, compiler flags, formatter
 // settings, package manager and gate scripts — no per-app loosening.
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkLayout } from "./ci/layout.mjs";
 import { checkTuiStandards } from "./ci/tui-standards.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -176,6 +178,24 @@ for (const f of files.filter((p) => p.startsWith(".github/") && /\.ya?ml$/.test(
 
 // The TUI keymap: doc table ⇄ standards/tui-standards.json ⇄ every TUI.
 for (const e of checkTuiStandards(read, files)) fail(e);
+
+// The repo layout (docs/LAYOUT.md): one top-level folder per tool, parts
+// inside it, crates only where the layout says. Checked over what git
+// tracks or would track (new files count; ignored build output does not),
+// falling back to the walk outside a git checkout.
+let layoutFiles = files;
+try {
+  layoutFiles = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard"], {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  })
+    .split("\n")
+    .filter((f) => f && existsSync(join(root, f)));
+} catch {
+  // not a git checkout: use the walk
+}
+for (const e of checkLayout(read, layoutFiles)) fail(e);
 
 if (errors.length) {
   for (const e of errors) console.error(`FAIL: ${e}`);
