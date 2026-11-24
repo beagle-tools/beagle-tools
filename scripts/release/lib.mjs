@@ -62,7 +62,7 @@ export const LINKED_PREFIXES = {
   // this in step with the Cargo.toml files).
   cli: [
     // Tools in their own folders (docs/LAYOUT.md).
-    "scout/",
+    "scout/tui/",
     "recap/",
     "standup/",
     "rca/tui/",

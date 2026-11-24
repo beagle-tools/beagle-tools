@@ -19,7 +19,7 @@ while IFS= read -r file; do
     failed=1
   fi
 done < <(git ls-files --cached --others --exclude-standard -- \
-  '*.rs' '*.ts' '*.tsx' '*.js' '*.mjs' '*.cjs' '*.css' '*.astro' '*.sh')
+  '*.rs' '*.ts' '*.tsx' '*.js' '*.mjs' '*.cjs' '*.css' '*.astro' '*.sh' '*.swift')
 
 if [ "$failed" -ne 0 ]; then
   echo ""

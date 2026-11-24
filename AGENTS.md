@@ -15,7 +15,7 @@ with one folder per runnable part (`tui/`, `daemon/`, `desktop/`, `web/`,
 | `beagle agent` | `agent/` | `tui/` agentctl, `daemon/` agentd, `desktop/` Agentdesk, `lib/core`, `lib/top` agenttop, `examples/demo` | `agent/AGENTS.md` |
 | `beagle rca` | `rca/` | `tui/`, `daemon/` (`beagle rca agentd`), `desktop/` Beagle app, `web/` postmortem site, `lib/agent`, `examples/rcas` | `rca/AGENTS.md` |
 | `beagle recap` | `recap/` | `tui/` | `recap/tui/README.md` |
-| `beagle scout` | `scout/` | `tui/`; `ios/` is where the iPhone app goes | `scout/tui/AGENTS.md` |
+| `beagle scout` | `scout/` | `tui/`; `ios/` the iPhone app | `scout/tui/AGENTS.md`, `scout/ios/AGENTS.md` |
 | `beagle standup` | `standup/` | `tui/` | `standup/tui/README.md` |
 | `beagle tandem` | `tandem/` | `tui/` tandem-cli, `desktop/` Tandem app, `lib/{core,github,cache,agents,queue}` | `tandem/AGENTS.md` |
 
@@ -80,6 +80,7 @@ Run these from the repo root. Each runs exactly what CI runs:
 make standards          # 400-line rule, affiliation guard, shared-config drift, CI-script tests
 make check-rust         # the root cargo workspace (every crate but the Tauri shells)
 make check-tandem       # or check-rca / check-agent: root workspace + that app's desktop shell + frontends
+make check-ios          # the scout iPhone app (macOS + Xcode): swift-format, unit + UI tests on a simulator
 make test-affected      # only the cargo tests your change affects (vs origin/main)
 make e2e-tandem         # Playwright for one frontend (see docs/TESTING.md)
 make check              # everything
@@ -105,6 +106,10 @@ The scripts behind these:
   - `rca/desktop`
   - `rca/web`
   - `agent/desktop`
+- **iPhone apps** (Xcode, macOS only): `scout/ios`, gated by
+  `scripts/ci/ios.sh` (`make check-ios`, CI job `scout-ios` on a macOS runner).
 
 To add a workspace or frontend, add it to `scripts/check-standards.mjs`,
-`.github/workflows/ci.yml` and the root `Makefile` in the same PR.
+`.github/workflows/ci.yml` and the root `Makefile` in the same PR. An iPhone
+app goes in `IOS_APPS` (`scripts/ci/ios-standards.mjs`) instead of
+`check-standards.mjs`.

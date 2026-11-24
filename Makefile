@@ -11,7 +11,7 @@ NVM_DIR := $(HOME)/.nvm
 NODE_BIN_DIR := $(shell ls -d $(NVM_DIR)/versions/node/*/bin 2>/dev/null | sort -V | tail -1)
 export PATH := $(HOME)/.cargo/bin:$(NODE_BIN_DIR):$(PATH)
 
-.PHONY: help check standards check-rust check-utils check-tandem check-rca check-agent check-beagle
+.PHONY: help check standards check-rust check-utils check-tandem check-rca check-agent check-beagle check-ios
 
 help:
 	@echo "make check            - every gate CI runs (standards + all apps)"
@@ -21,6 +21,7 @@ help:
 	@echo "make check-rca        - root workspace + rca's desktop shell + frontends (desktop, web)"
 	@echo "make check-agent  - root workspace + Agentdesk's shell + frontend"
 	@echo "make check-utils / check-beagle - same as check-rust (their crates live in it)"
+	@echo "make check-ios        - the scout iPhone app: swift-format, unit + UI tests on a simulator (macOS + Xcode)"
 	@echo ""
 	@echo "make test-affected [BASE=origin/main] - cargo tests for packages changed since BASE (+ dependents)"
 	@echo "make test-scripts     - unit tests for the CI and release scripts"
@@ -31,7 +32,7 @@ help:
 	@echo "make dev APP=<target> [BROWSER=1] [ARGS=...]  - start an app (or make dev-<target>)"
 	@echo "                        targets: ./scripts/dev/run.sh --list"
 
-check: standards check-rust check-tandem check-rca check-agent
+check: standards check-rust check-tandem check-rca check-agent check-ios
 
 standards:
 	./scripts/check-file-length.sh;
@@ -60,6 +61,12 @@ check-rca: check-rust
 check-agent: check-rust
 	./scripts/ci/rust.sh agent/desktop;
 	./scripts/ci/frontend.sh agent/desktop;
+
+# The iPhone apps need macOS and Xcode; elsewhere this says so and passes
+# (CI runs it on a macOS runner).
+check-ios:
+	@if [ "$$(uname)" != Darwin ]; then echo "check-ios: skipped (needs macOS + Xcode)"; exit 0; fi; \
+	./scripts/ci/ios.sh scout/ios;
 
 # ---- tests ----------------------------------------------------------------
 # Same selection CI applies to pull requests (docs/TESTING.md). Includes

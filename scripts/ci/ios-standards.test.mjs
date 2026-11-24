@@ -1,0 +1,62 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { test } from "node:test";
+import { fileURLToPath } from "node:url";
+
+import { checkIos } from "./ios-standards.mjs";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const repoRead = (p) => readFileSync(join(root, p), "utf8");
+
+const PBX = "scout/ios/Scout.xcodeproj/project.pbxproj";
+const SCHEME = "scout/ios/Scout.xcodeproj/xcshareddata/xcschemes/Scout.xcscheme";
+const GOOD_PBX = "CODE_SIGN_STYLE = Automatic;\nPRODUCT_BUNDLE_IDENTIFIER = dev.example.app;\n";
+const GOOD_CI = 'filters: |\n  scout-ios:\n    - "scout/ios/**"\nrun: ./scripts/ci/ios.sh scout/ios\n';
+const GOOD_MAKE = "check-ios:\n\t./scripts/ci/ios.sh scout/ios;\n";
+
+function fake(overrides = {}) {
+  const tree = {
+    ".github/workflows/ci.yml": GOOD_CI,
+    Makefile: GOOD_MAKE,
+    [PBX]: GOOD_PBX,
+    [SCHEME]: "<Scheme/>",
+    ".swift-format": "{}",
+    ...overrides,
+  };
+  const files = Object.keys(tree).filter((f) => tree[f] !== null);
+  return [(p) => tree[p], files];
+}
+
+test("the repo's own iPhone apps pass", () => {
+  const files = [".swift-format", PBX, SCHEME];
+  assert.deepEqual(checkIos(repoRead, files), []);
+});
+
+test("a well-formed app passes", () => {
+  assert.deepEqual(checkIos(...fake()), []);
+});
+
+test("a committed team ID fails, an empty one passes", () => {
+  assert.match(checkIos(...fake({ [PBX]: 'DEVELOPMENT_TEAM = AB12CD34EF;\n' }))[0], /never commit a team ID/);
+  assert.deepEqual(checkIos(...fake({ [PBX]: 'DEVELOPMENT_TEAM = "";\n' })), []);
+});
+
+test("manual signing or a committed profile fails", () => {
+  assert.match(checkIos(...fake({ [PBX]: "CODE_SIGN_STYLE = Manual;\n" }))[0], /automatic/);
+  assert.match(checkIos(...fake({ [PBX]: 'PROVISIONING_PROFILE_SPECIFIER = "My Profile";\n' }))[0], /profile/);
+});
+
+test("an app without its CI job, path filter, make target or scheme fails", () => {
+  const errors = checkIos(...fake({ ".github/workflows/ci.yml": "", Makefile: "", [SCHEME]: null }));
+  assert.equal(errors.length, 4, errors.join("\n"));
+});
+
+test("an Xcode project outside IOS_APPS fails", () => {
+  const errors = checkIos(...fake({ "recap/ios/Recap.xcodeproj/project.pbxproj": GOOD_PBX }));
+  assert.match(errors[0], /^recap\/ios\/Recap\.xcodeproj\/project\.pbxproj: Xcode project outside IOS_APPS/);
+});
+
+test("a per-app swift-format config fails", () => {
+  assert.match(checkIos(...fake({ "scout/ios/.swift-format": "{}" }))[0], /per-app Swift config/);
+});
