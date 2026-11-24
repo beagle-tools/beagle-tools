@@ -25,7 +25,7 @@
   "tuis": {
     "rca/cli": "rca/cli/src/ui/tests/keys_standard.rs",
     "cli/crates/recap": "cli/crates/recap/src/tests/ui_keymap.rs",
-    "cli/crates/scout": "cli/crates/scout/src/ui/keys_tests.rs",
+    "scout/tui": "scout/tui/src/ui/keys_tests.rs",
     "cli/crates/standup": "cli/crates/standup/src/tests/ui_keymap.rs",
     "tandem/crates/tandem-tui": "tandem/crates/tandem-tui/src/ui/tests.rs",
     "workflows/crates/agenttop": "workflows/crates/agenttop/src/tests/keymap.rs"

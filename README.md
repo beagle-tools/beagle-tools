@@ -23,7 +23,7 @@ with you in control.
 | <img src="docs/assets/tandem-logo.svg" alt="" width="32">    | Tandem             | Review GitHub PRs with Claude/Codex riding along; agent comments stay local until you post                                 | macOS, Linux, Windows desktop                        | [`tandem/`](tandem/README.md)       |
 | <img src="docs/assets/beagle-logo.png" alt="" width="32">    | Beagle (RCA)       | An agent investigates an incident and writes the RCA; a TUI/desktop app renders it live; a daemon can ship the fix as a PR | CLI/TUI (macOS, Linux), desktop, daemon, static site | [`rca/`](rca/README.md)             |
 | <img src="docs/assets/agentdesk-logo.svg" alt="" width="32"> | agentd + Agentdesk | Schedule coding agents from YAML manifests; each run in its own tmux session, recorded in SQLite                           | macOS                                                | [`workflows/`](workflows/README.md) |
-|                                                              | scout              | Watch agent work live as projects of small, ordered tasks (`beagle scout`)                                                 | CLI/TUI (macOS, Linux)                               | [`cli/crates/scout/`](cli/crates/scout/README.md) |
+|                                                              | scout              | Watch agent work live as projects of small, ordered tasks (`beagle scout`)                                                 | CLI/TUI (macOS, Linux)                               | [`scout/`](scout/README.md)         |
 |                                                              | recap              | PR recaps: the diff plus a plain-language write-up of what it fixes and why (`beagle recap`)                               | CLI/TUI (macOS, Linux)                               | [`cli/crates/recap/`](cli/crates/recap/README.md) |
 |                                                              | standup            | Standup reports: one overview, then a short write-up per ticket (`beagle standup`)                                         | CLI/TUI (macOS, Linux)                               | [`cli/crates/standup/`](cli/crates/standup/README.md) |
 
@@ -171,6 +171,7 @@ before anything reaches GitHub.
 | ----------------------------------- | -------------------------------------------------------------------------------------------- |
 | [`tandem/`](tandem/README.md)       | Tandem desktop app (Tauri 2 + Rust + React)                                                  |
 | [`beagle/`](beagle/README.md)             | The one `beagle` command: every terminal tool linked into a single binary                    |
+| [`scout/`](scout/README.md)         | scout (`beagle scout`): the TUI/CLI crate (`tui/`), and `ios/` for the iPhone app            |
 | [`rca/`](rca/README.md)             | Beagle RCA: the `beagle rca` CLI/TUI and daemon crates, desktop app and postmortem site      |
 | [`workflows/`](workflows/README.md) | agentd (`beagle agent`: CLI, TUI and daemon crates) and the Agentdesk desktop app            |
 | [`utils/`](utils/README.md)         | `beagle-utils`, Rust helpers shared by two or more apps                                      |

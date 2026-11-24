@@ -17,7 +17,7 @@ the tool.
 | `agent` | `beagle-agent-tool` → `agentctl` (which runs `agenttop` as `top` and `agentd` as `daemon run`) | `../cli/crates/agent`, over `../workflows/crates/*` — which also build the standalone binaries until they are retired |
 | `rca` | `beagle` (renamed `beagle-rca` in `Cargo.toml`), plus `beagle-agentd` for `beagle rca agentd` (routed in `tools.rs`: the daemon depends on rca, so rca can't link it) | `../rca/cli`, `../rca/crates/beagle-agentd` — also build the standalone binaries until they are retired |
 | `recap` | `beagle-recap` | `../cli/crates/recap` |
-| `scout` | `beagle-scout` | `../cli/crates/scout` |
+| `scout` | `beagle-scout` | `../scout/tui` |
 | `serve` | `beagle-serve` | `serve/` — the tools' stores as a read-only HTTPS JSON API ([`../docs/serve-api.md`](../docs/serve-api.md)); it reads each store through that tool's crate |
 | `standup` | `beagle-standup` | `../cli/crates/standup` |
 | `tandem` | `tandem-cli` (linked through `run_as("beagle tandem", …)`) | `../tandem/crates/tandem-cli` — also ships inside the Tandem app |
@@ -110,7 +110,7 @@ cargo run -p beagle-cli -- rca list --root ../rca
 `beagle` releases as `beagle-cli-vX.Y.Z` (tarball `beagle-cli-<target>.tar.gz`
 holding `beagle`; formula `beagle`). The version is the
 `[package] version` of every crate in `scripts/set-version.mjs`'s `CRATES`
-(this crate, `serve/`, and the tools still in `../cli/crates/`); CI stamps them (and their
+(this crate, `serve/`, and each tool's crate); CI stamps them (and their
 root `Cargo.lock` entries) with `scripts/set-version.mjs` (tested by
 `scripts/set-version.test.mjs`, run by `make test-scripts`) and never
 commits the result. See [`../docs/RELEASING.md`](../docs/RELEASING.md).

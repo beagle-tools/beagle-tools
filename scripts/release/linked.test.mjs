@@ -35,7 +35,12 @@ test("every crate beagle links releases beagle when it changes", () => {
 test("every crate beagle links re-runs the beagle gate in CI", () => {
   const ci = readFileSync(join(root, ".github/workflows/ci.yml"), "utf8");
   const filter = ci.slice(ci.indexOf("            beagle:"), ci.indexOf("\n\n", ci.indexOf("            beagle:")));
+  // The crate's own dir or any folder above it (a whole tool, `scout/**`).
+  const parts = (dir) => dir.split("/").map((_, i, all) => all.slice(0, i + 1).join("/"));
   for (const dir of outside) {
-    assert.ok(filter.includes(`"${dir}/**"`), `${dir}/** missing from ci.yml's beagle filter`);
+    assert.ok(
+      parts(dir).some((p) => filter.includes(`"${p}/**"`)),
+      `${dir}/** (or a parent folder) missing from ci.yml's beagle filter`,
+    );
   }
 });

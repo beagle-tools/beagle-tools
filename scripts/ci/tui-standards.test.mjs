@@ -70,7 +70,7 @@ test("a TUI that draws its own help or footer fails", () => {
 });
 
 test("a reserved GitHub-write capital bound to something else fails", () => {
-  const f = "cli/crates/scout/src/ui/keys.rs";
+  const f = "scout/tui/src/ui/keys.rs";
   const src = readReal(f).replace("KeyCode::Char('?')", "KeyCode::Char('?' | 'M')");
   const errors = checkTuiStandards(readWith({ [f]: src }), realFiles);
   assert.match(errors.join("\n"), /binds `M`, a capital reserved for a GitHub write/);

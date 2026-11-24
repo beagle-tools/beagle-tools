@@ -1,7 +1,7 @@
 # AGENTS.md — scout (`beagle scout`)
 
-Read [`../../../beagle/AGENTS.md`](../../../beagle/AGENTS.md) (the beagle tool contract) and
-[`../../../docs/CODING_STANDARDS.md`](../../../docs/CODING_STANDARDS.md) first.
+Read [`../../beagle/AGENTS.md`](../../beagle/AGENTS.md) (the beagle tool contract) and
+[`../../docs/CODING_STANDARDS.md`](../../docs/CODING_STANDARDS.md) first.
 
 `beagle-scout` is a library crate behind `beagle scout`: a TUI + CLI that
 shows what agents are working on, as projects (one goal) made of ordered

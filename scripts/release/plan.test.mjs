@@ -23,7 +23,7 @@ test("app paths release only their app", () => {
     "rca",
     "workflows",
   ]);
-  assert.deepEqual(changedApps(["cli/crates/scout/src/lib.rs"]), ["cli"]);
+  assert.deepEqual(changedApps(["scout/tui/src/lib.rs"]), ["cli"]);
   // The cli app lives in beagle/ (APPS.cli.dir).
   assert.deepEqual(changedApps(["beagle/Cargo.toml"]), ["cli"]);
   assert.deepEqual(changedApps(["beagle/src/main.rs", "beagle/serve/src/lib.rs"]), ["cli"]);
@@ -83,7 +83,7 @@ test("embedded markdown releases the apps that embed it", () => {
   assert.deepEqual(changedApps(["skills/beagle-create-issue/SKILL.md"]), []);
   assert.deepEqual(changedApps(["cli/crates/recap/docs/AGENT_GUIDE.md"]), ["cli"]);
   assert.deepEqual(changedApps(["cli/crates/standup/docs/AGENT_GUIDE.md"]), ["cli"]);
-  assert.deepEqual(changedApps(["cli/crates/scout/skills/scout/SKILL.md"]), ["cli"]);
+  assert.deepEqual(changedApps(["scout/tui/skills/scout/SKILL.md"]), ["cli"]);
   assert.deepEqual(changedApps(["beagle/README.md", "beagle/AGENTS.md", "beagle/docs/x.txt"]), []);
 });
 
