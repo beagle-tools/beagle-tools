@@ -23,8 +23,8 @@ pub struct Tool {
 pub const TOOLS: &[Tool] = &[
     Tool {
         name: "agent",
-        about: agent_tool::ABOUT,
-        run: agent_tool::run,
+        about: agentctl::ABOUT,
+        run: agentctl::beagle::run,
     },
     Tool {
         name: "rca",
@@ -160,6 +160,6 @@ mod tests {
             .collect();
         assert_eq!(beagle_rca::agentd::UNIFIED_DAEMON_ARGS[0], "rca");
         assert!(matches!(route_rca(rca_service), RcaRoute::Daemon(_)));
-        assert_eq!(agent_tool::PROGRAM, "beagle agent");
+        assert_eq!(agentctl::beagle::PROGRAM, "beagle agent");
     }
 }

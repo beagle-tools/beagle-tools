@@ -209,13 +209,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "beagle-agent-tool"
-version = "0.1.0"
-dependencies = [
- "agentctl",
-]
-
-[[package]]
 name = "beagle-agentd"
 version = "0.29.0"
 dependencies = [
@@ -228,8 +221,8 @@ dependencies = [
 name = "beagle-cli"
 version = "0.1.0"
 dependencies = [
+ "agentctl",
  "beagle",
- "beagle-agent-tool",
  "beagle-agentd",
  "beagle-recap",
  "beagle-scout",

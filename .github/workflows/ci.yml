@@ -72,10 +72,10 @@ jobs:
             beagle:
               - *shared
               - "beagle/**"
-              # Tools that still live in cli/ until they move.
-              - "cli/**"
               # Tools in their own folders, linked into `beagle`.
               - "scout/**"
+              - "recap/**"
+              - "standup/**"
               # Linked into the `beagle` binary or embedded in it (the rca
               # skills); scripts/release/linked.test.mjs checks this list.
               - "rca/cli/**"

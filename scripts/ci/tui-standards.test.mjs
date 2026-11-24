@@ -77,7 +77,7 @@ test("a reserved GitHub-write capital bound to something else fails", () => {
 });
 
 test("a declared GitHub write may use its capital", () => {
-  assert.ok(readReal("cli/crates/recap/src/ui/keys.rs").includes("Char('M')"));
+  assert.ok(readReal("recap/tui/src/ui/keys.rs").includes("Char('M')"));
   assert.deepEqual(checkTuiStandards(readReal, realFiles), []);
 });
 

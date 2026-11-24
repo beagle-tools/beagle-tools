@@ -11,10 +11,10 @@ import { LINKED_PREFIXES, isReleaseRelevant } from "./lib.mjs";
 import { linkedCrateDirs } from "./linked.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-// Inside beagle/ (the cli app's dir), cli/ (tools not yet moved; linked and
-// filtered wholesale) or the shared crates, which already release and gate cli.
+// Inside beagle/ (the cli app's dir) or the shared crates, which already
+// release and gate cli.
 const covered = (dir) =>
-  dir === "beagle" || dir.startsWith("beagle/") || dir.startsWith("cli/") || dir === "utils" || dir.startsWith("utils/");
+  dir === "beagle" || dir.startsWith("beagle/") || dir === "utils" || dir.startsWith("utils/");
 const outside = linkedCrateDirs(root, "beagle").filter((d) => !covered(d));
 
 test("the link walk finds the crates beagle is known to link", () => {

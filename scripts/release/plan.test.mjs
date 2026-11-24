@@ -81,8 +81,8 @@ test("embedded markdown releases the apps that embed it", () => {
   assert.deepEqual(changedApps(["skills/beagle/SKILL.md"]), ["rca", "cli"]);
   assert.deepEqual(changedApps(["skills/beagle-review/SKILL.md"]), ["rca", "cli"]);
   assert.deepEqual(changedApps(["skills/beagle-create-issue/SKILL.md"]), []);
-  assert.deepEqual(changedApps(["cli/crates/recap/docs/AGENT_GUIDE.md"]), ["cli"]);
-  assert.deepEqual(changedApps(["cli/crates/standup/docs/AGENT_GUIDE.md"]), ["cli"]);
+  assert.deepEqual(changedApps(["recap/tui/docs/AGENT_GUIDE.md"]), ["cli"]);
+  assert.deepEqual(changedApps(["standup/tui/docs/AGENT_GUIDE.md"]), ["cli"]);
   assert.deepEqual(changedApps(["scout/tui/skills/scout/SKILL.md"]), ["cli"]);
   assert.deepEqual(changedApps(["beagle/README.md", "beagle/AGENTS.md", "beagle/docs/x.txt"]), []);
 });
