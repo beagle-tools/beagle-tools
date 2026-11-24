@@ -160,18 +160,21 @@ In the app: **settings → GitHub auth** (defaults to your `gh` CLI
 session) → add a repo (browse your orgs or type `owner/name`) → pick a
 PR → add an agent → **run review**.
 
-## Project layout
+## Parts
 
-| Path                   | What                                                      |
-| ---------------------- | --------------------------------------------------------- |
-| `lib/core`   | Domain types: PRs, diffs, local comments, agent specs     |
-| `lib/github` | GitHub REST client — reads + explicit user-action writes  |
-| `lib/cache`  | SQLite cache, local review store, 3-day merged-PR archive |
-| `lib/agents` | Agent runners (headless claude/codex/custom), JSONL logs  |
-| `desktop/src-tauri`            | Tauri shell: commands, events, settings                   |
-| `desktop/src/`                 | React frontend (differ, panels, settings)                 |
-| `docs/`                | Architecture, sandboxing (v2 Docker+squid), roadmap       |
+| Part | What it is | Run it (from `tandem/`) |
+| --- | --- | --- |
+| [`tui/`](tui/) | `tandem-cli`: `beagle tandem` (the review TUI and JSON CLI), and the sidecar binary inside the app | `beagle tandem`, or `cargo run -p tandem-cli` |
+| [`desktop/`](desktop/) | The Tandem desktop app: Tauri shell (`desktop/src-tauri`) + React frontend (`desktop/src`) | `make dev` |
+| [`lib/core`](lib/core/) | Domain types: PRs, diffs, local comments, agent specs | — |
+| [`lib/github`](lib/github/) | GitHub REST client — reads + explicit user-action writes | — |
+| [`lib/cache`](lib/cache/) | SQLite cache, local review store, 3-day merged-PR archive | — |
+| [`lib/agents`](lib/agents/) | Agent runners (headless claude/codex/custom), JSONL logs | — |
+| [`lib/queue`](lib/queue/) | The terminal review queue (`tandem-tui`), linked by `tui/` | — |
 
+Also here: `docs/` (architecture, sandboxing, roadmap), `examples/`, `assets/`
+and `scripts/` (the public `install.sh` / `install.ps1`, release version
+stamping).
 ## Optional file config (dotfiles-friendly)
 
 Everything is configurable in the GUI, but if you keep dotfiles you can

@@ -21,6 +21,21 @@ deprecated `beagle-workflows` formula until it is removed; `beagle doctor`
 flags them. Switch with `brew uninstall beagle-workflows && brew install
 beagle-tools/tap/beagle`, then `beagle agent daemon install`.
 
+## Parts
+
+| Part | What it is | Run it |
+| --- | --- | --- |
+| [`tui/`](tui/) | agentctl: the CLI, and what `beagle agent` runs | `beagle agent <cmd>` |
+| [`lib/top/`](lib/top/) | agenttop: the live dashboard | `beagle agent` (or `beagle agent top`) |
+| [`daemon/`](daemon/) | agentd: the scheduler daemon | `beagle agent daemon run`; `beagle agent daemon install` for launchd |
+| [`desktop/`](desktop/README.md) | Agentdesk, the macOS app | `make dev` in `desktop/` |
+| [`lib/core/`](lib/core/) | agent-core: types, manifests, the SQLite store | — |
+| [`examples/demo/`](examples/demo/) | An example project of manifests | see "Start the daemon" below |
+
+Also here: `deploy/` (the launchd plist template), `assets/notify/`
+(notification icons) and `scripts/` (`agentman`, the notifier build, release
+version stamping).
+
 ## A manifest
 
 ```yaml
@@ -42,7 +57,7 @@ sandbox: workspace-write # optional, codex only: --sandbox read-only |
                         # run's data dir, no network); default off
 ```
 
-One directory per project; see [`manifests/`](manifests/) for examples,
+One directory per project; see [`examples/`](examples/) for examples,
 including a DAG where a script stage fans out to Claude and Codex children.
 
 On top of `max_concurrent`, agentd caps the whole machine: at most 5 model
@@ -175,7 +190,7 @@ the old unit points at the `agentd` binary. Scripts that start other runs
 should call `$AGENTD_CTL run …` (the daemon sets it to the control command
 from its own install) instead of a hard-coded `agentctl`.
 
-Then give it manifests (see [`manifests/`](manifests/) for examples) and
+Then give it manifests (see [`examples/`](examples/) for examples) and
 check it sees them:
 
 ```sh

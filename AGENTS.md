@@ -4,20 +4,27 @@ A monorepo of developer tools. This file applies everywhere in the repo. Each
 app has its own `AGENTS.md` with app-specific facts; read both before you
 change code in an app.
 
-| Path | What it is | App guide |
+Every tool is one top-level folder named like its `beagle` subcommand,
+with one folder per runnable part (`tui/`, `daemon/`, `desktop/`, `web/`,
+`ios/`) and its libraries in `lib/` ([`docs/LAYOUT.md`](docs/LAYOUT.md);
+`make standards` fails anything else).
+
+| Command | Folder | Parts | Guide |
+|---|---|---|---|
+| `beagle` | `beagle/` | the command (help, update, doctor, setup); `serve/` (`beagle serve`) | `beagle/AGENTS.md` |
+| `beagle agent` | `agent/` | `tui/` agentctl, `daemon/` agentd, `desktop/` Agentdesk, `lib/core`, `lib/top` agenttop, `examples/demo` | `agent/AGENTS.md` |
+| `beagle rca` | `rca/` | `tui/`, `daemon/` (`beagle rca agentd`), `desktop/` Beagle app, `web/` postmortem site, `lib/agent`, `examples/rcas` | `rca/AGENTS.md` |
+| `beagle recap` | `recap/` | `tui/` | `recap/tui/README.md` |
+| `beagle scout` | `scout/` | `tui/`; `ios/` is where the iPhone app goes | `scout/tui/AGENTS.md` |
+| `beagle standup` | `standup/` | `tui/` | `standup/tui/README.md` |
+| `beagle tandem` | `tandem/` | `tui/` tandem-cli, `desktop/` Tandem app, `lib/{core,github,cache,agents,queue}` | `tandem/AGENTS.md` |
+
+| Shared | What it is | Guide |
 |---|---|---|
-| `tandem/` | Tandem: Tauri desktop app for reviewing GitHub PRs alongside coding agents | `tandem/AGENTS.md` |
-| `rca/` | Beagle: RCA workspaces, with a TUI/CLI (`tui/`), an agent daemon (`daemon/`) and its engine (`lib/agent/`), a desktop app (`desktop/`), a static site (`web/`) and an example store (`examples/`) | `rca/AGENTS.md` |
-| `agent/` | `beagle agent` (agentd): the CLI/TUI (`tui/`, agentctl), the scheduler daemon (`daemon/`), libraries (`lib/core`, `lib/top`), the Agentdesk desktop app (`desktop/`) and demo manifests (`examples/demo/`) | `agent/AGENTS.md` |
-| `beagle/` | The single `beagle` command (help, update, doctor, setup), linking every tool into one binary; `beagle/serve/` is `beagle serve` | `beagle/AGENTS.md` |
-| `scout/` | `beagle scout`: the TUI/CLI crate (`tui/`); `ios/` is where the iPhone app goes | `scout/README.md`, `scout/tui/AGENTS.md` |
-| `recap/` | `beagle recap`: PR recaps (`tui/`) | `recap/tui/README.md` |
-| `standup/` | `beagle standup`: standup reports (`tui/`) | `standup/tui/README.md` |
-| `utils/` | `beagle-utils`: Rust helpers shared by two or more apps | `utils/README.md` |
+| `utils/` | `beagle-utils` and `beagle-tui`: Rust helpers shared by two or more tools | `utils/README.md` |
 | `standards/`, `scripts/`, root configs | Shared lint, format, compiler and CI configuration | `docs/CODING_STANDARDS.md` |
 | `skills/` | Agent skills: `beagle-create-issue`, `beagle-complete-issue`, and rca's `beagle` / `beagle-review` (embedded into `beagle`, served by `beagle rca skill install`). `.claude/skills/*` symlink here | `skills/README.md` |
 | `packaging/`, `scripts/release/` | Homebrew formulas and casks, plus the per-app release pipeline | `docs/RELEASING.md` |
-
 ## How work flows
 
 Read the doc for the stage you are in:

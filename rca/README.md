@@ -46,17 +46,19 @@ liveness read — `active 2m ago`, turning yellow (`quiet 12m`) when the agent
 has gone silent — and
 new workspaces announce themselves in the status bar as agents scaffold them.
 
-## Repository layout
+## Parts
 
-```text
-tui/        the Rust TUI + CLI (everything documented below)
-daemon/     the agent runtime's always-on daemon (beagle-agentd)
-lib/agent/  the agent runtime's engine (beagle-agent)
-desktop/    Tauri 2 + React desktop app (see desktop/README.md)
-web/        Astro static site: public postmortems (see web/README.md)
-deploy/     Helm chart for the web app (see web/DEPLOY.md)
-docs/       the agent-runtime guide
-```
+| Part | What it is | Run it (from `rca/`) |
+| --- | --- | --- |
+| [`tui/`](tui/) | The `beagle rca` TUI + CLI (everything documented below); crate `beagle` | `beagle rca`, or `make run` (the example store) |
+| [`daemon/`](daemon/) | The agent runtime's always-on daemon (`beagle-agentd`) | `beagle rca agentd run`; `make agentd` builds it |
+| [`lib/agent/`](lib/agent/) | The agent runtime's engine (`beagle-agent`), used by the daemon | — |
+| [`desktop/`](desktop/README.md) | The Beagle desktop app (Tauri 2 + React) | `make desktop` |
+| [`web/`](web/README.md) | Astro static site: public postmortems | `make web` |
+| [`examples/rcas/`](examples/rcas/) | An example store the site, tests and `make run` read | — |
+
+Also here: `deploy/` (Helm chart for the web app, see `web/DEPLOY.md`), `docs/`
+(the agent-runtime guide) and `scripts/` (release version stamping).
 
 The CLI, daemon, desktop app and web image ship together as one version,
 released from `main` as `beagle-rca-vX.Y.Z` in the

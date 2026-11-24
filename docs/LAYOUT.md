@@ -4,11 +4,11 @@ Where every tool lives, and the rules that keep it that way. Each tool is
 one top-level folder named exactly like its `beagle` subcommand, so
 `beagle scout` lives in `scout/` and `beagle agent` lives in `agent/`.
 
-> **Status: proposed.** This is the target. The folders move one tool per
-> PR in the order below. Until a tool's PR merges, it is still at its old
-> path. When the moves are done, this file describes the repo as it is.
+> **Status: done.** This is the repo as it is: every tool moved (PRs
+> #65–#71) and `make standards` enforces the rules (#72). "The full map"
+> and "The order of the moves" below are the record of how it got here.
 
-## The target
+## The layout
 
 ```
 beagle/          the beagle command (help, update, doctor, setup, version)
