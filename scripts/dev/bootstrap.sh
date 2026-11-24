@@ -152,10 +152,10 @@ if command -v corepack >/dev/null 2>&1; then
   else
     do_install "corepack shims" corepack enable || true
   fi
-  if version=$(cd "$REPO_ROOT/tandem" && COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --version 2>/dev/null); then
+  if version=$(cd "$REPO_ROOT/tandem/desktop" && COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --version 2>/dev/null); then
     ok "pnpm $version (pinned by packageManager)"
   else
-    miss "pnpm via corepack (try: cd tandem && corepack pnpm --version)"
+    miss "pnpm via corepack (try: cd tandem/desktop && corepack pnpm --version)"
   fi
 else
   miss "corepack (ships with node $want_node)"

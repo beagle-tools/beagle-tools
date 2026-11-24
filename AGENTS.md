@@ -88,12 +88,12 @@ The scripts behind these:
 
 - **Rust:**
   - `.` (the root `Cargo.toml`): `utils`, `beagle`, `beagle/serve`, `scout/tui`, `recap/tui`, `standup/tui`, `rca/tui`,
-    `rca/daemon", "rca/lib/agent`, `tandem/crates/*`, `workflows/crates/*`
-  - `tandem/src-tauri`
+    `rca/daemon`, `rca/lib/agent`, `tandem/tui`, `tandem/lib/*`, `workflows/crates/*`
+  - `tandem/desktop/src-tauri`
   - `rca/desktop/src-tauri`
   - `workflows/desktop`
 - **Frontends:**
-  - `tandem`
+  - `tandem/desktop`
   - `rca/desktop`
   - `rca/web`
   - `workflows/desktop`

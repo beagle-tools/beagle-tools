@@ -44,7 +44,7 @@ the queue on a clock.
 - No step writes to GitHub. Posting and approving stay explicit keypresses
   in the TUI.
 - The output contract is the context `claim` writes; change it only together
-  with `ingest` in `tandem/crates/tandem-tui`.
+  with `ingest` in `tandem/lib/queue`.
 
 ## Verify a fix
 

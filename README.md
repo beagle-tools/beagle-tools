@@ -169,7 +169,7 @@ before anything reaches GitHub.
 
 | Path                                | Purpose                                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------------------------- |
-| [`tandem/`](tandem/README.md)       | Tandem desktop app (Tauri 2 + Rust + React)                                                  |
+| [`tandem/`](tandem/README.md)       | Tandem: `beagle tandem` (`tui/`), its libraries (`lib/`) and the desktop app (`desktop/`)    |
 | [`beagle/`](beagle/README.md)             | The one `beagle` command: every terminal tool linked into a single binary                    |
 | [`scout/`](scout/README.md)         | scout (`beagle scout`): the TUI/CLI crate (`tui/`), and `ios/` for the iPhone app            |
 | [`recap/`](recap/README.md)         | recap (`beagle recap`): PR recaps (`tui/`)                                                   |

@@ -46,7 +46,7 @@ target installs its `node_modules`.
 
 | Target | Starts | Dir |
 |---|---|---|
-| `tandem` | Tandem desktop (`pnpm tauri dev`, vite on 1420) | `tandem/` |
+| `tandem` | Tandem desktop (`pnpm tauri dev`, vite on 1420) | `tandem/desktop/` |
 | `rca-desktop` | Beagle RCA desktop (`pnpm tauri dev`, vite on 1420) | `rca/desktop/` |
 | `workflows-desktop` | Agentdesk (`pnpm tauri dev`, vite on 1421) | `workflows/desktop/` |
 | `rca-tui` | `beagle` TUI/CLI (`cargo run -p beagle --`) | `rca/` |

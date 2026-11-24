@@ -6,12 +6,12 @@ Tandem is a Tauri 2 desktop app. All logic lives in a Rust workspace; the
 React frontend is a thin, cache-fed view layer.
 
 ```
-crates/tandem-core     domain types + unified-diff parser (no I/O)
-crates/tandem-github   GitHub REST client (reads + user-only writes), pluggable auth
-crates/tandem-cache    SQLite: GitHub cache + local review store
-crates/tandem-agents   headless agent runners + JSONL run logs
-src-tauri            Tauri shell: commands, events, settings, state
-src/                 React UI (differ, comments, agent panel, settings)
+lib/core     domain types + unified-diff parser (no I/O)
+lib/github   GitHub REST client (reads + user-only writes), pluggable auth
+lib/cache    SQLite: GitHub cache + local review store
+lib/agents   headless agent runners + JSONL run logs
+desktop/src-tauri            Tauri shell: commands, events, settings, state
+desktop/src/                 React UI (differ, comments, agent panel, settings)
 ```
 
 ## Concurrency model
@@ -72,7 +72,7 @@ SHA changes. Local comments/agent runs are indexed by (repo, number).
 
 - JSON-blob columns in SQLite (indexed keys only) — schema agility while
   domain types settle.
-- Syntax highlighting in the differ is client-side (`src/lib/highlight.ts`),
+- Syntax highlighting in the differ is client-side (`desktop/src/lib/highlight.ts`),
   per line, so a hunk never needs the whole file.
 - One SQLite connection behind a mutex — fine at current scale.
 - PAT lives in the settings file (0600), not the keychain yet (roadmap).

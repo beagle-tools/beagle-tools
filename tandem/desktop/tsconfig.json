@@ -1,5 +1,5 @@
 {
-  "extends": "../standards/tsconfig.base.json",
+  "extends": "../../standards/tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2022",
     "useDefineForClassFields": true,

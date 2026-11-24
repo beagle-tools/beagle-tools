@@ -14,7 +14,7 @@ source "$(dirname "$0")/env.sh"
 
 # target | kind | dir | what it starts
 TARGETS="\
-tandem|tauri|tandem|Tandem desktop app (tauri dev, port 1420)
+tandem|tauri|tandem/desktop|Tandem desktop app (tauri dev, port 1420)
 rca-desktop|tauri|rca/desktop|Beagle RCA desktop app (tauri dev, port 1420)
 workflows-desktop|tauri|workflows/desktop|Agentdesk desktop app (tauri dev, port 1421)
 rca-tui|cargo:beagle|rca|beagle TUI/CLI (cargo run -p beagle)

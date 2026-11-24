@@ -14,7 +14,7 @@ Run with **no command**, it opens the [review TUI](#the-review-tui): a
 terminal review queue with its own store, where an agent reviews the
 PRs you queue and you triage the result.
 
-The code is a library crate (`crates/tandem-cli`, `tandem_cli::run`)
+The code is a library crate (`tui`, `tandem_cli::run`)
 with a thin `main.rs`, so the same commands are also linked into the
 unified `beagle` command as **`beagle tandem`** (`tandem_cli::run_as`):
 `beagle tandem prs`, `beagle tandem app-queue`, … behave exactly like

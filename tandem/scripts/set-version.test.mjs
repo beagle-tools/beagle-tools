@@ -11,21 +11,25 @@ import { fileURLToPath } from "node:url";
 
 const appDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(appDir, "scripts", "set-version.mjs");
-const CRATE_DIRS = [
-  "tandem-core",
-  "tandem-github",
-  "tandem-cache",
-  "tandem-agents",
-  "tandem-cli",
-  "tandem-tui",
+// Crate dir (under tandem/) -> package name.
+const CRATE_DIRS = {
+  "lib/core": "tandem-core",
+  "lib/github": "tandem-github",
+  "lib/cache": "tandem-cache",
+  "lib/agents": "tandem-agents",
+  tui: "tandem-cli",
+  "lib/queue": "tandem-tui",
+};
+const MANIFESTS = [
+  "desktop/src-tauri/Cargo.toml",
+  ...Object.keys(CRATE_DIRS).map((dir) => `${dir}/Cargo.toml`),
 ];
-const MANIFESTS = ["src-tauri/Cargo.toml", ...CRATE_DIRS.map((dir) => `crates/${dir}/Cargo.toml`)];
-const LOCKS = ["../Cargo.lock", "src-tauri/Cargo.lock"];
-const FILES = ["package.json", "src-tauri/tauri.conf.json", ...MANIFESTS, ...LOCKS];
+const LOCKS = ["../Cargo.lock", "desktop/src-tauri/Cargo.lock"];
+const FILES = ["desktop/package.json", "desktop/src-tauri/tauri.conf.json", ...MANIFESTS, ...LOCKS];
 // The packages each lockfile records and the script must stamp.
 const CRATES = {
-  "../Cargo.lock": CRATE_DIRS,
-  "src-tauri/Cargo.lock": [
+  "../Cargo.lock": Object.values(CRATE_DIRS),
+  "desktop/src-tauri/Cargo.lock": [
     "tandem",
     "tandem-core",
     "tandem-github",
@@ -69,9 +73,12 @@ test("stamps every version location", () => {
   const result = run(dir, "4.5.6");
   assert.equal(result.status, 0, result.stderr);
 
-  assert.equal(JSON.parse(read(dir, "package.json")).version, "4.5.6");
-  assert.equal(JSON.parse(read(dir, "src-tauri/tauri.conf.json")).version, "4.5.6");
-  assert.match(read(dir, "src-tauri/Cargo.toml"), /\[workspace\.package\]\nversion = "4\.5\.6"\n/);
+  assert.equal(JSON.parse(read(dir, "desktop/package.json")).version, "4.5.6");
+  assert.equal(JSON.parse(read(dir, "desktop/src-tauri/tauri.conf.json")).version, "4.5.6");
+  assert.match(
+    read(dir, "desktop/src-tauri/Cargo.toml"),
+    /\[workspace\.package\]\nversion = "4\.5\.6"\n/,
+  );
   for (const file of MANIFESTS.slice(1)) {
     assert.match(
       read(dir, file),

@@ -13,7 +13,7 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(() => ({
   plugins: [react(), tailwindcss()],
   // Unit tests live beside the code; e2e/ is Playwright's and
-  // scripts/*.test.mjs run under node:test (both via package.json).
+  // ../scripts/*.test.mjs run under node:test (both via package.json).
   test: { include: ["src/**/*.test.{ts,tsx}"] },
   clearScreen: false,
   server: {

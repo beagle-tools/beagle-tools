@@ -5,7 +5,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-import strictConfig from "../standards/eslint.base.js";
+import strictConfig from "../../standards/eslint.base.js";
 
 export default [
   ...strictConfig({

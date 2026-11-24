@@ -16,16 +16,16 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
 
 | Path                   | What lives there                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `crates/tandem-core`   | Pure domain types (`github`, `review`, `agent`, `diff`), the unified-diff parser (`diff_parse`), `TandemError`. No I/O, nothing heavier than serde/chrono — every other crate speaks these types.                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `crates/tandem-github` | GitHub REST/GraphQL client. Wire structs in `wire.rs`, HTTP in `client.rs`, auth strategies in `auth.rs`, discovery in `discovery.rs`, rate-limit backoff in `rate_limit.rs`, the user-only write half in `write.rs`.                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `crates/tandem-cache`  | SQLite. GitHub-data caching in `store.rs`; local-only review data in `review_store.rs` (+ `summaries.rs`, `revisions.rs`, `reviewed.rs`); merged-PR retention in `archive.rs`; the outside-process review queue in `queue.rs`, plus job listing, atomic claiming and `pr_marks` for the review TUI in `triage.rs`; migrations in `schema.rs`.                                                                                                                                                                                                                                                                                                              |
-| `crates/tandem-agents` | Agent runners. argv per runner in `command.rs`, stdout classification + the comment contract in `events.rs`, prompt assembly in `context.rs` / `reply.rs` / `conversation.rs` / `conventions.rs` / `summary.rs`, process lifecycle in `runner.rs`.                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `crates/tandem-cli`    | `tandem-cli`: read-only JSON CLI over the cache DB, plus `app-review` (enqueue for the desktop app; alias `review`) and `update`; with no command it opens the review TUI, and `tandem-tui`'s queue commands (`add`, `claim`, `ingest`, `fail`, `list`) are flattened into its own. A library (`tandem_cli::run`/`run_as`, `ABOUT`) with a thin `main.rs`; `beagle` links it as `beagle tandem`. Reads raw SQL, so schema changes must keep it working (`query_tests.rs` builds a real store). See `docs/CLI.md`.                                                                                                                                          |
-| `crates/tandem-tui`    | The review TUI (library only, linked by `tandem-cli`): a terminal review queue on its own store. `lib.rs` holds the `Command` enum and `open`/`run`/`paths`; `jobs.rs` the queue life cycle (add → claim → ingest/fail), `context.rs` + `ingest.rs` + `verdict.rs` the reviewer's output contract (change them together), `gh.rs` the GitHub reads and the two user-only writes, `state.rs` where each PR stands, `read.rs` the queue and one PR as JSON for `beagle serve` (store opened with `Cache::open_read_only`, never created), `ui/` the ratatui app (`keys.rs`, `view.rs`, `tabs.rs`, `diff.rs`, `worker.rs` for GitHub work off the UI thread). |
-| `src-tauri`            | Thin Tauri shell. One file per domain under `src/commands/`; `state.rs` (`AppState`), `settings.rs` (settings + `AppDirs`), `file_config.rs` (optional `tandem.yaml`). Commands validate, lock state briefly, and delegate to the crates.                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `src/`                 | React frontend. IPC only through `src/lib/ipc.ts`; shared state only through the zustand store (`src/state/store.ts`, actions in `src/state/*Actions.ts`, event subscriptions in `src/state/initAction.ts`); Rust types mirrored in `src/lib/types.ts`.                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `lib/core` (`tandem-core`) | Pure domain types (`github`, `review`, `agent`, `diff`), the unified-diff parser (`diff_parse`), `TandemError`. No I/O, nothing heavier than serde/chrono — every other crate speaks these types.                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `lib/github` (`tandem-github`) | GitHub REST/GraphQL client. Wire structs in `wire.rs`, HTTP in `client.rs`, auth strategies in `auth.rs`, discovery in `discovery.rs`, rate-limit backoff in `rate_limit.rs`, the user-only write half in `write.rs`.                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `lib/cache` (`tandem-cache`) | SQLite. GitHub-data caching in `store.rs`; local-only review data in `review_store.rs` (+ `summaries.rs`, `revisions.rs`, `reviewed.rs`); merged-PR retention in `archive.rs`; the outside-process review queue in `queue.rs`, plus job listing, atomic claiming and `pr_marks` for the review TUI in `triage.rs`; migrations in `schema.rs`.                                                                                                                                                                                                                                                                                                              |
+| `lib/agents` (`tandem-agents`) | Agent runners. argv per runner in `command.rs`, stdout classification + the comment contract in `events.rs`, prompt assembly in `context.rs` / `reply.rs` / `conversation.rs` / `conventions.rs` / `summary.rs`, process lifecycle in `runner.rs`.                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `tui` (`tandem-cli`) | `beagle tandem`, and the desktop app's sidecar binary: read-only JSON CLI over the cache DB, plus `app-review` (enqueue for the desktop app; alias `review`) and `update`; with no command it opens the review TUI, and `tandem-tui`'s queue commands (`add`, `claim`, `ingest`, `fail`, `list`) are flattened into its own. A library (`tandem_cli::run`/`run_as`, `ABOUT`) with a thin `main.rs`; `beagle` links it as `beagle tandem`. Reads raw SQL, so schema changes must keep it working (`query_tests.rs` builds a real store). See `docs/CLI.md`.                                                                                                                                          |
+| `lib/queue` (`tandem-tui`) | The review TUI (library only, linked by `tandem-cli`): a terminal review queue on its own store. `lib.rs` holds the `Command` enum and `open`/`run`/`paths`; `jobs.rs` the queue life cycle (add → claim → ingest/fail), `context.rs` + `ingest.rs` + `verdict.rs` the reviewer's output contract (change them together), `gh.rs` the GitHub reads and the two user-only writes, `state.rs` where each PR stands, `read.rs` the queue and one PR as JSON for `beagle serve` (store opened with `Cache::open_read_only`, never created), `ui/` the ratatui app (`keys.rs`, `view.rs`, `tabs.rs`, `diff.rs`, `worker.rs` for GitHub work off the UI thread). |
+| `desktop/src-tauri` | Thin Tauri shell. One file per domain under `src/commands/`; `state.rs` (`AppState`), `settings.rs` (settings + `AppDirs`), `file_config.rs` (optional `tandem.yaml`). Commands validate, lock state briefly, and delegate to the crates.                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `desktop/src/` | React frontend. IPC only through `desktop/src/lib/ipc.ts`; shared state only through the zustand store (`desktop/src/state/store.ts`, actions in `desktop/src/state/*Actions.ts`, event subscriptions in `desktop/src/state/initAction.ts`); Rust types mirrored in `desktop/src/lib/types.ts`.                                                                                                                                                                                                                                                                                                                                                                                                    |
 
-`src/lib/types.ts` must match Rust serde output: snake_case fields and
+`desktop/src/lib/types.ts` must match Rust serde output: snake_case fields and
 `kind`-tagged enums. Change both sides together.
 
 ## Concurrency model
@@ -72,8 +72,8 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
   the contract, update `context.rs` (what the agent is told), `events.rs`
   (what is parsed) and this file together.
 - **GitHub writes are user-only.** The only write paths are
-  `tandem-github/src/write.rs`, reached from
-  `src-tauri/src/commands/github_write.rs` and `merge.rs`, and from the
+  `lib/github/src/write.rs`, reached from
+  `desktop/src-tauri/src/commands/github_write.rs` and `merge.rs`, and from the
   review TUI's `ui/worker.rs` (via `gh.rs`, always as a named gh account —
   `ui/account.rs`, never gh's active one by default), and they run only on
   explicit user clicks or confirmed keypresses (post a chosen comment,
@@ -85,7 +85,7 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
   A process running as the user can still read the keychain directly; the v2
   sandbox closes that. Agent output stays local until the user posts it.
 - **Schema migrations are append-only.** Add a new entry to `MIGRATIONS`
-  in `crates/tandem-cache/src/schema.rs`. Never edit a migration that has
+  in `lib/cache/src/schema.rs`. Never edit a migration that has
   shipped. Most rows are JSON blobs, so adding a `#[serde(default)]`
   field usually needs no migration at all.
 - **Secrets.** A PAT currently lives in the settings file. That file is
@@ -123,12 +123,12 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
   is in `docs/CLI.md` ("The review TUI"); an example agentd job is
   `workflows/manifests/demo/review-queue.yaml`.
 
-## App commands (run inside `tandem/`)
+## App commands (run inside `tandem/`; frontend ones run in `desktop/`)
 
 ```sh
 make install   # pnpm install
 make dev       # tauri dev (debug build, tandem-dev data dir)
-make dev-bg    # same, backgrounded; logs to .tandem-dev.log
+make dev-bg    # same, backgrounded; logs to desktop/.tandem-dev.log
 make check     # = make check-tandem from the repo root (the CI gate)
 ```
 
@@ -137,25 +137,25 @@ touched.
 
 ## Testing
 
-- **Unit (vitest)**: `*.test.ts` beside the code in `src/` (helpers in
-  `src/test/fixtures.ts`). `pnpm test` also runs the node:test suite for
+- **Unit (vitest)**: `*.test.ts` beside the code in `desktop/src/` (helpers in
+  `desktop/src/test/fixtures.ts`). `pnpm test` also runs the node:test suite for
   `scripts/set-version.mjs` (`scripts/set-version.test.mjs`, which works on
   a temp copy and never touches the checkout).
 - **Rust**: unit tests beside the code (`#[cfg(test)]`); cross-module
   integration tests go in a crate's `tests/`.
-- **e2e (Playwright, Chromium)**: specs in `e2e/*.spec.ts`, config in
-  `playwright.config.ts`. `pnpm e2e` starts `vite --mode e2e` on port 1430
+- **e2e (Playwright, Chromium)**: specs in `desktop/e2e/*.spec.ts`, config in
+  `desktop/playwright.config.ts`. `pnpm e2e` starts `vite --mode e2e` on port 1430
   (clear of `make dev` on 1420) and drives the real frontend in a plain
   browser. First run: `corepack pnpm exec playwright install chromium`.
 
 ### e2e mock mode
 
-In `--mode e2e`, `src/main.tsx` dynamically imports `src/e2e/mockIpc.ts`
+In `--mode e2e`, `desktop/src/main.tsx` dynamically imports `desktop/src/e2e/mockIpc.ts`
 before rendering. It installs `mockIPC` (with `shouldMockEvents`) and
 `mockWindows("main")` from `@tauri-apps/api/mocks`, and answers every
-command in `src/lib/ipc.ts`, plus the plugin calls the UI makes
+command in `desktop/src/lib/ipc.ts`, plus the plugin calls the UI makes
 (`plugin:app|version`, `plugin:updater|check`, window/opener), with the
-fixtures in `src/e2e/fixtures.ts`. The import sits behind
+fixtures in `desktop/src/e2e/fixtures.ts`. The import sits behind
 `import.meta.env.MODE === "e2e"`, which vite inlines, so production
 builds drop the mock and the fixtures entirely. After changing that
 code, check that `grep -c installIpcMocks dist/assets/*.js` prints 0
@@ -164,7 +164,7 @@ for every file after `pnpm build`.
 - **When you add or rename an IPC command**, add it to `mockIPC`'s
   handler. Unknown commands resolve to `null`, which looks like an empty
   result rather than an error.
-- **Fixtures** mirror `src/lib/types.ts` and are type-checked against it,
+- **Fixtures** mirror `desktop/src/lib/types.ts` and are type-checked against it,
   so a type change that breaks them fails `pnpm typecheck`.
 - **Knobs**: `?update=X.Y.Z` on the page URL makes the updater report an
   update, so the header button shows. With no knob, no update exists.
@@ -187,11 +187,11 @@ merge to `main` touches release-relevant paths: `tandem/**` except
   release uses the current version-file value.
 - **Versions are stamped in CI only.**
   `node scripts/set-version.mjs X.Y.Z`, run from `tandem/`, stamps
-  `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`'s
+  `desktop/package.json`, `desktop/src-tauri/tauri.conf.json`, `desktop/src-tauri/Cargo.toml`'s
   `[workspace.package] version` (the shell is its own cargo workspace),
-  each `crates/*/Cargo.toml` `[package] version` (members of the repo-root
+  `tui/` and each `lib/*/Cargo.toml` `[package] version` (members of the repo-root
   workspace), and their entries in the root `Cargo.lock` and
-  `src-tauri/Cargo.lock`, so `--locked` builds still work. Never commit the
+  `desktop/src-tauri/Cargo.lock`, so `--locked` builds still work. Never commit the
   stamped files.
 - **The mirror.** Each release refreshes the rolling
   `beagle-tandem-latest` release, which holds the stable-named installers
@@ -210,7 +210,7 @@ merge to `main` touches release-relevant paths: `tandem/**` except
   plain cargo builds never need it). The cask links
   `Tandem.app/Contents/MacOS/tandem-cli` onto PATH, and
   `set-version.mjs` stamps it with the other workspace members.
-- **Rollback.** Settings › Version (`src-tauri/src/commands/updates.rs`)
+- **Rollback.** Settings › Version (`desktop/src-tauri/src/commands/updates.rs`)
   lists the releases whose tag starts with `TAG_PREFIX = "beagle-tandem-v"`.
   It installs one through that tag's own `latest.json`, and the signature
   check applies either way. If you change the tag scheme, update

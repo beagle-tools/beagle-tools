@@ -95,10 +95,10 @@ jobs:
     secrets: inherit
     with:
       app-dir: tandem
-      project: tandem
+      project: tandem/desktop
       # The shell is its own workspace; tandem-cli (the sidecar) is built in the
       # root workspace.
-      cargo-dir: tandem/src-tauri
+      cargo-dir: tandem/desktop/src-tauri
       sidecar-cargo-dir: .
       product: Tandem
       # tandem-cli rides inside the app; the beagle-tandem cask links it.

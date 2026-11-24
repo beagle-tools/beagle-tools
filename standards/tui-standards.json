@@ -20,14 +20,14 @@
   ],
   "tui_github_writes": {
     "recap/tui": ["D", "M", "X"],
-    "tandem/crates/tandem-tui": ["A", "P"]
+    "tandem/lib/queue": ["A", "P"]
   },
   "tuis": {
     "rca/tui": "rca/tui/src/ui/tests/keys_standard.rs",
     "recap/tui": "recap/tui/src/tests/ui_keymap.rs",
     "scout/tui": "scout/tui/src/ui/keys_tests.rs",
     "standup/tui": "standup/tui/src/tests/ui_keymap.rs",
-    "tandem/crates/tandem-tui": "tandem/crates/tandem-tui/src/ui/tests.rs",
+    "tandem/lib/queue": "tandem/lib/queue/src/ui/tests.rs",
     "workflows/crates/agenttop": "workflows/crates/agenttop/src/tests/keymap.rs"
   },
   "not_tuis": {

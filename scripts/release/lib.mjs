@@ -8,7 +8,7 @@
  * mirrors, updaters), so they stay when a folder moves (docs/LAYOUT.md).
  */
 export const APPS = {
-  tandem: { versionFile: "tandem/src-tauri/tauri.conf.json", kind: "json" },
+  tandem: { versionFile: "tandem/desktop/src-tauri/tauri.conf.json", kind: "json" },
   rca: { versionFile: "rca/tui/Cargo.toml", kind: "cargo-package" },
   workflows: { versionFile: "workflows/crates/agentctl/Cargo.toml", kind: "cargo-package" },
   // The unified `beagle` command (beagle/), which links rca (and its daemon),
@@ -68,11 +68,11 @@ export const LINKED_PREFIXES = {
     // `beagle rca agentd`: the daemon and the engine it hosts.
     "rca/daemon/",
     "rca/lib/agent/",
-    "tandem/crates/tandem-cli/",
-    "tandem/crates/tandem-core/",
-    "tandem/crates/tandem-tui/",
-    "tandem/crates/tandem-cache/",
-    "tandem/crates/tandem-github/",
+    "tandem/tui/",
+    "tandem/lib/core/",
+    "tandem/lib/queue/",
+    "tandem/lib/cache/",
+    "tandem/lib/github/",
     // `beagle agent`: the whole agentd stack, plus what agentctl embeds.
     "workflows/crates/",
     "workflows/deploy/",
