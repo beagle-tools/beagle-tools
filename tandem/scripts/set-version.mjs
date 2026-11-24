@@ -1,8 +1,9 @@
 // Stamp a release version into every place Tandem records one:
-//   package.json, src-tauri/tauri.conf.json, src-tauri/Cargo.toml's
-//   [workspace.package] version (the desktop shell's own workspace), each
-//   crates/*/Cargo.toml [package] version, and those crates' entries in the
-//   repo-root Cargo.lock and src-tauri/Cargo.lock (so `cargo build --locked`
+//   desktop/package.json, desktop/src-tauri/tauri.conf.json,
+//   desktop/src-tauri/Cargo.toml's [workspace.package] version (the desktop
+//   shell's own workspace), tui/ and each lib/*/Cargo.toml [package] version,
+//   and those crates' entries in the repo-root Cargo.lock and
+//   desktop/src-tauri/Cargo.lock (so `cargo build --locked`
 //   keeps working).
 //
 // Run from tandem/ by release CI only; the result is never committed.
@@ -16,13 +17,14 @@ if (!version || !/^\d+\.\d+\.\d+$/.test(version)) {
   process.exit(1);
 }
 
-const SHELL = "src-tauri/Cargo.toml";
+const SHELL = "desktop/src-tauri/Cargo.toml";
 // The repo-root workspace holds the crates; the shell keeps its own lock.
-const LOCKS = ["../Cargo.lock", "src-tauri/Cargo.lock"];
-const CRATE_MANIFESTS = readdirSync("crates", { withFileTypes: true })
-  .filter((entry) => entry.isDirectory() && existsSync(join("crates", entry.name, "Cargo.toml")))
-  .map((entry) => join("crates", entry.name, "Cargo.toml"))
+const LOCKS = ["../Cargo.lock", "desktop/src-tauri/Cargo.lock"];
+const LIB_MANIFESTS = readdirSync("lib", { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && existsSync(join("lib", entry.name, "Cargo.toml")))
+  .map((entry) => join("lib", entry.name, "Cargo.toml"))
   .sort();
+const CRATE_MANIFESTS = [join("tui", "Cargo.toml"), ...LIB_MANIFESTS];
 
 /** Replace exactly one match of `pattern` in `text`, or fail loudly. */
 function replaceOne(path, text, pattern, replacement) {
@@ -55,7 +57,7 @@ function stampTable(path, text, header) {
 const writes = new Map();
 
 // JSON: rewrite the top-level "version" in place so formatting survives.
-for (const path of ["package.json", "src-tauri/tauri.conf.json"]) {
+for (const path of ["desktop/package.json", "desktop/src-tauri/tauri.conf.json"]) {
   const text = replaceOne(
     path,
     readFileSync(path, "utf8"),

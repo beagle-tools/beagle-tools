@@ -130,7 +130,7 @@ is on in CI).
   specific cells/lines (a title, a selected row marker), not whole-screen
   snapshots.
 
-### Tauri commands (`tandem/src-tauri`, `rca/desktop/src-tauri`, `workflows/desktop/src-tauri`)
+### Tauri commands (`tandem/desktop/src-tauri`, `rca/desktop/src-tauri`, `workflows/desktop/src-tauri`)
 - The `#[tauri::command]` fn only extracts state and delegates. The logic it
   delegates to is a plain function tested like library code.
 - Pin the wire format: a `serde_json::to_value` test for each result type and
@@ -249,7 +249,7 @@ cargo test -p beagle --test cli               # one integration test file (tests
 cargo test -p beagle-utils --doc              # doc-tests only
 ```
 
-In a frontend dir (`cd tandem`, `cd rca/desktop`, …), via `corepack pnpm`:
+In a frontend dir (`cd tandem/desktop`, `cd rca/desktop`, …), via `corepack pnpm`:
 
 ```sh
 corepack pnpm test                            # all vitest

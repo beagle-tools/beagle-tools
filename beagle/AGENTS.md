@@ -20,7 +20,7 @@ the tool.
 | `scout` | `beagle-scout` | `../scout/tui` |
 | `serve` | `beagle-serve` | `serve/` — the tools' stores as a read-only HTTPS JSON API ([`../docs/serve-api.md`](../docs/serve-api.md)); it reads each store through that tool's crate |
 | `standup` | `beagle-standup` | `../standup/tui` |
-| `tandem` | `tandem-cli` (linked through `run_as("beagle tandem", …)`) | `../tandem/crates/tandem-cli` — also ships inside the Tandem app |
+| `tandem` | `tandem-cli` (linked through `run_as("beagle tandem", …)`) | `../tandem/tui` — also ships inside the Tandem app |
 
 A tool that lives with its own app is a path dependency in the root
 `Cargo.toml`'s `[workspace.dependencies]`. A change to it releases `beagle`

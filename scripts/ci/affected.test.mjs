@@ -71,7 +71,7 @@ describe("fullWorkspaceReason", () => {
       assert.notEqual(fullWorkspaceReason([file], "."), null, file);
     }
     assert.equal(fullWorkspaceReason(["rca/tui/Cargo.toml"], "."), null);
-    assert.equal(fullWorkspaceReason(["tandem/src-tauri/Cargo.lock"], "."), null);
+    assert.equal(fullWorkspaceReason(["tandem/desktop/src-tauri/Cargo.lock"], "."), null);
   });
 
   test("release workflows do not force a full run", () => {
@@ -138,7 +138,7 @@ describe("selectPackages", () => {
 
   test("unrelated changes select nothing", () => {
     const result = selectPackages({
-      changed: ["rca/web/src/pages/index.astro", "tandem/src/App.tsx", "README.md"],
+      changed: ["rca/web/src/pages/index.astro", "tandem/desktop/src/App.tsx", "README.md"],
       ws: "rca",
       graph: rca,
     });

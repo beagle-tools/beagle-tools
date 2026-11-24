@@ -164,12 +164,12 @@ PR → add an agent → **run review**.
 
 | Path                   | What                                                      |
 | ---------------------- | --------------------------------------------------------- |
-| `crates/tandem-core`   | Domain types: PRs, diffs, local comments, agent specs     |
-| `crates/tandem-github` | GitHub REST client — reads + explicit user-action writes  |
-| `crates/tandem-cache`  | SQLite cache, local review store, 3-day merged-PR archive |
-| `crates/tandem-agents` | Agent runners (headless claude/codex/custom), JSONL logs  |
-| `src-tauri`            | Tauri shell: commands, events, settings                   |
-| `src/`                 | React frontend (differ, panels, settings)                 |
+| `lib/core`   | Domain types: PRs, diffs, local comments, agent specs     |
+| `lib/github` | GitHub REST client — reads + explicit user-action writes  |
+| `lib/cache`  | SQLite cache, local review store, 3-day merged-PR archive |
+| `lib/agents` | Agent runners (headless claude/codex/custom), JSONL logs  |
+| `desktop/src-tauri`            | Tauri shell: commands, events, settings                   |
+| `desktop/src/`                 | React frontend (differ, panels, settings)                 |
 | `docs/`                | Architecture, sandboxing (v2 Docker+squid), roadmap       |
 
 ## Optional file config (dotfiles-friendly)

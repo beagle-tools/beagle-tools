@@ -18,7 +18,7 @@ const covered = (dir) =>
 const outside = linkedCrateDirs(root, "beagle").filter((d) => !covered(d));
 
 test("the link walk finds the crates beagle is known to link", () => {
-  for (const dir of ["rca/tui", "tandem/crates/tandem-cli", "tandem/crates/tandem-tui"]) {
+  for (const dir of ["rca/tui", "tandem/tui", "tandem/lib/queue"]) {
     assert.ok(outside.includes(dir), `${dir} missing from ${outside.join(", ")}`);
   }
 });

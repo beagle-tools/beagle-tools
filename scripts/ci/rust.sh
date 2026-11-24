@@ -2,7 +2,7 @@
 # The Rust gate for one cargo workspace. CI and `make check` both run this
 # script, so a green local run is a green CI run.
 #
-#   scripts/ci/rust.sh <workspace-dir> [--tests-only]   e.g. . (the root workspace), tandem/src-tauri
+#   scripts/ci/rust.sh <workspace-dir> [--tests-only]   e.g. . (the root workspace), tandem/desktop/src-tauri
 #
 # Test selection: with AFFECTED_BASE=<git-ref> set (CI sets it on pull
 # requests to origin/<base branch>), `cargo test` runs only the packages the

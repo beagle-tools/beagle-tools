@@ -13,7 +13,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run && node --test scripts/set-version.test.mjs",
+    "test": "vitest run && node --test ../scripts/set-version.test.mjs",
     "e2e": "playwright test"
   },
   "dependencies": {

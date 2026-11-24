@@ -49,8 +49,8 @@ check-rust:
 check-utils check-beagle: check-rust
 
 check-tandem: check-rust
-	./scripts/ci/rust.sh tandem/src-tauri;
-	./scripts/ci/frontend.sh tandem;
+	./scripts/ci/rust.sh tandem/desktop/src-tauri;
+	./scripts/ci/frontend.sh tandem/desktop;
 
 check-rca: check-rust
 	./scripts/ci/rust.sh rca/desktop/src-tauri;
@@ -65,7 +65,7 @@ check-workflows: check-rust
 # Same selection CI applies to pull requests (docs/TESTING.md). Includes
 # uncommitted and untracked files, so it works before you commit.
 BASE ?= origin/main
-RUST_WORKSPACES := . tandem/src-tauri rca/desktop/src-tauri workflows/desktop
+RUST_WORKSPACES := . tandem/desktop/src-tauri rca/desktop/src-tauri workflows/desktop
 
 .PHONY: test-affected test-scripts e2e e2e-tandem e2e-rca-desktop e2e-rca-web e2e-workflows-desktop
 
@@ -80,7 +80,7 @@ test-scripts:
 e2e: e2e-tandem e2e-rca-desktop e2e-rca-web e2e-workflows-desktop
 
 e2e-tandem:
-	cd tandem && corepack pnpm e2e;
+	cd tandem/desktop && corepack pnpm e2e;
 e2e-rca-desktop:
 	cd rca/desktop && corepack pnpm e2e;
 e2e-rca-web:

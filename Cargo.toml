@@ -24,12 +24,13 @@ members = [
   "rca/tui",
   "rca/daemon",
   "rca/lib/agent",
-  # tandem: the core libraries, the review TUI and tandem-cli.
-  "tandem/crates/*",
+  # tandem: tandem-cli (`beagle tandem`) and its libraries (lib/queue is the review TUI).
+  "tandem/tui",
+  "tandem/lib/*",
   # `beagle agent`: the agentd stack.
   "workflows/crates/*",
 ]
-exclude = ["rca/desktop", "tandem/src-tauri", "workflows/desktop"]
+exclude = ["rca/desktop", "tandem/desktop", "workflows/desktop"]
 
 [workspace.package]
 edition = "2021"
@@ -48,12 +49,12 @@ beagle-standup = { path = "standup/tui" }
 beagle-rca = { package = "beagle", path = "rca/tui" }
 # rca's daemon, run as `beagle rca agentd run`.
 beagle-agentd = { path = "rca/daemon" }
-tandem-core = { path = "tandem/crates/tandem-core" }
-tandem-github = { path = "tandem/crates/tandem-github" }
-tandem-cache = { path = "tandem/crates/tandem-cache" }
-tandem-agents = { path = "tandem/crates/tandem-agents" }
-tandem-tui = { path = "tandem/crates/tandem-tui" }
-tandem-cli = { path = "tandem/crates/tandem-cli" }
+tandem-core = { path = "tandem/lib/core" }
+tandem-github = { path = "tandem/lib/github" }
+tandem-cache = { path = "tandem/lib/cache" }
+tandem-agents = { path = "tandem/lib/agents" }
+tandem-tui = { path = "tandem/lib/queue" }
+tandem-cli = { path = "tandem/tui" }
 # The agentd stack, run as `beagle agent`; agentctl links agenttop and agentd.
 agent-core = { path = "workflows/crates/agent-core" }
 agentd = { path = "workflows/crates/agentd" }

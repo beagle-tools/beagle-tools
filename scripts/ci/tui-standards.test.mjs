@@ -61,12 +61,12 @@ test("a keymap test that does not walk the shared data fails", () => {
 });
 
 test("a TUI that draws its own help or footer fails", () => {
-  const dir = "tandem/crates/tandem-tui";
+  const dir = "tandem/lib/queue";
   const view = `${dir}/src/ui/view.rs`;
   const own = readReal(view).replaceAll("chrome::draw_help(", "draw_help(").replaceAll("chrome::draw_footer(", "draw_footer(");
   const errors = checkTuiStandards(readWith({ [view]: own }), realFiles).join("\n");
-  assert.match(errors, /tandem-tui: draw the \? help with beagle_tui::chrome::draw_help/);
-  assert.match(errors, /tandem-tui: draw the footer with beagle_tui::chrome::draw_footer/);
+  assert.match(errors, /tandem\/lib\/queue: draw the \? help with beagle_tui::chrome::draw_help/);
+  assert.match(errors, /tandem\/lib\/queue: draw the footer with beagle_tui::chrome::draw_footer/);
 });
 
 test("a reserved GitHub-write capital bound to something else fails", () => {

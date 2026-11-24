@@ -55,11 +55,11 @@ edition = "2021"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-tandem-core = { path = "../crates/tandem-core" }
-tandem-github = { path = "../crates/tandem-github" }
-tandem-cache = { path = "../crates/tandem-cache" }
-tandem-agents = { path = "../crates/tandem-agents" }
-beagle-utils = { path = "../../utils" }
+tandem-core = { path = "../../lib/core" }
+tandem-github = { path = "../../lib/github" }
+tandem-cache = { path = "../../lib/cache" }
+tandem-agents = { path = "../../lib/agents" }
+beagle-utils = { path = "../../../utils" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
@@ -70,7 +70,7 @@ chrono = { version = "0.4", features = ["serde"] }
 tracing = "0.1"
 dirs = "5"
 
-# Copied verbatim from ../../standards/cargo-lints.toml (drift-checked).
+# Copied verbatim from ../../../standards/cargo-lints.toml (drift-checked).
 [workspace.lints.rust]
 unsafe_code = "forbid"
 missing_docs = "warn"
