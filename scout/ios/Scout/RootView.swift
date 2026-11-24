@@ -2,31 +2,56 @@ import SwiftUI
 
 /// The app's tabs: Scout (projects and tasks) and Settings (pairing).
 struct RootView: View {
+  @Environment(Pairing.self) private var pairing
+  @State private var tab = Tab.scout
+  /// A `beagle://pair?…` link that opened the app, waiting for confirmation.
+  @State private var openedLink: OpenedLink?
+
+  enum Tab: Hashable { case scout, settings }
+
+  struct OpenedLink: Identifiable {
+    let id = UUID()
+    let text: String
+  }
+
   var body: some View {
-    TabView {
+    TabView(selection: $tab) {
       NavigationStack {
-        ContentUnavailableView(
-          "No projects yet",
-          systemImage: "binoculars",
-          description: Text("Pair with beagle serve in Settings to see your scout projects.")
-        )
+        Group {
+          if pairing.current == nil {
+            ContentUnavailableView {
+              Label("Not paired", systemImage: "binoculars")
+            } description: {
+              Text("Pair with `beagle serve` on your Mac to see your scout projects.")
+            } actions: {
+              Button("Open Settings") { tab = .settings }
+            }
+          } else {
+            ContentUnavailableView(
+              "Projects are coming",
+              systemImage: "binoculars",
+              description: Text("Paired. The project list arrives in the next version."))
+          }
+        }
         .navigationTitle("Scout")
       }
       .tabItem { Label("Scout", systemImage: "binoculars") }
+      .tag(Tab.scout)
 
       NavigationStack {
-        Form {
-          Section("Server") {
-            Text("Not paired")
-              .foregroundStyle(.secondary)
-          }
-          Section("About") {
-            LabeledContent("Version", value: AppInfo.version)
-          }
-        }
-        .navigationTitle("Settings")
+        SettingsView()
       }
       .tabItem { Label("Settings", systemImage: "gear") }
+      .tag(Tab.settings)
+    }
+    // Scanning the QR code with the iPhone Camera app opens this link here.
+    // Pairing still waits for a tap on Pair, so a stray link can't repoint the app.
+    .onOpenURL { url in
+      guard url.scheme?.lowercased() == "beagle" else { return }
+      openedLink = OpenedLink(text: url.absoluteString)
+    }
+    .sheet(item: $openedLink) { opened in
+      PairView(initialLink: opened.text)
     }
   }
 }
@@ -42,5 +67,5 @@ enum AppInfo {
 }
 
 #Preview {
-  RootView()
+  RootView().environment(Pairing())
 }

@@ -23,6 +23,20 @@ own phone with your Apple developer account.
    and press Run. The first time, trust the developer profile on the phone
    (Settings → General → VPN & Device Management).
 
+## Pair it with your Mac
+
+1. Set up `beagle serve` on the Mac (Tailscale, `tailscale cert`, `beagle serve
+   install`; see [`docs/serve-api.md`](../../docs/serve-api.md)). Tailscale must
+   be on, on the phone too.
+2. On the Mac: `beagle serve pair`. It shows a QR code.
+3. In the app: Settings → **Pair with your Mac** → **Scan the QR code**. Or scan
+   it with the iPhone Camera app, which offers to open it in Scout; or paste the
+   `beagle://pair?…` link, or type the server and token.
+
+The app checks the server answers and accepts the token before saving
+anything. The token is kept in the iOS Keychain. `beagle serve pair --rotate`
+on the Mac logs every phone out; pair again afterwards.
+
 ## Develop
 
 ```sh
