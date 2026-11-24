@@ -1,8 +1,26 @@
 import { useEffect, type ReactElement, type RefObject } from "react";
 
-// `/` focuses the search; `r` / `a` switch Running / All (agenttop: `f` /
-// `a`, its `r` reloads), `H` toggles the hidden projects. Never while
-// typing: an `r` in the search box is an `r`.
+export type JobsKey = "search" | "running" | "all" | "hidden";
+
+// `/` focuses the search; `f` / `a` switch Running / All (the same keys as
+// `beagle agent top`), `H` toggles the hidden projects. Anything else,
+// `r` included (agenttop's reload), does nothing here.
+export function jobsKeyAction(key: string): JobsKey | null {
+  switch (key) {
+    case "/":
+      return "search";
+    case "f":
+      return "running";
+    case "a":
+      return "all";
+    case "H":
+      return "hidden";
+    default:
+      return null;
+  }
+}
+
+// Never while typing: an `f` in the search box is an `f`.
 export function useJobsKeys(
   input: RefObject<HTMLInputElement | null>,
   setOnlyRunning: (v: boolean) => void,
@@ -13,15 +31,22 @@ export function useJobsKeys(
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target;
       if (t instanceof HTMLElement && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
-      if (e.key === "/") {
-        e.preventDefault();
-        input.current?.focus();
-      } else if (e.key === "r") {
-        setOnlyRunning(true);
-      } else if (e.key === "a") {
-        setOnlyRunning(false);
-      } else if (e.key === "H") {
-        toggleHidden();
+      switch (jobsKeyAction(e.key)) {
+        case "search":
+          e.preventDefault();
+          input.current?.focus();
+          break;
+        case "running":
+          setOnlyRunning(true);
+          break;
+        case "all":
+          setOnlyRunning(false);
+          break;
+        case "hidden":
+          toggleHidden();
+          break;
+        case null:
+          break;
       }
     };
     window.addEventListener("keydown", onKey);
@@ -56,7 +81,7 @@ export function RunningFilter({
       <button
         className={onlyRunning ? "on" : ""}
         aria-pressed={onlyRunning}
-        title="Only jobs with a run live (r)"
+        title="Only jobs with a run live (f)"
         onClick={() => {
           setOnlyRunning(true);
         }}
