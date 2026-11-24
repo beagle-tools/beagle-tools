@@ -208,7 +208,7 @@ Two levels, both automatic:
      package that compiles it in via `include_str!`/`include_bytes!` (e.g.
      `skills/beagle/SKILL.md` -> `beagle`);
    - add every package that depends on an affected one, transitively, across
-     path dependencies into other workspaces (a change in `rca/cli` re-tests
+     path dependencies into other workspaces (a change in `rca/tui` re-tests
      `beagle-desktop` in `rca/desktop/src-tauri`);
    - **whole workspace** when its `Cargo.toml`/`Cargo.lock`/`.cargo/`
      changed, or `utils/`, `rust-toolchain.toml`, `scripts/`, `standards/`,
@@ -265,7 +265,7 @@ See what selection would pick, without running anything:
 
 ```sh
 node scripts/ci/affected.mjs rca --base origin/main
-node scripts/ci/affected.mjs rca/desktop/src-tauri --changed rca/cli/src/lib.rs
+node scripts/ci/affected.mjs rca/desktop/src-tauri --changed rca/tui/src/lib.rs
 ```
 
 ## 9. Checklist before you say "done"

@@ -5,11 +5,12 @@ use std::path::{Path, PathBuf};
 
 use super::*;
 
-/// The example RCA shipped in the repo (`rca/rcas/`), read in place.
+/// The example RCA shipped in the repo (`rca/examples/rcas/`; its store root
+/// is `rca/examples`), read in place.
 const EXAMPLE: &str = "2026-05-12-example-checkout-timeouts";
 
 fn repo_rca_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../rca")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../rca/examples")
 }
 
 fn get(root: &Path, path: &str) -> ApiResult {

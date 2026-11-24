@@ -14,9 +14,9 @@ const appDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(appDir, "scripts", "set-version.mjs");
 const JSON_FILES = ["desktop/package.json", "desktop/src-tauri/tauri.conf.json", "web/package.json"];
 const MANIFESTS = [
-  "cli/Cargo.toml",
-  "crates/beagle-agent/Cargo.toml",
-  "crates/beagle-agentd/Cargo.toml",
+  "tui/Cargo.toml",
+  "daemon/Cargo.toml",
+  "lib/agent/Cargo.toml",
   "desktop/src-tauri/Cargo.toml",
 ];
 const LOCKS = ["../Cargo.lock", "desktop/src-tauri/Cargo.lock"];

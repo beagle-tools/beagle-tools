@@ -1,6 +1,6 @@
 // A small, dependency-free markdown parser for the subset RCA authors
 // actually use — the same deliberate subset the TUI renders (see
-// cli/src/markdown.rs): #/##/### headings, - bullets with [ ]/[x]
+// tui/src/markdown.rs): #/##/### headings, - bullets with [ ]/[x]
 // checklists, ``` fences, > quotes, --- rules, **bold**, `inline code`.
 // Everything else is plain text; malformed input degrades, never throws.
 

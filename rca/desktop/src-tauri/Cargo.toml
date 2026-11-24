@@ -28,7 +28,7 @@ tauri-build = { version = "2", features = [] }
 # The whole domain layer — model, store, markdown, similar — comes from
 # the CLI crate. The desktop app is a renderer, not a second
 # implementation of the data format.
-beagle = { path = "../../cli" }
+beagle = { path = "../../tui" }
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 # Self-update: signed bundles from the `beagle-rca-latest` mirror release

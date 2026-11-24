@@ -22,12 +22,12 @@ token-burning session.
 ## Layout
 
 ```text
-crates/beagle-agent/    the engine: config, sqlite job store, RCA poller,
+lib/agent/              the engine: config, sqlite job store, RCA poller,
                         git-worktree manager, headless claude runner, the
                         orchestrator, and the control protocol + client/server
-crates/beagle-agentd/   the always-on daemon that hosts the engine and serves
+daemon/                 the always-on daemon that hosts the engine and serves
                         the control socket
-cli/  (beagle)          `beagle rca agent …` — install/uninstall/start/stop/status,
+tui/  (beagle)          `beagle rca agent …` — install/uninstall/start/stop/status,
                         and the TUI's Agents screen
 desktop/                the desktop app's Agents view (Tauri commands + a live
                         event stream)

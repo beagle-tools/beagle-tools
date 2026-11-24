@@ -5,7 +5,7 @@
 //
 // Source of truth is the same `rcas/` the TUI and desktop read — set
 // BEAGLE_RCAS_DIR to point elsewhere (e.g. an oncall checkout); it defaults
-// to the repo's `rcas/` one level up from `web/`.
+// to the repo's example store, `../examples/rcas` from `web/`.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -18,7 +18,7 @@ import { plainLead, renderMarkdown } from "./render";
 
 const RCAS_DIR = process.env.BEAGLE_RCAS_DIR
   ? path.resolve(process.env.BEAGLE_RCAS_DIR)
-  : path.resolve(process.cwd(), "..", "rcas");
+  : path.resolve(process.cwd(), "..", "examples", "rcas");
 
 const ARCHIVE_DIR = "archive";
 

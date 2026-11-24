@@ -51,7 +51,7 @@ files that come up. For every place a change would land, record:
 
 - the **app** (`tandem`, `rca`, `workflows`, `utils`) and package/crate,
 - the **file path** relative to the repo root, with **line refs**
-  (`rca/cli/src/skill.rs:40-46`),
+  (`rca/tui/src/skill.rs:40-46`),
 - the **symbol** (function, type, component, Tauri command, CLI subcommand),
 - the **boundary** it crosses (IPC command + its TS mirror type, on-disk
   format, CLI flag, config file) — boundaries are where specs go wrong.

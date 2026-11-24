@@ -4,7 +4,7 @@
 #   Claude Code: ~/.claude/skills/<name>     -> skills/<name>   (symlinked dir)
 #   Codex:       ~/.codex/prompts/<name>.md  <- skills/<name>/SKILL.md body
 #
-# The paths match rca/cli/src/skill.rs, so `beagle update` and this script
+# The paths match rca/tui/src/skill.rs, so `beagle update` and this script
 # agree on where a skill lives. Claude gets a symlink (or a copy with
 # --copy) so installs track the checkout. Codex always gets a copy without
 # the YAML frontmatter, exactly what `beagle update` writes: Codex injects
@@ -168,7 +168,7 @@ uninstall_one() {
   fi
 }
 
-# Paths per agent; must match rca/cli/src/skill.rs (Agent::skill_path).
+# Paths per agent; must match rca/tui/src/skill.rs (Agent::skill_path).
 claude_dest() { echo "$HOME/.claude/skills/$1"; }
 codex_dest() { echo "$HOME/.codex/prompts/$1.md"; }
 

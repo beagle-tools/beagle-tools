@@ -23,7 +23,7 @@
     "tandem/crates/tandem-tui": ["A", "P"]
   },
   "tuis": {
-    "rca/cli": "rca/cli/src/ui/tests/keys_standard.rs",
+    "rca/tui": "rca/tui/src/ui/tests/keys_standard.rs",
     "recap/tui": "recap/tui/src/tests/ui_keymap.rs",
     "scout/tui": "scout/tui/src/ui/keys_tests.rs",
     "standup/tui": "standup/tui/src/tests/ui_keymap.rs",

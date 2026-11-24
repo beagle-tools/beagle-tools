@@ -21,8 +21,9 @@ members = [
   "recap/tui",
   "standup/tui",
   # rca: the `beagle` (rca) crate, its agent engine and daemon.
-  "rca/cli",
-  "rca/crates/*",
+  "rca/tui",
+  "rca/daemon",
+  "rca/lib/agent",
   # tandem: the core libraries, the review TUI and tandem-cli.
   "tandem/crates/*",
   # `beagle agent`: the agentd stack.
@@ -44,9 +45,9 @@ beagle-scout = { path = "scout/tui" }
 beagle-serve = { path = "beagle/serve" }
 beagle-standup = { path = "standup/tui" }
 # rca's crate is named `beagle`, so it is renamed here to say which tool it is.
-beagle-rca = { package = "beagle", path = "rca/cli" }
+beagle-rca = { package = "beagle", path = "rca/tui" }
 # rca's daemon, run as `beagle rca agentd run`.
-beagle-agentd = { path = "rca/crates/beagle-agentd" }
+beagle-agentd = { path = "rca/daemon" }
 tandem-core = { path = "tandem/crates/tandem-core" }
 tandem-github = { path = "tandem/crates/tandem-github" }
 tandem-cache = { path = "tandem/crates/tandem-cache" }

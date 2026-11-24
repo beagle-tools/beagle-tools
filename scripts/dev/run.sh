@@ -56,6 +56,12 @@ IFS='|' read -r _ kind dir desc <<<"$line"
 [ -d "$REPO_ROOT/$dir" ] || { echo "$dir does not exist in this checkout" >&2; exit 1; }
 cd "$REPO_ROOT/$dir"
 
+# rca's apps open the repo's example store unless told otherwise (it sits in
+# rca/examples/, which no rca working directory is under).
+case "$target" in
+  rca-*) export BEAGLE_RCA_ROOT="${BEAGLE_RCA_ROOT:-$REPO_ROOT/rca/examples}" ;;
+esac
+
 if [ "$browser" -eq 1 ] && [ "$kind" != tauri ]; then
   echo "--browser only applies to Tauri targets ($target already runs without Tauri)" >&2
   exit 2

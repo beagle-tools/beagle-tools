@@ -14,13 +14,16 @@ use beagle::store::Store;
 use crate::dto;
 use crate::error::{Error, Result};
 
-/// Resolves the workspace root: config file `root` first (same as the
-/// CLI), then the nearest ancestor of the working directory that already
-/// contains an `rcas/` directory, then the working directory itself. The
-/// ancestor walk matters in `tauri dev`, whose working directory is
-/// `desktop/src-tauri` — without it the app would scaffold a stray
-/// `rcas/` there instead of finding the repo's.
+/// Resolves the workspace root: `$BEAGLE_RCA_ROOT` (as in the CLI), then the
+/// config file `root` (same as the CLI), then the nearest ancestor of the
+/// working directory that already contains an `rcas/` directory, then the
+/// working directory itself. `make desktop` sets `$BEAGLE_RCA_ROOT` to the
+/// repo's example store (`rca/examples`): `tauri dev` runs in
+/// `desktop/src-tauri`, where the ancestor walk finds no store.
 fn effective_root() -> Result<PathBuf> {
+    if let Some(root) = beagle::config::env_root() {
+        return Ok(root);
+    }
     if let Ok(Some(config)) = beagle::config::load_default() {
         if let Some(root) = config.root {
             return Ok(root);
