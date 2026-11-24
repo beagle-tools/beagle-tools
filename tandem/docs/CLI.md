@@ -50,7 +50,7 @@ executable. No standalone binary is published; to run it without the
 app, build it from source:
 
 ```bash
-cd tandem && cargo build --release -p tandem-cli   # target/release/tandem-cli
+cargo build --release -p tandem-cli   # target/release/tandem-cli (repo root)
 ```
 
 Or install the `beagle` command (`brew install beagle-tools/tap/beagle`,

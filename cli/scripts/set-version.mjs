@@ -2,8 +2,9 @@
 // Stamp a release version into every place cli/ (the unified `beagle`
 // command) declares one:
 //
-//   Cargo.toml   [workspace.package] version (every crates/* member)
-//   Cargo.lock   those members' entries, so `cargo build --locked` passes
+//   crates/*/Cargo.toml   each crate's [package] version
+//   ../Cargo.lock         those crates' entries in the repo-root lockfile,
+//                         so `cargo build --locked` passes
 //
 // Path dependencies from other apps (rca's `beagle`, `tandem-cli`,
 // `beagle-utils`) keep their own versions: they are not ours to stamp.
@@ -39,7 +40,7 @@ export function stampTomlTable(text, table, version) {
   return { text: lines.join("\n"), hit };
 }
 
-/** Member manifests of the workspace at `appDir` (`members = ["crates/*"]`). */
+/** Manifests of the crates under `appDir/crates/`. */
 export function memberManifests(appDir) {
   const crates = join(appDir, "crates");
   return readdirSync(crates, { withFileTypes: true })
@@ -72,31 +73,28 @@ export function stampLock(text, names, version) {
   return { text: out, stamped };
 }
 
-/** Stamp `version` everywhere under `appDir` (the cli/ directory). */
+/**
+ * Stamp `version` everywhere under `appDir` (the cli/ directory). The crates
+ * are members of the repo-root workspace, whose lockfile is `../Cargo.lock`.
+ */
 export function setVersion(appDir, version) {
   if (!SEMVER.test(version)) throw new Error(`not a X.Y.Z version: ${version}`);
 
   // Compute every write first, so a failure leaves nothing half-stamped.
   const writes = new Map();
-  const manifest = join(appDir, "Cargo.toml");
-  const root = stampTomlTable(readFileSync(manifest, "utf8"), "workspace.package", version);
-  if (!root.hit) throw new Error(`${manifest}: no [workspace.package] version`);
-  writes.set(manifest, root.text);
-
   const names = new Set();
   for (const path of memberManifests(appDir)) {
     const text = readFileSync(path, "utf8");
     const name = packageName(text);
     if (!name) throw new Error(`${path}: no [package] name`);
     names.add(name);
-    // A member pinning its own literal version (instead of
-    // `version.workspace = true`) gets stamped too.
     const own = stampTomlTable(text, "package", version);
-    if (own.hit) writes.set(path, own.text);
+    if (!own.hit) throw new Error(`${path}: no [package] version`);
+    writes.set(path, own.text);
   }
-  if (names.size === 0) throw new Error(`${appDir}/crates: no workspace members`);
+  if (names.size === 0) throw new Error(`${appDir}/crates: no crates`);
 
-  const lock = join(appDir, "Cargo.lock");
+  const lock = join(appDir, "..", "Cargo.lock");
   const res = stampLock(readFileSync(lock, "utf8"), names, version);
   const missing = [...names].filter((n) => !res.stamped.has(n));
   if (missing.length) throw new Error(`${lock}: no entry for ${missing.join(", ")}`);

@@ -10,13 +10,15 @@ NVM_DIR := $(HOME)/.nvm
 NODE_BIN_DIR := $(shell ls -d $(NVM_DIR)/versions/node/*/bin 2>/dev/null | sort -V | tail -1)
 export PATH := $(HOME)/.cargo/bin:$(NODE_BIN_DIR):$(PATH)
 PNPM := corepack pnpm
+# rca's crates live in the repo-root cargo workspace; desktop/src-tauri is its own.
+CRATES := -p beagle -p beagle-agent -p beagle-agentd
 
 .PHONY: help check run agentd install fmt lint test desktop web
 
 help:
 	@echo "make check    - the CI gate for rca (delegates to the root check-rca)"
 	@echo "make run      - open the TUI against ./rcas"
-	@echo "make agentd   - build beagle-agentd (put target/debug on PATH or set BEAGLE_AGENTD)"
+	@echo "make agentd   - build beagle-agentd (put ../target/debug on PATH or set BEAGLE_AGENTD)"
 	@echo "make install  - pnpm install for desktop/ and web/"
 	@echo "make fmt      - cargo fmt for both rust workspaces (writes)"
 	@echo "make lint     - clippy -D warnings for both rust workspaces"
@@ -38,15 +40,15 @@ install:
 	cd web && $(PNPM) install;
 
 fmt:
-	cargo fmt --all;
+	cargo fmt $(CRATES);
 	cd desktop/src-tauri && cargo fmt --all;
 
 lint:
-	cargo clippy --workspace --all-targets --all-features -- -D warnings;
+	cargo clippy $(CRATES) --all-targets --all-features -- -D warnings;
 	cd desktop/src-tauri && cargo clippy --workspace --all-targets --all-features -- -D warnings;
 
 test:
-	cargo test --workspace --all-features;
+	cargo test $(CRATES) --all-features;
 	cd desktop/src-tauri && cargo test --workspace --all-features;
 
 desktop:

@@ -1,7 +1,7 @@
 [package]
 name = "tandem-tui"
 description = "Terminal review queue for Tandem: an agent reviews queued PRs, you triage the local comments, post and approve"
-version.workspace = true
+version = "0.0.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true

@@ -48,8 +48,8 @@ released as `beagle-rca` (a deprecated formula) until it is retired.
 | `deploy/` | Helm chart for the web image | `web/DEPLOY.md` |
 | `rcas/` | Sample/real workspaces the apps read by default | Data, not code. |
 
-`Cargo.toml` here is the workspace root for `cli` + `crates/*`; it excludes
-`desktop/`. Shared helpers (XDG paths, atomic writes, `PATH` augmentation,
+`cli` and `crates/*` are members of the repo-root cargo workspace (one
+`Cargo.lock` at the root); `desktop/src-tauri` is its own. Shared helpers (XDG paths, atomic writes, `PATH` augmentation,
 truncation) come from `beagle-utils` (`../utils`) — don't re-add local copies.
 
 ### Module map (`cli/src`)

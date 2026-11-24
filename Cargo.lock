@@ -187,6 +187,7 @@ dependencies = [
  "ratatui",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror 2.0.21",
  "time",
  "toml",
@@ -202,6 +203,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror 2.0.21",
  "toml",
 ]
@@ -322,6 +324,7 @@ dependencies = [
  "notify",
  "ratatui",
  "serde",
+ "tempfile",
  "thiserror 2.0.21",
  "toml",
  "unicode-width 0.2.0",
@@ -333,6 +336,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "tempfile",
  "tracing",
  "tracing-subscriber",
 ]
@@ -2057,6 +2061,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "tandem-agents"
+version = "0.0.1"
+dependencies = [
+ "beagle-utils",
+ "chrono",
+ "serde",
+ "serde_json",
+ "tandem-core",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "tandem-cache"
 version = "0.0.1"
 dependencies = [
@@ -2081,6 +2099,7 @@ dependencies = [
  "reqwest",
  "rusqlite",
  "serde_json",
+ "tandem-cache",
  "tandem-core",
  "tandem-tui",
  "uuid",

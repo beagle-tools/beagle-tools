@@ -1,7 +1,7 @@
 [package]
 name = "beagle-cli"
 description = "The `beagle` command: every beagle-tools tool behind one binary"
-version.workspace = true
+version = "0.1.0"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -10,6 +10,9 @@ publish = false
 [[bin]]
 name = "beagle"
 path = "src/main.rs"
+# rca's lib is also named `beagle`, and both live in the root workspace:
+# documenting this bin too would write the same target/doc/beagle/.
+doc = false
 
 [dependencies]
 beagle-agent-tool.workspace = true

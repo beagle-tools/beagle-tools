@@ -5,7 +5,7 @@
 #
 #   scripts/release/stage-sidecar.sh <project> <cargo-dir> <package> <bin> [tauri build args]
 #
-# e.g. stage-sidecar.sh tandem tandem tandem-cli tandem-cli "--target aarch64-apple-darwin"
+# e.g. stage-sidecar.sh tandem . tandem-cli tandem-cli "--target aarch64-apple-darwin"
 #
 # The declaration (bundle.externalBin) is added here, in release CI only,
 # never committed: Tauri's build script refuses to compile when a declared

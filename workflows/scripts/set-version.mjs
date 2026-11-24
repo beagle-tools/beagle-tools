@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // Stamp a release version into every place workflows/ declares one:
 //
-//   Cargo.toml                    [workspace.package] version (agentd, agentctl,
-//                                 agenttop, agent-core)
+//   crates/*/Cargo.toml           each crate's [package] version (agentd,
+//                                 agentctl, agenttop, agent-core)
 //   desktop/Cargo.toml            [workspace.package] version (agentdesk)
 //   desktop/src-tauri/tauri.conf.json, desktop/package.json   "version"
-//   Cargo.lock, desktop/Cargo.lock  the entries for the packages above, so
-//                                 `cargo build --locked` still passes
+//   ../Cargo.lock (repo root), desktop/Cargo.lock   the entries for the
+//                                 packages above, so `cargo build --locked`
+//                                 still passes
 //
 // Release CI runs it from workflows/ (`node scripts/set-version.mjs 1.2.3`)
 // before building; the result is never committed. Edits are textual so the
@@ -20,8 +21,11 @@ import { fileURLToPath } from "node:url";
 
 const SEMVER = /^\d+\.\d+\.\d+$/;
 
-/** The two cargo workspaces (relative to workflows/). */
-const WORKSPACES = [".", "desktop"];
+/** The crates (members of the repo-root workspace) and their lockfile. */
+const CRATES = ["agent-core", "agentd", "agentctl", "agenttop"];
+const ROOT_LOCK = "../Cargo.lock";
+/** Agentdesk's own cargo workspace. */
+const DESKTOP = "desktop";
 const JSON_FILES = ["desktop/package.json", "desktop/src-tauri/tauri.conf.json"];
 
 function edit(path, transform) {
@@ -93,33 +97,42 @@ export function setVersion(appDir, version) {
   if (!SEMVER.test(version)) throw new Error(`not a X.Y.Z version: ${version}`);
   const touched = [];
 
-  // Our own package names, from both workspaces' members: these (and only
-  // these) get stamped in each lockfile.
+  // Compute every manifest edit first, so a missing version fails before
+  // anything is written. Our own package names (and only these) get
+  // stamped in each lockfile.
+  const writes = new Map();
   const names = new Set();
-  for (const ws of WORKSPACES) {
-    const manifest = join(appDir, ws, "Cargo.toml");
-    const text = readFileSync(manifest, "utf8");
-    const res = stampTomlTable(text, "workspace.package", version);
-    if (!res.hit) throw new Error(`${manifest}: no [workspace.package] version`);
-    writeFileSync(manifest, res.text);
-    touched.push(manifest);
-    for (const member of workspaceMembers(text)) {
-      const path = join(appDir, ws, member, "Cargo.toml");
-      const memberText = readFileSync(path, "utf8");
-      const name = packageName(memberText);
-      if (name) names.add(name);
-      // A member pinning its own literal version (instead of
-      // `version.workspace = true`) gets stamped too.
-      const own = stampTomlTable(memberText, "package", version);
-      if (own.hit) {
-        writeFileSync(path, own.text);
-        touched.push(path);
-      }
-    }
+  for (const crate of CRATES) {
+    const path = join(appDir, "crates", crate, "Cargo.toml");
+    const text = readFileSync(path, "utf8");
+    const name = packageName(text);
+    if (name) names.add(name);
+    const own = stampTomlTable(text, "package", version);
+    if (!own.hit) throw new Error(`${path}: no [package] version`);
+    writes.set(path, own.text);
+  }
+  const desktop = join(appDir, DESKTOP, "Cargo.toml");
+  const desktopText = readFileSync(desktop, "utf8");
+  const res = stampTomlTable(desktopText, "workspace.package", version);
+  if (!res.hit) throw new Error(`${desktop}: no [workspace.package] version`);
+  writes.set(desktop, res.text);
+  for (const member of workspaceMembers(desktopText)) {
+    const path = join(appDir, DESKTOP, member, "Cargo.toml");
+    const memberText = readFileSync(path, "utf8");
+    const name = packageName(memberText);
+    if (name) names.add(name);
+    // A member pinning its own literal version (instead of
+    // `version.workspace = true`) gets stamped too.
+    const own = stampTomlTable(memberText, "package", version);
+    if (own.hit) writes.set(path, own.text);
+  }
+  for (const [path, text] of writes) {
+    writeFileSync(path, text);
+    touched.push(path);
   }
 
-  for (const ws of WORKSPACES) {
-    const lock = join(appDir, ws, "Cargo.lock");
+  for (const rel of [ROOT_LOCK, join(DESKTOP, "Cargo.lock")]) {
+    const lock = join(appDir, rel);
     let stamped = new Set();
     edit(lock, (text) => {
       const res = stampLock(text, names, version);

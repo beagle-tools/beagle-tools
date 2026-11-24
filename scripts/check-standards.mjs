@@ -14,15 +14,9 @@ const fail = (msg) => errors.push(msg);
 
 // The set of apps is closed: adding one means adding it here AND to
 // .github/workflows/ci.yml, so nothing ships without a gate.
-const RUST_WORKSPACES = [
-  "utils",
-  "tandem",
-  "rca",
-  "rca/desktop/src-tauri",
-  "workflows",
-  "workflows/desktop",
-  "cli",
-];
+// "." is the root workspace (every crate but the Tauri shells, docs/LAYOUT.md
+// rule 7); each Tauri shell is its own workspace.
+const RUST_WORKSPACES = [".", "rca/desktop/src-tauri", "tandem/src-tauri", "workflows/desktop"];
 const FRONTENDS = ["tandem", "rca/desktop", "rca/web", "workflows/desktop"];
 const REQUIRED_SCRIPTS = ["format:check", "lint", "typecheck", "test", "build", "e2e"];
 const SKIP_DIRS = new Set([".git", ".claude", "target", "node_modules", "dist", ".astro", "gen"]);

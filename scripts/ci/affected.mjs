@@ -113,7 +113,8 @@ function buildGraph(ws) {
     const extra = externalIncludes(absDir);
     // An external dep inherits from its own workspace's manifest.
     if (resolve(wsRoot) !== resolve(wsAbs) && resolve(wsRoot) !== absDir) {
-      extra.push(`${rel(wsRoot)}/Cargo.toml`);
+      // rel() of the repo-root workspace is "", whose manifest is plain Cargo.toml.
+      extra.push(rel(wsRoot) ? `${rel(wsRoot)}/Cargo.toml` : "Cargo.toml");
     }
     const deps = [];
     for (const dep of pkg.dependencies.filter((d) => d.path)) {

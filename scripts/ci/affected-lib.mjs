@@ -31,10 +31,12 @@ export function isUnder(file, path) {
  * Returns why the whole workspace must be tested, or null when per-package
  * selection is safe.
  * @param {string[]} changed repo-relative changed files
- * @param {string} ws repo-relative workspace dir (where Cargo.lock lives)
+ * @param {string} ws repo-relative workspace dir (where Cargo.lock lives);
+ *   `.` (or empty) is the repo-root workspace
  */
 export function fullWorkspaceReason(changed, ws) {
-  const local = [`${ws}/Cargo.toml`, `${ws}/Cargo.lock`, `${ws}/.cargo`];
+  const prefix = ws === "." || ws === "" ? "" : `${ws}/`;
+  const local = [`${prefix}Cargo.toml`, `${prefix}Cargo.lock`, `${prefix}.cargo`];
   for (const file of changed) {
     const hit = GLOBAL_TRIGGERS.find((t) => isUnder(file, t));
     if (hit) return `${file} changed (${hit} affects every workspace)`;

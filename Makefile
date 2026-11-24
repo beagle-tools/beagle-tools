@@ -11,16 +11,16 @@ NVM_DIR := $(HOME)/.nvm
 NODE_BIN_DIR := $(shell ls -d $(NVM_DIR)/versions/node/*/bin 2>/dev/null | sort -V | tail -1)
 export PATH := $(HOME)/.cargo/bin:$(NODE_BIN_DIR):$(PATH)
 
-.PHONY: help check standards check-utils check-tandem check-rca check-workflows check-cli
+.PHONY: help check standards check-rust check-utils check-tandem check-rca check-workflows check-cli
 
 help:
 	@echo "make check            - every gate CI runs (standards + all apps)"
 	@echo "make standards        - 400-line rule, affiliation guard, shared-config drift"
-	@echo "make check-utils      - shared Rust crate"
-	@echo "make check-tandem     - tandem (rust + frontend)"
-	@echo "make check-rca        - rca (cli/crates, desktop rust + frontend, web)"
-	@echo "make check-workflows  - workflows (crates, desktop rust + frontend)"
-	@echo "make check-cli        - the unified `beagle` command (cli/)"
+	@echo "make check-rust       - the root cargo workspace: every crate but the Tauri shells"
+	@echo "make check-tandem     - root workspace + tandem's desktop shell + frontend"
+	@echo "make check-rca        - root workspace + rca's desktop shell + frontends (desktop, web)"
+	@echo "make check-workflows  - root workspace + Agentdesk's shell + frontend"
+	@echo "make check-utils / check-cli - same as check-rust (their crates live in it)"
 	@echo ""
 	@echo "make test-affected [BASE=origin/main] - cargo tests for packages changed since BASE (+ dependents)"
 	@echo "make test-scripts     - unit tests for the CI and release scripts"
@@ -31,7 +31,7 @@ help:
 	@echo "make dev APP=<target> [BROWSER=1] [ARGS=...]  - start an app (or make dev-<target>)"
 	@echo "                        targets: ./scripts/dev/run.sh --list"
 
-check: standards check-utils check-tandem check-rca check-workflows check-cli
+check: standards check-rust check-tandem check-rca check-workflows
 
 standards:
 	./scripts/check-file-length.sh;
@@ -40,24 +40,24 @@ standards:
 	node scripts/check-standards.mjs;
 	node --test scripts/ci/*.test.mjs scripts/release/*.test.mjs cli/scripts/*.test.mjs;
 
-check-utils:
-	./scripts/ci/rust.sh utils;
+# One cargo workspace at the root holds every crate except the Tauri shells
+# (docs/LAYOUT.md), so every app's gate starts with it. Make runs a
+# prerequisite once per invocation, so `make check` gates it once.
+check-rust:
+	./scripts/ci/rust.sh .;
 
-check-tandem:
-	./scripts/ci/rust.sh tandem;
+check-utils check-cli: check-rust
+
+check-tandem: check-rust
+	./scripts/ci/rust.sh tandem/src-tauri;
 	./scripts/ci/frontend.sh tandem;
 
-check-rca:
-	./scripts/ci/rust.sh rca;
+check-rca: check-rust
 	./scripts/ci/rust.sh rca/desktop/src-tauri;
 	./scripts/ci/frontend.sh rca/desktop;
 	./scripts/ci/frontend.sh rca/web;
 
-check-cli:
-	./scripts/ci/rust.sh cli;
-
-check-workflows:
-	./scripts/ci/rust.sh workflows;
+check-workflows: check-rust
 	./scripts/ci/rust.sh workflows/desktop;
 	./scripts/ci/frontend.sh workflows/desktop;
 
@@ -65,7 +65,7 @@ check-workflows:
 # Same selection CI applies to pull requests (docs/TESTING.md). Includes
 # uncommitted and untracked files, so it works before you commit.
 BASE ?= origin/main
-RUST_WORKSPACES := utils tandem rca rca/desktop/src-tauri workflows workflows/desktop cli
+RUST_WORKSPACES := . tandem/src-tauri rca/desktop/src-tauri workflows/desktop
 
 .PHONY: test-affected test-scripts e2e e2e-tandem e2e-rca-desktop e2e-rca-web e2e-workflows-desktop
 

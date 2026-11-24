@@ -3,7 +3,7 @@
 //   node --test scripts/set-version.test.mjs
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, test } from "node:test";
@@ -11,24 +11,43 @@ import { fileURLToPath } from "node:url";
 
 const appDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(appDir, "scripts", "set-version.mjs");
-const MEMBERS = ["src-tauri", "crates/tandem-core", "crates/tandem-github"]
-  .concat(["crates/tandem-cache", "crates/tandem-agents", "crates/tandem-cli", "crates/tandem-tui"])
-  .map((dir) => join(dir, "Cargo.toml"));
-const FILES = ["package.json", "src-tauri/tauri.conf.json", "Cargo.toml", "Cargo.lock", ...MEMBERS];
-const CRATES = ["tandem", "tandem-core", "tandem-github", "tandem-cache", "tandem-agents"].concat(
+const CRATE_DIRS = [
+  "tandem-core",
+  "tandem-github",
+  "tandem-cache",
+  "tandem-agents",
   "tandem-cli",
   "tandem-tui",
-);
+];
+const MANIFESTS = ["src-tauri/Cargo.toml", ...CRATE_DIRS.map((dir) => `crates/${dir}/Cargo.toml`)];
+const LOCKS = ["../Cargo.lock", "src-tauri/Cargo.lock"];
+const FILES = ["package.json", "src-tauri/tauri.conf.json", ...MANIFESTS, ...LOCKS];
+// The packages each lockfile records and the script must stamp.
+const CRATES = {
+  "../Cargo.lock": CRATE_DIRS,
+  "src-tauri/Cargo.lock": [
+    "tandem",
+    "tandem-core",
+    "tandem-github",
+    "tandem-cache",
+    "tandem-agents",
+  ],
+};
 
 const temps = [];
 after(() => {
   for (const dir of temps) rmSync(dir, { recursive: true, force: true });
 });
 
+/** A temp repo root holding tandem's version files under `app/`. */
 function copyApp() {
-  const dir = mkdtempSync(join(tmpdir(), "tandem-set-version-"));
-  temps.push(dir);
-  for (const file of FILES) cpSync(join(appDir, file), join(dir, file));
+  const root = mkdtempSync(join(tmpdir(), "tandem-set-version-"));
+  temps.push(root);
+  const dir = join(root, "app");
+  for (const file of FILES) {
+    mkdirSync(dirname(join(dir, file)), { recursive: true });
+    cpSync(join(appDir, file), join(dir, file));
+  }
   return dir;
 }
 
@@ -52,25 +71,35 @@ test("stamps every version location", () => {
 
   assert.equal(JSON.parse(read(dir, "package.json")).version, "4.5.6");
   assert.equal(JSON.parse(read(dir, "src-tauri/tauri.conf.json")).version, "4.5.6");
-  assert.match(read(dir, "Cargo.toml"), /\[workspace\.package\]\nversion = "4\.5\.6"\n/);
+  assert.match(read(dir, "src-tauri/Cargo.toml"), /\[workspace\.package\]\nversion = "4\.5\.6"\n/);
+  for (const file of MANIFESTS.slice(1)) {
+    assert.match(
+      read(dir, file),
+      /^\[package\]\nname = "[^"]+"\n(?:description = .*\n)?version = "4\.5\.6"\n/m,
+      file,
+    );
+  }
 
-  const before = lockVersions(read(appDir, "Cargo.lock"));
-  const stamped = lockVersions(read(dir, "Cargo.lock"));
-  for (const name of CRATES) assert.equal(stamped.get(name), "4.5.6", name);
-  for (const [name, version] of before) {
-    if (!CRATES.includes(name)) assert.equal(stamped.get(name), version, `${name} untouched`);
+  for (const [file, crates] of Object.entries(CRATES)) {
+    const before = lockVersions(read(appDir, file));
+    const stamped = lockVersions(read(dir, file));
+    for (const name of crates) assert.equal(stamped.get(name), "4.5.6", `${file} ${name}`);
+    for (const [name, version] of before) {
+      if (!crates.includes(name))
+        assert.equal(stamped.get(name), version, `${file} ${name} untouched`);
+    }
   }
 });
 
 test("only the version lines change", () => {
   const dir = copyApp();
   assert.equal(run(dir, "7.8.9").status, 0);
-  for (const file of ["package.json", "src-tauri/tauri.conf.json", "Cargo.toml", "Cargo.lock"]) {
+  for (const file of FILES) {
     const a = read(appDir, file).split("\n");
     const b = read(dir, file).split("\n");
     assert.equal(a.length, b.length, file);
     const changed = a.filter((line, i) => line !== b[i]);
-    const expected = file === "Cargo.lock" ? CRATES.length : 1;
+    const expected = CRATES[file]?.length ?? 1;
     assert.equal(changed.length, expected, `${file}: ${changed.join(" | ")}`);
   }
 });

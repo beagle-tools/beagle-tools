@@ -14,10 +14,14 @@ import { memberManifests, packageName, setVersion, stampLock, stampTomlTable } f
 
 const appDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 
+/** A temp repo root: cli's crate manifests under `cli/`, the root Cargo.lock beside it. */
 function tempCopy() {
-  const dir = mkdtempSync(join(tmpdir(), "cli-set-version-"));
-  const files = ["Cargo.toml", "Cargo.lock", ...memberManifests(appDir).map((p) => relative(appDir, p))];
-  for (const rel of files) cpSync(join(appDir, rel), join(dir, rel), { recursive: true });
+  const root = mkdtempSync(join(tmpdir(), "cli-set-version-"));
+  const dir = join(root, "cli");
+  for (const rel of memberManifests(appDir).map((p) => relative(appDir, p))) {
+    cpSync(join(appDir, rel), join(dir, rel), { recursive: true });
+  }
+  cpSync(join(appDir, "..", "Cargo.lock"), join(root, "Cargo.lock"));
   return dir;
 }
 
@@ -34,13 +38,15 @@ test("stamps every version location of the real tree", () => {
   setVersion(dir, "7.8.9");
   const read = (rel) => readFileSync(join(dir, rel), "utf8");
 
-  assert.match(read("Cargo.toml"), /\[workspace\.package\]\nversion = "7\.8\.9"/);
-  for (const name of ["beagle-cli", "beagle-recap", "beagle-scout", "beagle-standup"]) {
-    assert.equal(lockVersion(read("Cargo.lock"), name), "7.8.9", name);
+  for (const path of memberManifests(dir)) {
+    assert.match(readFileSync(path, "utf8"), /^\[package\]\nname = "[^"]+"\n(?:description = .*\n)?version = "7\.8\.9"\n/m, path);
+  }
+  for (const name of ["beagle-cli", "beagle-recap", "beagle-scout", "beagle-standup", "beagle-serve"]) {
+    assert.equal(lockVersion(read("../Cargo.lock"), name), "7.8.9", name);
   }
   // Path dependencies from other apps keep their own versions.
-  for (const name of ["beagle", "tandem-cli", "beagle-utils", "beagle-tui"]) {
-    assert.notEqual(lockVersion(read("Cargo.lock"), name), "7.8.9", name);
+  for (const name of ["beagle", "tandem-cli", "agentctl", "beagle-utils", "beagle-tui"]) {
+    assert.notEqual(lockVersion(read("../Cargo.lock"), name), "7.8.9", name);
   }
 });
 
@@ -51,13 +57,13 @@ test("rejects anything that is not X.Y.Z", () => {
   }
 });
 
-test("fails loudly, and writes nothing, when the workspace lost its version", () => {
+test("fails loudly, and writes nothing, when a crate lost its version", () => {
   const dir = tempCopy();
-  const path = join(dir, "Cargo.toml");
-  const lockBefore = readFileSync(join(dir, "Cargo.lock"), "utf8");
+  const path = join(dir, "crates/beagle/Cargo.toml");
+  const lockBefore = readFileSync(join(dir, "../Cargo.lock"), "utf8");
   writeFileSync(path, readFileSync(path, "utf8").replace(/^version = .*$/m, ""));
-  assert.throws(() => setVersion(dir, "1.0.0"), /no \[workspace\.package\] version/);
-  assert.equal(readFileSync(join(dir, "Cargo.lock"), "utf8"), lockBefore);
+  assert.throws(() => setVersion(dir, "1.0.0"), /no \[package\] version/);
+  assert.equal(readFileSync(join(dir, "../Cargo.lock"), "utf8"), lockBefore);
 });
 
 test("stampTomlTable only touches the named table", () => {

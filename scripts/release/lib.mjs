@@ -6,15 +6,17 @@
 export const APPS = {
   tandem: { versionFile: "tandem/src-tauri/tauri.conf.json", kind: "json" },
   rca: { versionFile: "rca/cli/Cargo.toml", kind: "cargo-package" },
-  workflows: { versionFile: "workflows/Cargo.toml", kind: "cargo-workspace" },
+  workflows: { versionFile: "workflows/crates/agentctl/Cargo.toml", kind: "cargo-package" },
   // The unified `beagle` command (cli/), which links rca (and its daemon),
   // tandem-cli and the agentd stack in.
-  cli: { versionFile: "cli/Cargo.toml", kind: "cargo-workspace" },
+  cli: { versionFile: "cli/crates/beagle/Cargo.toml", kind: "cargo-package" },
 };
 
 /** Paths compiled into every app: a change here releases all of them. */
 const SHARED_PREFIXES = ["utils/"];
-const SHARED_FILES = new Set(["rust-toolchain.toml"]);
+// The root Cargo workspace builds every app (or the crates its desktop shell
+// path-depends on), so its manifest and lockfile release them all.
+const SHARED_FILES = new Set(["rust-toolchain.toml", "Cargo.toml", "Cargo.lock"]);
 /**
  * Files an app embeds with include_str!, so they release it even though
  * they are markdown. Checked before the `.md` exclusion.
@@ -69,17 +71,9 @@ export const LINKED_PREFIXES = {
     "workflows/assets/notify/",
   ],
 };
-/**
- * Files outside `<app>/` that a linked crate inherits workspace settings from
- * or embeds.
- */
+/** Files outside `<app>/` that a linked crate embeds. */
 const LINKED_FILES = {
-  cli: new Set([
-    "tandem/Cargo.toml",
-    "rca/Cargo.toml",
-    "workflows/Cargo.toml",
-    "workflows/scripts/build-notifier.sh",
-  ]),
+  cli: new Set(["workflows/scripts/build-notifier.sh"]),
 };
 
 const ZERO_SHA = /^0+$/;

@@ -44,8 +44,10 @@ Read the doc for the stage you are in:
    green.
 4. **pnpm only** (pinned via `packageManager`, run through corepack). Never
    create a `package-lock.json`.
-5. **Each cargo workspace has its own `Cargo.lock`.** CI builds with
-   `--locked`, so commit lockfile changes along with the dependency change.
+5. **One cargo workspace at the root, one `Cargo.lock`.** Every crate is a
+   member of the root `Cargo.toml` except the Tauri desktop shells, which
+   each keep their own workspace and lockfile. CI builds with `--locked`, so
+   commit lockfile changes along with the dependency change.
 6. **No employer or client affiliation, anywhere.** This repo is public and
    personal: no company names, private org/repo names, internal hosts,
    ticket keys or work emails, in code, tests, docs, fixtures or commit
@@ -65,7 +67,8 @@ Run these from the repo root. Each runs exactly what CI runs:
 
 ```sh
 make standards          # 400-line rule, affiliation guard, shared-config drift, CI-script tests
-make check-tandem       # or check-rca / check-workflows / check-utils
+make check-rust         # the root cargo workspace (every crate but the Tauri shells)
+make check-tandem       # or check-rca / check-workflows: root workspace + that app's desktop shell + frontends
 make test-affected      # only the cargo tests your change affects (vs origin/main)
 make e2e-tandem         # Playwright for one frontend (see docs/TESTING.md)
 make check              # everything
@@ -81,13 +84,11 @@ The scripts behind these:
 ## Cargo workspaces and frontends (all gated in CI)
 
 - **Rust:**
-  - `utils`
-  - `tandem`
-  - `rca` (cli and crates)
+  - `.` (the root `Cargo.toml`): `utils`, `cli/crates/*`, `rca/cli`,
+    `rca/crates/*`, `tandem/crates/*`, `workflows/crates/*`
+  - `tandem/src-tauri`
   - `rca/desktop/src-tauri`
-  - `workflows` (crates)
   - `workflows/desktop`
-  - `cli`
 - **Frontends:**
   - `tandem`
   - `rca/desktop`

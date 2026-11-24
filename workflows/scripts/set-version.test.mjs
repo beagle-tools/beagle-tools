@@ -15,8 +15,7 @@ import { setVersion, stampJson, stampLock, stampTomlTable, workspaceMembers } fr
 const appDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const FILES = [
-  "Cargo.toml",
-  "Cargo.lock",
+  "../Cargo.lock",
   "crates/agent-core/Cargo.toml",
   "crates/agentd/Cargo.toml",
   "crates/agentctl/Cargo.toml",
@@ -28,8 +27,9 @@ const FILES = [
   "desktop/src-tauri/tauri.conf.json",
 ];
 
+/** A temp repo root holding workflows' version files under `app/`. */
 function tempCopy() {
-  const dir = mkdtempSync(join(tmpdir(), "wf-set-version-"));
+  const dir = join(mkdtempSync(join(tmpdir(), "wf-set-version-")), "app");
   for (const rel of FILES) cpSync(join(appDir, rel), join(dir, rel), { recursive: true });
   return dir;
 }
@@ -47,13 +47,19 @@ test("stamps every version location of the real tree", () => {
   setVersion(dir, "7.8.9");
   const read = (rel) => readFileSync(join(dir, rel), "utf8");
 
-  for (const rel of ["Cargo.toml", "desktop/Cargo.toml"]) {
-    assert.match(read(rel), /\[workspace\.package\]\nversion = "7\.8\.9"/, rel);
+  assert.match(read("desktop/Cargo.toml"), /\[workspace\.package\]\nversion = "7\.8\.9"/);
+  for (const crate of ["agent-core", "agentd", "agentctl", "agenttop"]) {
+    const rel = `crates/${crate}/Cargo.toml`;
+    assert.match(read(rel), /^\[package\]\nname = "[^"]+"\n(?:description = .*\n)?version = "7\.8\.9"\n/m, rel);
   }
   assert.equal(JSON.parse(read("desktop/package.json")).version, "7.8.9");
   assert.equal(JSON.parse(read("desktop/src-tauri/tauri.conf.json")).version, "7.8.9");
   for (const name of ["agent-core", "agentd", "agentctl", "agenttop"]) {
-    assert.equal(lockVersion(read("Cargo.lock"), name), "7.8.9", name);
+    assert.equal(lockVersion(read("../Cargo.lock"), name), "7.8.9", name);
+  }
+  // Other apps' crates in the shared root lockfile keep their versions.
+  for (const name of ["beagle-cli", "beagle", "tandem-cli"]) {
+    assert.notEqual(lockVersion(read("../Cargo.lock"), name), "7.8.9", name);
   }
   for (const name of ["agent-core", "agentdesk"]) {
     assert.equal(lockVersion(read("desktop/Cargo.lock"), name), "7.8.9", name);

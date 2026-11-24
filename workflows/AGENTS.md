@@ -195,9 +195,11 @@ Merging to `main` with release-relevant changes under `workflows/` (not
 `release:minor` / `release:major` PR labels bump more) — see
 [`../docs/RELEASING.md`](../docs/RELEASING.md). One version covers all of
 workflows: release CI runs `node scripts/set-version.mjs X.Y.Z` from
-`workflows/`, which stamps both cargo workspaces' `[workspace.package]`
-version, their `Cargo.lock` entries, and Agentdesk's `package.json` and
-`tauri.conf.json` (never committed). The release ships:
+`workflows/`, which stamps each `crates/*/Cargo.toml` `[package] version`
+(members of the repo-root cargo workspace), `desktop/Cargo.toml`'s
+`[workspace.package] version`, their entries in the root `Cargo.lock` and
+`desktop/Cargo.lock`, and Agentdesk's `package.json` and `tauri.conf.json`
+(never committed). The release ships:
 
 - `beagle-workflows-<target>.tar.gz` (agentd, agentctl, agenttop) for
   aarch64/x86_64-apple-darwin → the `beagle-workflows` brew formula
@@ -210,6 +212,6 @@ Agentdesk's in-app version list (`src-tauri/src/commands/updates.rs`) shows
 only `beagle-workflows-v*` releases that carry a `latest.json`.
 
 The unified `beagle` command compiles `crates/`, `deploy/`,
-`assets/notify/`, `scripts/build-notifier.sh` and `Cargo.toml` in, so a
+`assets/notify/` and `scripts/build-notifier.sh` in, so a
 change to any of them also releases `beagle-cli-v*`
 ([`../docs/RELEASING.md`](../docs/RELEASING.md)).

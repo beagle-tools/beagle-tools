@@ -18,7 +18,7 @@ Most rules are enforced by tooling. The configuration is shared, and
 
 | What | Where it lives (shared) | Enforced by |
 |---|---|---|
-| Rust lint levels | `standards/cargo-lints.toml`, copied verbatim into every workspace `Cargo.toml` | clippy `-D warnings` and the drift check |
+| Rust lint levels | `standards/cargo-lints.toml`, copied verbatim into every workspace `Cargo.toml` (the root one and each Tauri shell's) | clippy `-D warnings` and the drift check |
 | Rust formatting | `rustfmt.toml` (root only) | `cargo fmt --check` |
 | Rust toolchain | `rust-toolchain.toml` (root only) | CI installs exactly it |
 | TS compiler flags | `standards/tsconfig.base.json` (apps `extends` it and may not redefine its keys) | `tsc` and the drift check |
@@ -180,7 +180,7 @@ Full strategy, per-crate-type guidance and the checklist:
 A new runtime dependency needs a reason in the PR description: what it does,
 why ~50 lines of our own code can't do it, its transitive weight, and its
 effect on build time. Dev-tooling dependencies are freer. Prefer what is
-already in the app's lockfile.
+already in the lockfile (the root `Cargo.lock`, or a Tauri shell's own).
 
 ### Terminal UIs
 Every beagle TUI with a side pane (a list or sidebar beside a main pane):
