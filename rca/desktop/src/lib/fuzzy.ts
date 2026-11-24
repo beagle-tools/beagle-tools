@@ -1,5 +1,5 @@
 // Case-insensitive subsequence fuzzy scoring — a faithful port of the
-// CLI's fuzzy::score (cli/src/fuzzy.rs), so the desktop filter ranks
+// CLI's fuzzy::score (tui/src/fuzzy.rs), so the desktop filter ranks
 // exactly like the TUI's. Consecutive runs and word-boundary hits score
 // higher; `payapi` ranks `payments-api` above scattered letters.
 

@@ -1,6 +1,6 @@
 // Stamp one release version into every place the rca app records one — the
 // CLI, its crates, the desktop app and the web app all ship as one version:
-//   cli/Cargo.toml, crates/*/Cargo.toml, desktop/src-tauri/Cargo.toml,
+//   tui/Cargo.toml, daemon/Cargo.toml, lib/*/Cargo.toml, desktop/src-tauri/Cargo.toml,
 //   desktop/src-tauri/tauri.conf.json, desktop/package.json, web/package.json,
 //   and those crates' entries in the repo-root ../Cargo.lock +
 //   desktop/src-tauri/Cargo.lock
@@ -18,11 +18,11 @@ if (!version || !/^\d+\.\d+\.\d+$/.test(version)) {
 }
 
 const JSON_FILES = ["desktop/package.json", "desktop/src-tauri/tauri.conf.json", "web/package.json"];
-const crateDirs = readdirSync("crates", { withFileTypes: true })
-  .filter((entry) => entry.isDirectory() && existsSync(join("crates", entry.name, "Cargo.toml")))
-  .map((entry) => join("crates", entry.name))
+const libDirs = readdirSync("lib", { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && existsSync(join("lib", entry.name, "Cargo.toml")))
+  .map((entry) => join("lib", entry.name))
   .sort();
-const MANIFESTS = ["cli", ...crateDirs, "desktop/src-tauri"].map((dir) => join(dir, "Cargo.toml"));
+const MANIFESTS = ["tui", "daemon", ...libDirs, "desktop/src-tauri"].map((dir) => join(dir, "Cargo.toml"));
 const LOCKS = ["../Cargo.lock", "desktop/src-tauri/Cargo.lock"];
 
 /** Replace exactly one match of `pattern` in `text`, or fail loudly. */

@@ -1,4 +1,4 @@
-// PR display helpers, pure and testable — the TS side of cli/src/prs.rs.
+// PR display helpers, pure and testable — the TS side of tui/src/prs.rs.
 
 export type PrStateLabel = "open" | "draft" | "merged" | "closed";
 

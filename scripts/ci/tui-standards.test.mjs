@@ -83,7 +83,7 @@ test("a declared GitHub write may use its capital", () => {
 
 test("declaring a non-write capital fails", () => {
   const json = JSON.parse(readReal("standards/tui-standards.json"));
-  json.tui_github_writes["rca/cli"] = ["T"];
+  json.tui_github_writes["rca/tui"] = ["T"];
   const errors = checkTuiStandards(
     readWith({ "standards/tui-standards.json": JSON.stringify(json) }),
     realFiles,

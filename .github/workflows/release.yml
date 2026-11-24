@@ -174,7 +174,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      # Content (rca/rcas/) is baked in at build time.
+      # Content (rca/examples/rcas/) is baked in at build time.
       - name: build + push
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
@@ -244,7 +244,7 @@ jobs:
       version: ${{ needs.plan.outputs.workflows_version }}
 
   # ---- cli (the unified `beagle` command) -----------------------------------
-  # Links rca/cli (and rca's daemon), tandem-cli and the workflows crates
+  # Links rca/tui (and rca's daemon), tandem-cli and the workflows crates
   # in, so it also releases when those change (scripts/release/lib.mjs).
   # Everything builds in the root workspace, so beagle-agentd lands in the
   # same target/ as beagle.

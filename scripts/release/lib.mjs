@@ -9,7 +9,7 @@
  */
 export const APPS = {
   tandem: { versionFile: "tandem/src-tauri/tauri.conf.json", kind: "json" },
-  rca: { versionFile: "rca/cli/Cargo.toml", kind: "cargo-package" },
+  rca: { versionFile: "rca/tui/Cargo.toml", kind: "cargo-package" },
   workflows: { versionFile: "workflows/crates/agentctl/Cargo.toml", kind: "cargo-package" },
   // The unified `beagle` command (beagle/), which links rca (and its daemon),
   // tandem-cli and the agentd stack in.
@@ -64,10 +64,10 @@ export const LINKED_PREFIXES = {
     "scout/",
     "recap/",
     "standup/",
-    "rca/cli/",
+    "rca/tui/",
     // `beagle rca agentd`: the daemon and the engine it hosts.
-    "rca/crates/beagle-agentd/",
-    "rca/crates/beagle-agent/",
+    "rca/daemon/",
+    "rca/lib/agent/",
     "tandem/crates/tandem-cli/",
     "tandem/crates/tandem-core/",
     "tandem/crates/tandem-tui/",

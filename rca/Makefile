@@ -17,7 +17,7 @@ CRATES := -p beagle -p beagle-agent -p beagle-agentd
 
 help:
 	@echo "make check    - the CI gate for rca (delegates to the root check-rca)"
-	@echo "make run      - open the TUI against ./rcas"
+	@echo "make run      - open the TUI against the example store (examples/)"
 	@echo "make agentd   - build beagle-agentd (put ../target/debug on PATH or set BEAGLE_AGENTD)"
 	@echo "make install  - pnpm install for desktop/ and web/"
 	@echo "make fmt      - cargo fmt for both rust workspaces (writes)"
@@ -30,7 +30,7 @@ check:
 	$(MAKE) -C .. check-rca;
 
 run:
-	cargo run -p beagle --;
+	BEAGLE_RCA_ROOT=$(CURDIR)/examples cargo run -p beagle --;
 
 agentd:
 	cargo build -p beagle-agentd;
@@ -52,7 +52,7 @@ test:
 	cd desktop/src-tauri && cargo test --workspace --all-features;
 
 desktop:
-	cd desktop && $(PNPM) tauri dev;
+	cd desktop && BEAGLE_RCA_ROOT=$(CURDIR)/examples $(PNPM) tauri dev;
 
 web:
 	cd web && $(PNPM) dev;

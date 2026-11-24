@@ -40,8 +40,8 @@ test("shared inputs release every app", () => {
 });
 
 test("crates the unified cli links in release it too", () => {
-  assert.deepEqual(changedApps(["rca/cli/src/main.rs"]), ["rca", "cli"]);
-  assert.deepEqual(changedApps(["rca/cli/Cargo.toml"]), ["rca", "cli"]);
+  assert.deepEqual(changedApps(["rca/tui/src/main.rs"]), ["rca", "cli"]);
+  assert.deepEqual(changedApps(["rca/tui/Cargo.toml"]), ["rca", "cli"]);
   assert.deepEqual(changedApps(["tandem/crates/tandem-cli/src/lib.rs"]), ["tandem", "cli"]);
   assert.deepEqual(changedApps(["tandem/crates/tandem-core/src/diff.rs"]), ["tandem", "cli"]);
   assert.deepEqual(changedApps(["tandem/crates/tandem-cli/Cargo.toml"]), ["tandem", "cli"]);
@@ -50,9 +50,9 @@ test("crates the unified cli links in release it too", () => {
   assert.deepEqual(changedApps(["tandem/crates/tandem-cache/src/store.rs"]), ["tandem", "cli"]);
   assert.deepEqual(changedApps(["tandem/crates/tandem-github/src/client.rs"]), ["tandem", "cli"]);
   // `beagle rca agentd` and `beagle agent`.
-  assert.deepEqual(changedApps(["rca/crates/beagle-agentd/src/lib.rs"]), ["rca", "cli"]);
-  assert.deepEqual(changedApps(["rca/crates/beagle-agent/src/lib.rs"]), ["rca", "cli"]);
-  assert.deepEqual(changedApps(["rca/crates/beagle-agentd/Cargo.toml"]), ["rca", "cli"]);
+  assert.deepEqual(changedApps(["rca/daemon/src/lib.rs"]), ["rca", "cli"]);
+  assert.deepEqual(changedApps(["rca/lib/agent/src/lib.rs"]), ["rca", "cli"]);
+  assert.deepEqual(changedApps(["rca/daemon/Cargo.toml"]), ["rca", "cli"]);
   assert.deepEqual(changedApps(["workflows/crates/agentctl/src/lib.rs"]), ["workflows", "cli"]);
   assert.deepEqual(changedApps(["workflows/crates/agent-core/src/state.rs"]), ["workflows", "cli"]);
   assert.deepEqual(changedApps(["workflows/deploy/com.agentd.daemon.plist"]), ["workflows", "cli"]);
@@ -66,7 +66,7 @@ test("crates the unified cli links in release it too", () => {
   assert.deepEqual(changedApps(["workflows/scripts/agentman"]), ["workflows"]);
   assert.deepEqual(changedApps(["tandem/src-tauri/Cargo.lock"]), ["tandem"]);
   // Their docs don't release anything.
-  assert.deepEqual(changedApps(["rca/cli/README.md", "tandem/crates/tandem-cli/NOTES.md"]), []);
+  assert.deepEqual(changedApps(["rca/tui/README.md", "tandem/crates/tandem-cli/NOTES.md"]), []);
 });
 
 test("docs-only changes never release", () => {

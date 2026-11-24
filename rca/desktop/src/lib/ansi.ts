@@ -2,7 +2,7 @@
 // zero-width SGR escapes (red = broken, green = healthy, yellow =
 // degraded); converting them to styled spans keeps the color while
 // preserving the exact character alignment — escapes are zero-width, and
-// so are the spans we emit. Mirrors cli/src/ansi.rs and web/src/lib/ansi.ts;
+// so are the spans we emit. Mirrors tui/src/ansi.rs and web/src/lib/ansi.ts;
 // malformed or unknown escapes degrade to plain text rather than throwing.
 
 // eslint-disable-next-line no-control-regex -- matching ANSI escapes is the point

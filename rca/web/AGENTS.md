@@ -7,7 +7,7 @@ This file only covers what is specific to the public postmortem site.
 ## What it is
 
 A static Astro site built from the `rcas/` workspaces at build time
-(`src/lib/rcas.ts`; `BEAGLE_RCAS_DIR` overrides the default `../rcas`).
+(`src/lib/rcas.ts`; `BEAGLE_RCAS_DIR` overrides the default `../examples/rcas`).
 There is no server and no runtime data fetching.
 
 ## Publish rules (the invariant that matters)

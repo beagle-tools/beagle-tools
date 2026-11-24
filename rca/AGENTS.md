@@ -16,16 +16,16 @@ writing one up, use the `/beagle` skill
 ([`../skills/beagle/SKILL.md`](../skills/beagle/SKILL.md));
 to answer questions about an existing RCA, `/beagle-review`
 ([`../skills/beagle-review/SKILL.md`](../skills/beagle-review/SKILL.md)).
-Both skills are embedded into the `beagle` binary (`cli/src/skill.rs`,
+Both skills are embedded into the `beagle` binary (`tui/src/skill.rs`,
 `include_str!`), so editing them changes what `beagle rca skill install` ships
 (and releases the unified `beagle` command, `beagle-cli`, too).
 
 ## Where rca runs
 
-rca's CLI is a **library entry point**: `cli/src/run.rs` exposes `ABOUT` +
+rca's CLI is a **library entry point**: `tui/src/run.rs` exposes `ABOUT` +
 `run(args) -> ExitCode`, the tool contract of the unified `beagle` command
 ([`../beagle/AGENTS.md`](../beagle/AGENTS.md)), which links this crate as
-`beagle rca …`. That is how users run it. `cli/src/main.rs` is a thin
+`beagle rca …`. That is how users run it. `tui/src/main.rs` is a thin
 wrapper (`run_standalone`) for the standalone rca `beagle` binary, still
 released as `beagle-rca` (a deprecated formula) until it is retired.
 
@@ -34,25 +34,25 @@ released as `beagle-rca` (a deprecated formula) until it is retired.
 - Self-update belongs to the unified command (`beagle update`). Under
   `beagle rca`, `update` and `version list` are usage errors (exit 2) that
   name it: an rca-only download would replace every other tool. Only the standalone
-  binary updates itself (`cli/src/update/`, over `beagle_utils::update`).
+  binary updates itself (`tui/src/update/`, over `beagle_utils::update`).
 
 ## Components
 
 | Path | What it is | Notes |
 |---|---|---|
-| `cli/` | Crate `beagle`: the domain layer (`model`, `store`, `similar`, `config`, …; markdown and ANSI rendering come from `beagle_tui`) **and** the TUI (`ui/`) + CLI (`run.rs`, `cli/`, `commands/`; `main.rs` is the standalone wrapper) | The only implementation of the data format. Everything else depends on it. |
-| `crates/beagle-agent` | Agent-runtime engine: config, SQLite job store, RCA poller, worktree manager, headless `claude` runner, orchestrator, control protocol | Depends on `beagle`. |
-| `crates/beagle-agentd` | The always-on daemon hosting the engine: a library (`run_as`) the unified `beagle` runs as `beagle rca agentd run`, plus the standalone `beagle-agentd` wrapper | See [`docs/agent-runtime.md`](docs/agent-runtime.md). |
-| `desktop/` | Tauri 2 + React viewer. `src-tauri/` is its **own cargo workspace** (own `Cargo.lock`), path-depending on `cli/` | [`desktop/AGENTS.md`](desktop/AGENTS.md) |
+| `tui/` | Crate `beagle`: the domain layer (`model`, `store`, `similar`, `config`, …; markdown and ANSI rendering come from `beagle_tui`) **and** the TUI (`ui/`) + CLI (`run.rs`, `cli/`, `commands/`; `main.rs` is the standalone wrapper) | The only implementation of the data format. Everything else depends on it. |
+| `lib/agent` | Agent-runtime engine (package `beagle-agent`): config, SQLite job store, RCA poller, worktree manager, headless `claude` runner, orchestrator, control protocol | Depends on `beagle`. |
+| `daemon/` | The always-on daemon (package `beagle-agentd`) hosting the engine: a library (`run_as`) the unified `beagle` runs as `beagle rca agentd run`, plus the standalone `beagle-agentd` wrapper | See [`docs/agent-runtime.md`](docs/agent-runtime.md). |
+| `desktop/` | Tauri 2 + React viewer. `src-tauri/` is its **own cargo workspace** (own `Cargo.lock`), path-depending on `tui/` | [`desktop/AGENTS.md`](desktop/AGENTS.md) |
 | `web/` | Astro static site of *published* postmortems | [`web/AGENTS.md`](web/AGENTS.md) |
 | `deploy/` | Helm chart for the web image | `web/DEPLOY.md` |
-| `rcas/` | Sample/real workspaces the apps read by default | Data, not code. |
+| `examples/rcas/` | The example store (`examples/` is its root): what the web build, the serve tests and `make run` read | Data, not code. |
 
-`cli` and `crates/*` are members of the repo-root cargo workspace (one
+`tui`, `daemon` and `lib/agent` are members of the repo-root cargo workspace (one
 `Cargo.lock` at the root); `desktop/src-tauri` is its own. Shared helpers (XDG paths, atomic writes, `PATH` augmentation,
 truncation) come from `beagle-utils` (`../utils`) — don't re-add local copies.
 
-### Module map (`cli/src`)
+### Module map (`tui/src`)
 
 - Dependencies point one way: `ui → store → model`. `model` imports nothing
   but `error`; `store` never imports `ui`.
@@ -72,7 +72,7 @@ truncation) come from `beagle-utils` (`../utils`) — don't re-add local copies.
 
 ## Concurrency model
 
-**Threads + `std::sync::mpsc`, no async**, in `cli` and the daemon crates.
+**Threads + `std::sync::mpsc`, no async**, in `tui` and the daemon crates.
 
 - The TUI event loop (`ui/event_loop.rs`) blocks on `crossterm::event::poll`
   with a timeout. It wakes at least every 250 ms for the spinner and is
@@ -161,7 +161,7 @@ The `beagle` crate's runtime deps are deliberately few:
 - `thiserror`, `time`
 - `beagle-utils`
 
-There is no `clap` (the parser in `cli/src/cli/` is small and audited), no
+There is no `clap` (the parser in `tui/src/cli/` is small and audited), no
 `anyhow` (one closed `Error` enum) and no async runtime. `beagle-agent` adds
 `rusqlite` (bundled) and `nix`. The desktop app must not depend on
 `beagle-agent`: it speaks the daemon's newline-JSON wire format itself, so it
@@ -179,7 +179,7 @@ control socket are in [`docs/agent-runtime.md`](docs/agent-runtime.md).
 
 ```sh
 make check            # from rca/: same as `make check-rca` at the repo root
-make run              # open the TUI against ./rcas
+make run              # open the TUI against the example store (examples/)
 make agentd           # build the daemon
 make fmt|lint|test    # quick loops over both rust workspaces (rca + desktop/src-tauri)
 make install          # pnpm install for desktop/ and web/
@@ -189,7 +189,7 @@ make web              # astro dev server
 
 ## Releases
 
-rca is **one version** across `cli`, `crates/*`, `desktop` (Tauri +
+rca is **one version** across `tui`, `daemon`, `lib/*`, `desktop` (Tauri +
 `package.json`) and `web`. Release automation (repo root, see
 [`../AGENTS.md`](../AGENTS.md)) cuts `beagle-rca-vX.Y.Z` after a merge to
 `main` that touched `rca/` (docs-only changes don't release); the bump is
@@ -208,9 +208,9 @@ What ships, per release (and mirrored with stable names to the rolling
 | `Beagle-macos-{arm64,x64}.dmg`, `Beagle-linux-x86_64.AppImage`, `Beagle-linux-amd64.deb` + `latest.json` | the desktop updater, `brew install --cask beagle-tools/tap/beagle-rca-desktop` |
 | `ghcr.io/beagle-tools/beagle-rca-web:X.Y.Z` / `:latest` | `web/DEPLOY.md` |
 
-The standalone self-updater (`cli/src/update/`) only considers
+The standalone self-updater (`tui/src/update/`) only considers
 `beagle-rca-v*` tags and downloads exactly those asset names, so don't
-rename them. A change under `cli/` also releases the unified `beagle`
+rename them. A change under `tui/` (or `daemon/`, `lib/`) also releases the unified `beagle`
 command (`beagle-cli-v*`, `docs/RELEASING.md`), which compiles this crate in. The desktop
 updater checks `beagle-rca-latest/latest.json`; its rollback list filters by
 the same tag prefix (`desktop/src-tauri/src/updates.rs`).

@@ -16,9 +16,9 @@ name = "beagle-agentd"
 path = "src/main.rs"
 
 [dependencies]
-beagle-utils = { path = "../../../utils" }
-beagle = { path = "../../cli" }
-beagle-agent = { path = "../beagle-agent" }
+beagle-utils = { path = "../../utils" }
+beagle = { path = "../tui" }
+beagle-agent = { path = "../lib/agent" }
 
 [lints]
 workspace = true

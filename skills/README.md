@@ -4,7 +4,7 @@ The single source of truth for every coding-agent skill in this repo. Each
 skill is `skills/<name>/SKILL.md` with `name` / `description` frontmatter.
 `.claude/skills/<name>` are symlinks here, so Claude Code finds them when
 working inside this checkout; rca embeds `beagle` and `beagle-review` from
-these files (`rca/cli/src/skill.rs`), so they ship inside the `beagle` command
+these files (`rca/tui/src/skill.rs`), so they ship inside the `beagle` command
 and `beagle rca skill install` installs them.
 
 | Skill                                                     | What it does                                                                                                                      |
@@ -39,7 +39,7 @@ scripts/skills/install.sh --uninstall        # remove what it installed
 | Claude Code | `~/.claude/skills/<name>/`   | symlink to `skills/<name>/` (`--copy` to snapshot)       |
 | Codex       | `~/.codex/prompts/<name>.md` | copy of `skills/<name>/SKILL.md` without its frontmatter |
 
-- The paths match `rca/cli/src/skill.rs`, so `beagle rca skill install` and
+- The paths match `rca/tui/src/skill.rs`, so `beagle rca skill install` and
   this script agree on where a skill lives.
 - Claude symlinks track your checkout: `git pull` updates the skills. Use
   `--copy` if the checkout may move or be deleted.

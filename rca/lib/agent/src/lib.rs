@@ -7,7 +7,7 @@
 //!
 //! Subsystems land module by module.
 //!
-//! [`beagle-agentd`]: https://github.com/beagle-tools/beagle-tools/tree/main/rca/crates/beagle-agentd
+//! [`beagle-agentd`]: https://github.com/beagle-tools/beagle-tools/tree/main/rca/daemon
 
 pub mod config;
 pub mod control;

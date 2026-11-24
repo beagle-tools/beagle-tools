@@ -7,7 +7,7 @@ change code in an app.
 | Path | What it is | App guide |
 |---|---|---|
 | `tandem/` | Tandem: Tauri desktop app for reviewing GitHub PRs alongside coding agents | `tandem/AGENTS.md` |
-| `rca/` | Beagle: RCA workspaces, with a TUI/CLI (`cli/`), an agent daemon (`crates/`), a desktop app (`desktop/`) and a static site (`web/`) | `rca/AGENTS.md` |
+| `rca/` | Beagle: RCA workspaces, with a TUI/CLI (`tui/`), an agent daemon (`daemon/`) and its engine (`lib/agent/`), a desktop app (`desktop/`), a static site (`web/`) and an example store (`examples/`) | `rca/AGENTS.md` |
 | `workflows/` | agentd: a scheduled agent-job daemon with CLIs/TUI (`crates/`) and the Agentdesk desktop app (`desktop/`) | `workflows/AGENTS.md` |
 | `beagle/` | The single `beagle` command (help, update, doctor, setup), linking every tool into one binary; `beagle/serve/` is `beagle serve` | `beagle/AGENTS.md` |
 | `scout/` | `beagle scout`: the TUI/CLI crate (`tui/`); `ios/` is where the iPhone app goes | `scout/README.md`, `scout/tui/AGENTS.md` |
@@ -87,8 +87,8 @@ The scripts behind these:
 ## Cargo workspaces and frontends (all gated in CI)
 
 - **Rust:**
-  - `.` (the root `Cargo.toml`): `utils`, `beagle`, `beagle/serve`, `scout/tui`, `recap/tui`, `standup/tui`, `rca/cli`,
-    `rca/crates/*`, `tandem/crates/*`, `workflows/crates/*`
+  - `.` (the root `Cargo.toml`): `utils`, `beagle`, `beagle/serve`, `scout/tui`, `recap/tui`, `standup/tui`, `rca/tui`,
+    `rca/daemon", "rca/lib/agent`, `tandem/crates/*`, `workflows/crates/*`
   - `tandem/src-tauri`
   - `rca/desktop/src-tauri`
   - `workflows/desktop`

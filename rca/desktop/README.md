@@ -1,7 +1,7 @@
 # beagle desktop
 
 The desktop viewer for RCA workspaces: a Tauri 2 shell whose Rust backend
-reuses the `cli/` crate's domain layer (store, model, markdown, similar)
+reuses the `tui/` crate's domain layer (store, model, markdown, similar)
 and whose React frontend renders it. The on-disk format under `rcas/` is
 the shared API — this app is a second renderer, not a second
 implementation.
@@ -11,10 +11,11 @@ implementation.
 ```sh
 cd rca/desktop
 corepack pnpm install
-corepack pnpm tauri dev   # opens the app; finds the nearest rcas/ above the cwd
+BEAGLE_RCA_ROOT="$PWD/../examples" corepack pnpm tauri dev   # the example store (absolute path)
+# (or `make desktop` from rca/, which sets that for you)
 ```
 
-Root resolution: config file `root` (`~/.config/beagle/rca.toml`, or the
+Root resolution: `$BEAGLE_RCA_ROOT` → config file `root` (`~/.config/beagle/rca.toml`, or the
 older `~/.config/beagle/config.toml`) →
 nearest ancestor directory containing `rcas/` → the working directory.
 

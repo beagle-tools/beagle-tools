@@ -49,8 +49,9 @@ new workspaces announce themselves in the status bar as agents scaffold them.
 ## Repository layout
 
 ```text
-cli/        the Rust TUI + CLI (everything documented below)
-crates/     the agent runtime: beagle-agent (engine) + beagle-agentd (daemon)
+tui/        the Rust TUI + CLI (everything documented below)
+daemon/     the agent runtime's always-on daemon (beagle-agentd)
+lib/agent/  the agent runtime's engine (beagle-agent)
 desktop/    Tauri 2 + React desktop app (see desktop/README.md)
 web/        Astro static site: public postmortems (see web/README.md)
 deploy/     Helm chart for the web app (see web/DEPLOY.md)
@@ -65,7 +66,7 @@ release always holds the newest installers under stable names.
 
 ## Install & run
 
-rca ships inside the single `beagle` command (`../cli/`), as `beagle rca`:
+rca ships inside the single `beagle` command (`../beagle/`), as `beagle rca`:
 
 ```sh
 brew install beagle-tools/tap/beagle                       # the beagle command (rca, scout, tandem, …)

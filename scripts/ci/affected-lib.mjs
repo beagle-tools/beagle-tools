@@ -7,7 +7,7 @@
 //   { members: Set<dir>, nodes: Map<dir, { name, dir, deps: dir[], extra: path[] }> }
 // Every dir/path is repo-relative with forward slashes and no trailing slash.
 // `nodes` holds the workspace members AND every path dependency they reach
-// outside the workspace (e.g. rca/desktop/src-tauri -> rca/cli -> utils),
+// outside the workspace (e.g. rca/desktop/src-tauri -> rca/tui -> utils),
 // because a change to one of those must re-test the members that use it.
 // `extra` lists inputs outside the package dir that the package compiles in
 // (include_str!/include_bytes! targets, an external dep's workspace manifest).

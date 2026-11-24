@@ -78,14 +78,14 @@ jobs:
               - "standup/**"
               # Linked into the `beagle` binary or embedded in it (the rca
               # skills); scripts/release/linked.test.mjs checks this list.
-              - "rca/cli/**"
+              - "rca/tui/**"
               - "tandem/crates/tandem-cli/**"
               - "tandem/crates/tandem-core/**"
               - "tandem/crates/tandem-tui/**"
               - "tandem/crates/tandem-cache/**"
               - "tandem/crates/tandem-github/**"
-              - "rca/crates/beagle-agentd/**"
-              - "rca/crates/beagle-agent/**"
+              - "rca/daemon/**"
+              - "rca/lib/agent/**"
               - "workflows/crates/agent-core/**"
               - "workflows/crates/agentctl/**"
               - "workflows/crates/agentd/**"

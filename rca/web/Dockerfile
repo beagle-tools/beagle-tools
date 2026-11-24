@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Build the static postmortem site. Build context is the rca/ directory:
-# the build reads web/ and the published RCAs under rcas/. Only incidents
+# the build reads web/ and the published RCAs under examples/rcas/. Only incidents
 # flagged `published = true` — and only their client-safe sections —
 # reach the output, so the image is safe to ship publicly.
 #
@@ -21,7 +21,7 @@ COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./web/
 RUN cd web && corepack pnpm install --frozen-lockfile
 COPY --from=standards tsconfig.base.json /standards/tsconfig.base.json
 COPY web/ ./web/
-COPY rcas/ ./rcas/
+COPY examples/rcas/ ./examples/rcas/
 ARG BEAGLE_SITE_URL=""
 ENV BEAGLE_SITE_URL=${BEAGLE_SITE_URL}
 RUN cd web && corepack pnpm build

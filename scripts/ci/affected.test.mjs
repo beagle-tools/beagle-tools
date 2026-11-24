@@ -13,19 +13,19 @@ const node = (name, dir, deps = [], extra = []) => [dir, { name, dir, deps, extr
 
 // Mirrors the real rca + rca/desktop/src-tauri layout.
 const rca = {
-  members: new Set(["rca/cli", "rca/crates/beagle-agent", "rca/crates/beagle-agentd"]),
+  members: new Set(["rca/tui", "rca/lib/agent", "rca/daemon"]),
   nodes: new Map([
-    node("beagle", "rca/cli", ["utils"], ["skills/beagle/SKILL.md"]),
-    node("beagle-agent", "rca/crates/beagle-agent", ["rca/cli", "utils"]),
-    node("beagle-agentd", "rca/crates/beagle-agentd", ["rca/cli", "rca/crates/beagle-agent", "utils"]),
+    node("beagle", "rca/tui", ["utils"], ["skills/beagle/SKILL.md"]),
+    node("beagle-agent", "rca/lib/agent", ["rca/tui", "utils"]),
+    node("beagle-agentd", "rca/daemon", ["rca/tui", "rca/lib/agent", "utils"]),
     node("beagle-utils", "utils"),
   ]),
 };
 const desktop = {
   members: new Set(["rca/desktop/src-tauri"]),
   nodes: new Map([
-    node("beagle-desktop", "rca/desktop/src-tauri", ["rca/cli"]),
-    node("beagle", "rca/cli", ["utils"], ["rca/Cargo.toml"]),
+    node("beagle-desktop", "rca/desktop/src-tauri", ["rca/tui"]),
+    node("beagle", "rca/tui", ["utils"], ["rca/Cargo.toml"]),
     node("beagle-utils", "utils"),
   ]),
 };
@@ -36,9 +36,9 @@ const names = (result) => {
 
 describe("isUnder", () => {
   test("matches the path itself and its children only", () => {
-    assert.ok(isUnder("rca/cli", "rca/cli"));
-    assert.ok(isUnder("rca/cli/src/main.rs", "rca/cli"));
-    assert.ok(!isUnder("rca/cli-extra/x.rs", "rca/cli"));
+    assert.ok(isUnder("rca/tui", "rca/tui"));
+    assert.ok(isUnder("rca/tui/src/main.rs", "rca/tui"));
+    assert.ok(!isUnder("rca/tui-extra/x.rs", "rca/tui"));
   });
 });
 
@@ -63,14 +63,14 @@ describe("fullWorkspaceReason", () => {
   });
 
   test("a package manifest is not the workspace manifest", () => {
-    assert.equal(fullWorkspaceReason(["rca/cli/Cargo.toml"], "rca"), null);
+    assert.equal(fullWorkspaceReason(["rca/tui/Cargo.toml"], "rca"), null);
   });
 
   test("the repo-root workspace (`.`) uses the root manifest and lockfile", () => {
     for (const file of ["Cargo.toml", "Cargo.lock", ".cargo/config.toml"]) {
       assert.notEqual(fullWorkspaceReason([file], "."), null, file);
     }
-    assert.equal(fullWorkspaceReason(["rca/cli/Cargo.toml"], "."), null);
+    assert.equal(fullWorkspaceReason(["rca/tui/Cargo.toml"], "."), null);
     assert.equal(fullWorkspaceReason(["tandem/src-tauri/Cargo.lock"], "."), null);
   });
 
@@ -87,7 +87,7 @@ describe("ownersOf", () => {
   });
 
   test("compiled-in files outside the package dir belong to it", () => {
-    assert.deepEqual([...ownersOf("skills/beagle/SKILL.md", rca.nodes)], ["rca/cli"]);
+    assert.deepEqual([...ownersOf("skills/beagle/SKILL.md", rca.nodes)], ["rca/tui"]);
   });
 
   test("files outside every package have no owner", () => {
@@ -98,7 +98,7 @@ describe("ownersOf", () => {
 describe("selectPackages", () => {
   test("a leaf change tests only that package", () => {
     const result = selectPackages({
-      changed: ["rca/crates/beagle-agentd/src/main.rs"],
+      changed: ["rca/daemon/src/main.rs"],
       ws: "rca",
       graph: rca,
     });
@@ -107,13 +107,13 @@ describe("selectPackages", () => {
   });
 
   test("a shared crate change pulls in its reverse dependents transitively", () => {
-    const result = selectPackages({ changed: ["rca/cli/src/lib.rs"], ws: "rca", graph: rca });
+    const result = selectPackages({ changed: ["rca/tui/src/lib.rs"], ws: "rca", graph: rca });
     assert.deepEqual(names(result), ["beagle", "beagle-agent", "beagle-agentd"]);
   });
 
   test("a mid-graph change skips its dependencies", () => {
     const result = selectPackages({
-      changed: ["rca/crates/beagle-agent/src/lib.rs"],
+      changed: ["rca/lib/agent/src/lib.rs"],
       ws: "rca",
       graph: rca,
     });
@@ -121,7 +121,7 @@ describe("selectPackages", () => {
   });
 
   test("a path dep in another workspace re-tests its users here", () => {
-    const result = selectPackages({ changed: ["rca/cli/src/lib.rs"], ws: "rca/desktop/src-tauri", graph: desktop });
+    const result = selectPackages({ changed: ["rca/tui/src/lib.rs"], ws: "rca/desktop/src-tauri", graph: desktop });
     assert.deepEqual(names(result), ["beagle-desktop"]);
     assert.equal(result.packages[0].reason, "depends on beagle");
   });
@@ -147,7 +147,7 @@ describe("selectPackages", () => {
 
   test("a global trigger selects everything regardless of other files", () => {
     const result = selectPackages({
-      changed: ["rca/cli/src/lib.rs", "utils/src/fs.rs"],
+      changed: ["rca/tui/src/lib.rs", "utils/src/fs.rs"],
       ws: "rca",
       graph: rca,
     });

@@ -1,5 +1,5 @@
 // The top-right brand corner: the BEAGLE ASCII banner (the exact art the
-// TUI renders — see cli/src/banner.rs), the theme toggle, and the updater
+// TUI renders — see tui/src/banner.rs), the theme toggle, and the updater
 // controls (update pill + version list).
 
 import type { JSX } from "react";

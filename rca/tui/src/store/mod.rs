@@ -113,7 +113,7 @@ pub struct DiagramEntry {
 /// The nearest directory at or above `start` that already contains an
 /// `rcas/` directory, or `start` itself when none does. This is the
 /// git-style discovery both frontends use: `beagle` run anywhere inside
-/// a checkout (or `cargo run` from `cli/`) finds the repo's workspaces
+/// a store (any folder below the one holding `rcas/`) finds its workspaces
 /// instead of silently scaffolding an empty `rcas/` in the working
 /// directory. An explicit `--root` or config `root` wins over it.
 #[must_use]

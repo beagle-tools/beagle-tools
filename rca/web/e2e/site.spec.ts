@@ -1,5 +1,5 @@
 // Smoke tests against the built site, using the published example in
-// rca/rcas/2026-05-12-example-checkout-timeouts.
+// rca/examples/rcas/2026-05-12-example-checkout-timeouts.
 import { expect, test } from "./fixtures";
 
 const SLUG = "2026-05-12-example-checkout-timeouts";
