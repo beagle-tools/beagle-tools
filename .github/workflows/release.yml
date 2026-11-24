@@ -1,20 +1,26 @@
 name: release
 
-# Continuous delivery for the monorepo: every push to main releases exactly
-# the apps whose release-relevant paths changed (docs/RELEASING.md has the
-# whole policy). Per app: plan computes + pushes the `beagle-<app>-vX.Y.Z`
-# tag and creates a DRAFT release, the build jobs upload into it, publish
-# un-drafts it (never repo-wide "latest") and mirrors the stable-named
-# assets onto `beagle-<app>-latest`, and homebrew regenerates the tap.
+# Continuous delivery for the monorepo: every push to main releases the
+# apps whose release-relevant paths changed since each app's LAST PUBLISHED
+# release (docs/RELEASING.md has the whole policy). Per app: plan computes
+# + pushes the `beagle-<app>-vX.Y.Z` tag and creates a DRAFT release, the
+# build jobs upload into it, publish un-drafts it (never repo-wide
+# "latest") and mirrors the stable-named assets onto `beagle-<app>-latest`,
+# and homebrew regenerates the tap.
 #
 # Versioning (scripts/release/lib.mjs): a tag for the app already at HEAD
-# is released as-is; else the app's highest tag is bumped by the merged
-# PR's release:major / release:minor label (default patch); no tag yet ->
-# the app's version file.
+# is released as-is; else the app's last published version is bumped by
+# the release:major / release:minor labels of the PRs merged since (default
+# patch); never published -> the app's version file. Unpublished drafts and
+# tags above the last published version (left by a cancelled or failed run)
+# are deleted and their version numbers reused.
 #
-# Queue race: runs serialize via the concurrency group, so a queued run can
-# wake up after newer merges landed. It then skips (plan sees main moved);
-# the newer push's run releases everything.
+# Queue race: runs serialize via the concurrency group, which keeps one run
+# waiting; a newer merge replaces it. Nothing is lost: the next run diffs
+# from the last published release, so it releases the replaced run's
+# changes too. A run that wakes after newer merges landed skips (plan sees
+# main moved). Jobs GitHub never gave a runner are retried by
+# release-retry.yml.
 #
 # Secrets: TAURI_SIGNING_PRIVATE_KEY (updater signing, no password);
 # HOMEBREW_TAP_DEPLOY_KEY (SSH, write) or HOMEBREW_TAP_TOKEN for the tap.
@@ -66,13 +72,15 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .nvmrc
+      # Diffs each app from its last published release, so a run that was
+      # replaced in the queue (or cancelled) loses nothing; also deletes the
+      # unpublished drafts/tags it replaces (scripts/release/plan.mjs).
       - name: plan releases + push tags
         id: plan
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BEFORE: ${{ github.event.before }}
           APPS: ${{ inputs.apps }}
-        run: node scripts/release/plan.mjs --before "$BEFORE" ${APPS:+--apps "$APPS"}
+        run: node scripts/release/plan.mjs ${APPS:+--apps "$APPS"}
       - name: create draft releases
         id: draft
         env:

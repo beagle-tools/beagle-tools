@@ -180,15 +180,44 @@ export function readVersion(kind, text) {
 }
 
 /**
+ * The app's last published release: its highest `beagle-<app>-v*` tag whose
+ * GitHub release is published (not a draft). `published` is the set of
+ * published tag names; without it every tag counts as published.
+ */
+export function lastPublished(app, allTags, published) {
+  const tags = published ? allTags.filter((t) => published.has(t)) : allTags;
+  return appVersions(app, tags)[0] ?? null;
+}
+
+/**
+ * Tags of the app above its last published version that never got a
+ * published release: drafts left by a cancelled or failed run, or bare
+ * tags whose draft was never created. A new release reuses their version
+ * numbers instead of skipping past them, so they are deleted first.
+ */
+export function unpublishedAbove(app, allTags, published) {
+  if (!published) return [];
+  const floor = lastPublished(app, allTags, published);
+  return appVersions(app, allTags)
+    .filter((v) => !published.has(tagFor(app, v)))
+    .filter((v) => floor === null || compareSemver(v, floor) > 0)
+    .map((v) => tagFor(app, v));
+}
+
+/**
  * Decides one app's release. Order matters:
  *  1. HEAD already tagged for the app -> release that version as-is (re-runs
  *     and manual re-releases), even when nothing changed.
- *  2. No release-relevant change -> skip.
- *  3. main moved past this commit -> skip; the newer push's run releases.
- *  4. No tag for the app yet -> the version file's value.
- *  5. Otherwise bump the highest tag by the merged PR's labels.
+ *  2. Nothing release-relevant changed since the app's last published
+ *     release -> skip.
+ *  3. main moved past this commit -> skip; the newer push's run releases
+ *     everything since the last published release, this commit included.
+ *  4. Unpublished tags above the last published release are cleaned up
+ *     (`cleanup`), then:
+ *  5. No published release yet -> the version file's value.
+ *  6. Otherwise bump the last published version by the PRs' labels.
  */
-export function planApp({ app, changed, headTags, allTags, labels, stale, fileVersion }) {
+export function planApp({ app, changed, headTags, allTags, published, labels, stale, fileVersion }) {
   const skip = (reason) => ({ app, release: false, action: "skip", reason });
   const existing = appVersions(app, headTags)[0];
   if (existing) {
@@ -203,7 +232,9 @@ export function planApp({ app, changed, headTags, allTags, labels, stale, fileVe
   }
   if (!changed) return skip("no release-relevant changes");
   if (stale) return skip("main moved past this commit; the newer run releases");
-  const latest = appVersions(app, allTags)[0];
+  const cleanup = unpublishedAbove(app, allTags, published);
+  const latest = lastPublished(app, allTags, published);
+  const note = cleanup.length ? `; replaces unpublished ${cleanup.join(", ")}` : "";
   if (!latest) {
     if (!parseSemver(fileVersion ?? "")) {
       throw new Error(`${app}: version file holds "${fileVersion}", not X.Y.Z`);
@@ -214,7 +245,8 @@ export function planApp({ app, changed, headTags, allTags, labels, stale, fileVe
       action: "first",
       version: fileVersion,
       tag: tagFor(app, fileVersion),
-      reason: "no tags yet; using the version file",
+      cleanup,
+      reason: `no published release yet; using the version file${note}`,
     };
   }
   const bump = bumpFromLabels(labels);
@@ -225,7 +257,8 @@ export function planApp({ app, changed, headTags, allTags, labels, stale, fileVe
     action: "bump",
     version,
     tag: tagFor(app, version),
-    reason: `${bump} bump from ${latest}`,
+    cleanup,
+    reason: `${bump} bump from ${latest}${note}`,
   };
 }
 
