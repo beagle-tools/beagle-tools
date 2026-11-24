@@ -6,6 +6,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkIos } from "./ci/ios-standards.mjs";
 import { checkLayout } from "./ci/layout.mjs";
 import { checkTuiStandards } from "./ci/tui-standards.mjs";
 
@@ -21,7 +22,7 @@ const fail = (msg) => errors.push(msg);
 const RUST_WORKSPACES = [".", "rca/desktop/src-tauri", "tandem/desktop/src-tauri", "agent/desktop"];
 const FRONTENDS = ["tandem/desktop", "rca/desktop", "rca/web", "agent/desktop"];
 const REQUIRED_SCRIPTS = ["format:check", "lint", "typecheck", "test", "build", "e2e"];
-const SKIP_DIRS = new Set([".git", ".claude", "target", "node_modules", "dist", ".astro", "gen"]);
+const SKIP_DIRS = new Set([".git", ".claude", "target", "node_modules", "dist", ".astro", "gen", "build"]);
 
 function walk(dir, out = []) {
   for (const name of readdirSync(join(root, dir))) {
@@ -196,6 +197,9 @@ try {
   // not a git checkout: use the walk
 }
 for (const e of checkLayout(read, layoutFiles)) fail(e);
+
+// The iPhone apps (scripts/ci/ios-standards.mjs): known, gated, unsigned.
+for (const e of checkIos(read, layoutFiles)) fail(e);
 
 if (errors.length) {
   for (const e of errors) console.error(`FAIL: ${e}`);

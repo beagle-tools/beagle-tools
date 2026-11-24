@@ -1,0 +1,5 @@
+# xcodebuild output (scripts/ci/ios.sh --derivedDataPath)
+/build/
+# Per-user Xcode state
+xcuserdata/
+*.xcuserstate

@@ -15,7 +15,7 @@ beagle/          the beagle command (help, update, doctor, setup, version)
   serve/         beagle serve: the read-only HTTPS API for the phone app
 scout/           beagle scout
   tui/           the beagle scout crate (TUI + CLI, embedded skills)
-  ios/           the iPhone app (not built yet)
+  ios/           the scout iPhone app (SwiftUI, reads beagle serve)
 recap/           beagle recap
   tui/
 standup/         beagle standup
