@@ -1,4 +1,4 @@
-# AGENTS.md — cli (the `beagle` command)
+# AGENTS.md — beagle (the `beagle` command)
 
 Read [`../AGENTS.md`](../AGENTS.md) and
 [`../docs/CODING_STANDARDS.md`](../docs/CODING_STANDARDS.md) first.
@@ -8,18 +8,18 @@ Read [`../AGENTS.md`](../AGENTS.md) and
 The crates (members of the repo-root cargo workspace) that build the
 single `beagle` binary — the one
 binary users install (`brew install beagle-tools/tap/beagle`, see
-[`README.md`](README.md)). Each tool is a library crate; `crates/beagle`
-(package `beagle-cli`) links them all and dispatches `beagle <tool> …` to
+[`README.md`](README.md)). Each tool is a library crate; this crate
+(package `beagle-cli`, at `beagle/`) links them all and dispatches `beagle <tool> …` to
 the tool.
 
 | Tool | Crate | Where it lives |
 |---|---|---|
-| `agent` | `beagle-agent-tool` → `agentctl` (which runs `agenttop` as `top` and `agentd` as `daemon run`) | `crates/agent`, over `../workflows/crates/*` — which also build the standalone binaries until they are retired |
+| `agent` | `beagle-agent-tool` → `agentctl` (which runs `agenttop` as `top` and `agentd` as `daemon run`) | `../cli/crates/agent`, over `../workflows/crates/*` — which also build the standalone binaries until they are retired |
 | `rca` | `beagle` (renamed `beagle-rca` in `Cargo.toml`), plus `beagle-agentd` for `beagle rca agentd` (routed in `tools.rs`: the daemon depends on rca, so rca can't link it) | `../rca/cli`, `../rca/crates/beagle-agentd` — also build the standalone binaries until they are retired |
-| `recap` | `beagle-recap` | `crates/recap` |
-| `scout` | `beagle-scout` | `crates/scout` |
-| `serve` | `beagle-serve` | `crates/serve` — the tools' stores as a read-only HTTPS JSON API ([`../docs/serve-api.md`](../docs/serve-api.md)); it reads each store through that tool's crate |
-| `standup` | `beagle-standup` | `crates/standup` |
+| `recap` | `beagle-recap` | `../cli/crates/recap` |
+| `scout` | `beagle-scout` | `../cli/crates/scout` |
+| `serve` | `beagle-serve` | `serve/` — the tools' stores as a read-only HTTPS JSON API ([`../docs/serve-api.md`](../docs/serve-api.md)); it reads each store through that tool's crate |
+| `standup` | `beagle-standup` | `../cli/crates/standup` |
 | `tandem` | `tandem-cli` (linked through `run_as("beagle tandem", …)`) | `../tandem/crates/tandem-cli` — also ships inside the Tandem app |
 
 A tool that lives with its own app is a path dependency in the root
@@ -47,9 +47,9 @@ pub const ABOUT: &str = "…";
 pub fn run(args: Vec<std::ffi::OsString>) -> std::process::ExitCode;
 ```
 
-To add a tool: create `crates/<tool>/` (or path-depend on it), add it as a
-dependency of `crates/beagle`, and add one entry to `TOOLS` in
-`crates/beagle/src/tools.rs` (alphabetical). A tool never reads
+To add a tool: create `<tool>/tui/` at the repo root (`docs/LAYOUT.md`),
+add it to the root `Cargo.toml` and as a dependency here, and add one entry
+to `TOOLS` in `src/tools.rs` (alphabetical). A tool never reads
 `std::env::args` itself, so it behaves the same standalone and under
 `beagle`. Its help and hints say `beagle <tool> …`.
 
@@ -59,7 +59,7 @@ variables. Shared helpers belong in `../utils` (std-only `beagle-utils`, or
 
 ## The binary's own commands
 
-`crates/beagle/src/main.rs` answers these before looking up a tool, so no
+`src/main.rs` answers these before looking up a tool, so no
 tool may be named after one:
 
 - `help [tool]`, `version` / `--version` (version plus release target, or
@@ -100,7 +100,7 @@ no `update` (or `version list`): they are usage errors (exit 2) that name
 ## Commands
 
 ```sh
-make check-cli     # from the repo root: fmt, clippy, test, doc
+make check-beagle     # from the repo root: fmt, clippy, test, doc
 cargo run -p beagle-cli -- help
 cargo run -p beagle-cli -- rca list --root ../rca
 ```
@@ -108,8 +108,9 @@ cargo run -p beagle-cli -- rca list --root ../rca
 ## Releases
 
 `beagle` releases as `beagle-cli-vX.Y.Z` (tarball `beagle-cli-<target>.tar.gz`
-holding `beagle`; formula `beagle`). The version is each
-`crates/*/Cargo.toml`'s `[package] version`; CI stamps them (and their
+holding `beagle`; formula `beagle`). The version is the
+`[package] version` of every crate in `scripts/set-version.mjs`'s `CRATES`
+(this crate, `serve/`, and the tools still in `../cli/crates/`); CI stamps them (and their
 root `Cargo.lock` entries) with `scripts/set-version.mjs` (tested by
 `scripts/set-version.test.mjs`, run by `make test-scripts`) and never
 commits the result. See [`../docs/RELEASING.md`](../docs/RELEASING.md).

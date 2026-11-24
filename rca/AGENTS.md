@@ -24,7 +24,7 @@ Both skills are embedded into the `beagle` binary (`cli/src/skill.rs`,
 
 rca's CLI is a **library entry point**: `cli/src/run.rs` exposes `ABOUT` +
 `run(args) -> ExitCode`, the tool contract of the unified `beagle` command
-([`../cli/AGENTS.md`](../cli/AGENTS.md)), which links this crate as
+([`../beagle/AGENTS.md`](../beagle/AGENTS.md)), which links this crate as
 `beagle rca …`. That is how users run it. `cli/src/main.rs` is a thin
 wrapper (`run_standalone`) for the standalone rca `beagle` binary, still
 released as `beagle-rca` (a deprecated formula) until it is retired.

@@ -253,7 +253,7 @@ jobs:
     if: needs.plan.outputs.cli == 'true'
     uses: ./.github/workflows/_release-cli.yml
     with:
-      app-dir: cli
+      app-dir: beagle
       cargo-dir: .
       packages: beagle-cli
       bins: beagle

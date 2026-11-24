@@ -2,14 +2,18 @@
 // plan.mjs wires it to git/gh. The rules are the release contract in
 // docs/RELEASING.md — change both together.
 
-/** Apps that release, and where each one's first version comes from. */
+/**
+ * Apps that release, where each one's first version comes from, and its
+ * folder (`dir`, default: the app key). The keys are release names (tags,
+ * mirrors, updaters), so they stay when a folder moves (docs/LAYOUT.md).
+ */
 export const APPS = {
   tandem: { versionFile: "tandem/src-tauri/tauri.conf.json", kind: "json" },
   rca: { versionFile: "rca/cli/Cargo.toml", kind: "cargo-package" },
   workflows: { versionFile: "workflows/crates/agentctl/Cargo.toml", kind: "cargo-package" },
-  // The unified `beagle` command (cli/), which links rca (and its daemon),
+  // The unified `beagle` command (beagle/), which links rca (and its daemon),
   // tandem-cli and the agentd stack in.
-  cli: { versionFile: "cli/crates/beagle/Cargo.toml", kind: "cargo-package" },
+  cli: { dir: "beagle", versionFile: "beagle/Cargo.toml", kind: "cargo-package" },
 };
 
 /** Paths compiled into every app: a change here releases all of them. */
@@ -56,6 +60,9 @@ export const LINKED_PREFIXES = {
   // Every local crate `beagle` links (scripts/release/linked.test.mjs keeps
   // this in step with the Cargo.toml files).
   cli: [
+    // The tools still in cli/ (scout, recap, standup, the agent shim) until
+    // they move to their own folders.
+    "cli/",
     "rca/cli/",
     // `beagle rca agentd`: the daemon and the engine it hosts.
     "rca/crates/beagle-agentd/",
@@ -86,7 +93,7 @@ export function isUnknownBefore(before) {
 
 /**
  * Whether a changed path should release `app`. Docs-only changes never do:
- * `**\/*.md` and `<app>/docs/**` are excluded everywhere, except for files
+ * `**\/*.md` and `<dir>/docs/**` are excluded everywhere, except for files
  * an app embeds (EMBEDDED_PREFIXES).
  */
 export function isReleaseRelevant(app, path) {
@@ -97,8 +104,9 @@ export function isReleaseRelevant(app, path) {
   if (SHARED_PREFIXES.some((p) => path.startsWith(p))) return true;
   if (LINKED_FILES[app]?.has(path)) return true;
   if ((LINKED_PREFIXES[app] ?? []).some((p) => path.startsWith(p))) return true;
-  if (!path.startsWith(`${app}/`)) return false;
-  return !path.startsWith(`${app}/docs/`);
+  const dir = APPS[app]?.dir ?? app;
+  if (!path.startsWith(`${dir}/`)) return false;
+  return !path.startsWith(`${dir}/docs/`);
 }
 
 /** The apps any of `paths` releases, in APPS order. */

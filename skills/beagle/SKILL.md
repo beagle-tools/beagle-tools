@@ -57,7 +57,7 @@ fuzzy-search every line of every incident (archived included) with `\`.
 beagle rca new <slug> --title "One-line incident title" --severity <sev> \
   --system <name> --system <name>
 # not installed? from a beagle checkout:
-#   cargo run -q --manifest-path cli/Cargo.toml -p beagle-cli -- rca new ...
+#   cargo run -q -p beagle-cli -- rca new ...
 ```
 
 - Slug: lowercase `[a-z0-9-]`, ≤64 chars, convention `YYYY-MM-DD-short-description`.

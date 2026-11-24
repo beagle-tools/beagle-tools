@@ -1,21 +1,21 @@
 #!/usr/bin/env node
-// Stamp a release version into every place cli/ (the unified `beagle`
-// command) declares one:
+// Stamp a release version into every place the unified `beagle` command
+// (release app `cli`) declares one:
 //
-//   crates/*/Cargo.toml   each crate's [package] version
-//   ../Cargo.lock         those crates' entries in the repo-root lockfile,
-//                         so `cargo build --locked` passes
+//   CRATES/Cargo.toml   each crate's [package] version
+//   ../Cargo.lock       those crates' entries in the repo-root lockfile,
+//                       so `cargo build --locked` passes
 //
 // Path dependencies from other apps (rca's `beagle`, `tandem-cli`,
 // `beagle-utils`) keep their own versions: they are not ours to stamp.
 //
-// Release CI runs it from cli/ (`node scripts/set-version.mjs 1.2.3`)
+// Release CI runs it from beagle/ (`node scripts/set-version.mjs 1.2.3`)
 // before building; the result is never committed. Edits are textual so the
 // files keep their formatting, and every edit is checked to have landed —
 // a location this script silently missed would ship a binary whose
 // `--version` disagrees with its tag.
 
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -40,14 +40,22 @@ export function stampTomlTable(text, table, version) {
   return { text: lines.join("\n"), hit };
 }
 
-/** Manifests of the crates under `appDir/crates/`. */
+/**
+ * The crates that release as `beagle-cli`, relative to beagle/: the command
+ * itself, `beagle serve`, and the tools that still live in cli/crates/.
+ */
+export const CRATES = [
+  ".",
+  "serve",
+  "../cli/crates/agent",
+  "../cli/crates/recap",
+  "../cli/crates/scout",
+  "../cli/crates/standup",
+];
+
+/** Manifests of the CRATES, under `appDir` (beagle/). */
 export function memberManifests(appDir) {
-  const crates = join(appDir, "crates");
-  return readdirSync(crates, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => join(crates, entry.name, "Cargo.toml"))
-    .filter((path) => existsSync(path))
-    .sort();
+  return CRATES.map((dir) => join(appDir, dir, "Cargo.toml"));
 }
 
 /** `[package] name` of a manifest. */
@@ -74,7 +82,7 @@ export function stampLock(text, names, version) {
 }
 
 /**
- * Stamp `version` everywhere under `appDir` (the cli/ directory). The crates
+ * Stamp `version` for the CRATES, from `appDir` (the beagle/ directory). The crates
  * are members of the repo-root workspace, whose lockfile is `../Cargo.lock`.
  */
 export function setVersion(appDir, version) {
@@ -92,7 +100,7 @@ export function setVersion(appDir, version) {
     if (!own.hit) throw new Error(`${path}: no [package] version`);
     writes.set(path, own.text);
   }
-  if (names.size === 0) throw new Error(`${appDir}/crates: no crates`);
+  if (names.size === 0) throw new Error(`${appDir}: no crates`);
 
   const lock = join(appDir, "..", "Cargo.lock");
   const res = stampLock(readFileSync(lock, "utf8"), names, version);

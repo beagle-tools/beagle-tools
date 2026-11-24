@@ -9,7 +9,7 @@ use super::*;
 const EXAMPLE: &str = "2026-05-12-example-checkout-timeouts";
 
 fn repo_rca_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../rca")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../rca")
 }
 
 fn get(root: &Path, path: &str) -> ApiResult {

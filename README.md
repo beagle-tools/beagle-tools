@@ -30,7 +30,7 @@ with you in control.
 Underneath them, [`utils/`](utils/README.md) (`beagle-utils`) holds the Rust helpers two or more
 apps share.
 
-Every terminal tool and daemon ships as **one binary, `beagle`** ([`cli/`](cli/README.md)):
+Every terminal tool and daemon ships as **one binary, `beagle`** ([`beagle/`](beagle/README.md)):
 `beagle agent` (agentd: CLI, TUI and daemon), `beagle rca` (and its daemon, `beagle rca agentd`),
 `beagle recap`, `beagle scout`, `beagle standup` and `beagle tandem` (Tandem's data from a
 script). Only the desktop apps install separately.
@@ -49,7 +49,7 @@ beagle help                   # every tool it holds
 beagle update                 # later: update every tool at once (and refresh the skills)
 ```
 
-Tarballs and `cargo install`: [`cli/README.md`](cli/README.md). Coming from the standalone rca
+Tarballs and `cargo install`: [`beagle/README.md`](beagle/README.md). Coming from the standalone rca
 CLI (`brew install beagle-tools/tap/beagle-rca`)? Both install a `beagle`, so switch with
 `brew uninstall beagle-rca && brew install beagle-tools/tap/beagle`; every old `beagle <cmd>` is
 now `beagle rca <cmd>`. From the standalone agentd CLIs: `agentctl …` is `beagle agent …`,
@@ -170,7 +170,7 @@ before anything reaches GitHub.
 | Path                                | Purpose                                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------------------------- |
 | [`tandem/`](tandem/README.md)       | Tandem desktop app (Tauri 2 + Rust + React)                                                  |
-| [`cli/`](cli/README.md)             | The one `beagle` command: every terminal tool linked into a single binary                    |
+| [`beagle/`](beagle/README.md)             | The one `beagle` command: every terminal tool linked into a single binary                    |
 | [`rca/`](rca/README.md)             | Beagle RCA: the `beagle rca` CLI/TUI and daemon crates, desktop app and postmortem site      |
 | [`workflows/`](workflows/README.md) | agentd (`beagle agent`: CLI, TUI and daemon crates) and the Agentdesk desktop app            |
 | [`utils/`](utils/README.md)         | `beagle-utils`, Rust helpers shared by two or more apps                                      |

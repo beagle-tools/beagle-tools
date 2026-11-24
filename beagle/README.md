@@ -7,10 +7,10 @@ binary, `beagle`, and each tool is a subcommand:
 |---|---|
 | `beagle agent` | Schedule and run coding agents (agentd): the live dashboard (bare, or `top`), the control CLI (`apply`, `get`, `-j <job>`, `logs`, `errors`, …) and the daemon (`daemon run`, `daemon install`) ([`../workflows/`](../workflows/README.md)) |
 | `beagle rca` | Root-cause analysis workspaces: a live TUI plus commands for agents, and the daemon that implements handed-off RCAs (`rca agentd run`, installed by `rca agent install`) ([`../rca/`](../rca/README.md)) |
-| `beagle recap` | PR recaps: the diff plus a plain-language write-up ([`crates/recap/`](crates/recap/README.md)) |
-| `beagle scout` | Watch agent work as projects of small, ordered tasks ([`crates/scout/`](crates/scout/README.md)) |
+| `beagle recap` | PR recaps: the diff plus a plain-language write-up ([`cli/crates/recap/`](../cli/crates/recap/README.md)) |
+| `beagle scout` | Watch agent work as projects of small, ordered tasks ([`cli/crates/scout/`](../cli/crates/scout/README.md)) |
 | `beagle serve` | Every tool's data, read-only over HTTPS on your Tailscale address, for the phone app ([`../docs/serve-api.md`](../docs/serve-api.md)) |
-| `beagle standup` | Standup reports: an overview, then a short write-up per ticket ([`crates/standup/`](crates/standup/README.md)) |
+| `beagle standup` | Standup reports: an overview, then a short write-up per ticket ([`cli/crates/standup/`](../cli/crates/standup/README.md)) |
 | `beagle tandem` | Review PRs in a terminal queue (no arguments opens the TUI; `add`, `list`, `claim`, `ingest`, `fail`), read Tandem's local review data as JSON, and queue reviews ([`../tandem/docs/CLI.md`](../tandem/docs/CLI.md)) |
 
 ## Install
@@ -35,7 +35,7 @@ With cargo (the repo is a monorepo, so name the package):
 
 ```sh
 cargo install --locked --git https://github.com/beagle-tools/beagle-tools beagle-cli
-cargo install --locked --path cli/crates/beagle      # from a checkout
+cargo install --locked --path beagle      # from a checkout
 ```
 
 ### Switching from the standalone tools
@@ -114,6 +114,6 @@ How it updates depends on how `beagle` was installed:
 See [`AGENTS.md`](AGENTS.md) for the tool contract and how to add a tool.
 
 ```sh
-make check-cli                       # from the repo root: fmt, clippy, test, doc
-cargo run -p beagle-cli -- help      # from cli/
+make check-beagle                       # from the repo root: fmt, clippy, test, doc
+cargo run -p beagle-cli -- help      # from anywhere in the repo
 ```

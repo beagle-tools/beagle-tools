@@ -62,7 +62,7 @@ impl InstallKind {
 pub fn source_update_hint(repo_url: &str) -> String {
     format!(
         "this beagle was built from source, so update it the same way:\n\
-         \x20 from a checkout:  git pull && cargo install --locked --path cli/crates/beagle\n\
+         \x20 from a checkout:  git pull && cargo install --locked --path beagle\n\
          \x20 or straight from GitHub:  cargo install --locked --force --git {repo_url} beagle-cli\n\
          (or switch to a release build: brew install {BREW_FORMULA})"
     )
@@ -96,7 +96,7 @@ mod tests {
     #[test]
     fn the_source_hint_names_both_cargo_routes() {
         let hint = source_update_hint("https://github.com/acme/widgets");
-        assert!(hint.contains("--path cli/crates/beagle"), "{hint}");
+        assert!(hint.contains("--path beagle"), "{hint}");
         assert!(
             hint.contains("--git https://github.com/acme/widgets beagle-cli"),
             "{hint}"
