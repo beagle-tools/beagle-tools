@@ -26,6 +26,7 @@ Most rules are enforced by tooling. The configuration is shared, and
 | Formatting (TS/CSS/JSON/MD) | `.prettierrc.json` (root) | `prettier --check` |
 | Node / pnpm | `.nvmrc`, plus `packageManager` in each `package.json` | the drift check |
 | 400-line rule | `scripts/check-file-length.sh` | CI `standards` job |
+| Repo layout (one folder per tool) | `docs/LAYOUT.md` | `scripts/ci/layout.mjs`, run by `scripts/check-standards.mjs` |
 
 ---
 
@@ -88,6 +89,17 @@ Most rules are enforced by tooling. The configuration is shared, and
       `.scout-store`, `~/.config/tandem-tui/config.yaml`, …) keep working as
       fallbacks after the new ones, so no existing setup breaks. Moving a
       tool onto this is its own change, with a migration note.
+16. **One top-level folder per tool** ([`LAYOUT.md`](LAYOUT.md)). A tool is
+    a folder named exactly like its `beagle` subcommand (the `name` in
+    `beagle/src/tools.rs`; `serve` is the exception), and `beagle <tool>`
+    is its `tui/` crate. Inside it, runnable parts use only `tui/`,
+    `daemon/`, `desktop/`, `web/`, `ios/`; libraries go in `lib/<name>/`;
+    besides those, only `docs/ assets/ scripts/ deploy/ examples/ skills/`
+    and `README.md AGENTS.md CLAUDE.md CHANGELOG.md Makefile .gitignore`.
+    A crate lives in one of those places, in `beagle/`, or in `utils/`.
+    `make standards` fails otherwise (`scripts/ci/layout.mjs`). To add a
+    tool: register it in `tools.rs`, create `<tool>/tui/`, and add it to
+    the root `Cargo.toml`.
 
 ## 2. Rust
 

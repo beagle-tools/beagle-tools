@@ -74,7 +74,8 @@ docs/  scripts/  standards/  packaging/  skills/  .github/   repo-wide
    package names stay what they are, so imports, `cargo -p` and release
    builds don't churn. Rename a package only when it has a reason of its own.
 
-Task 9 of the move turns these rules into a `make standards` check.
+`make standards` enforces these rules (`scripts/ci/layout.mjs`, tested by
+`scripts/ci/layout.test.mjs`).
 
 ## The full map
 
