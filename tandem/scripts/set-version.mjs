@@ -56,8 +56,14 @@ const writes = new Map();
 
 // JSON: rewrite the top-level "version" in place so formatting survives.
 for (const path of ["package.json", "src-tauri/tauri.conf.json"]) {
-  const text = replaceOne(path, readFileSync(path, "utf8"), /^ {2}"version": "[^"]*"/m, `  "version": "${version}"`);
-  if (JSON.parse(text).version !== version) throw new Error(`${path}: top-level version was not stamped`);
+  const text = replaceOne(
+    path,
+    readFileSync(path, "utf8"),
+    /^ {2}"version": "[^"]*"/m,
+    `  "version": "${version}"`,
+  );
+  if (JSON.parse(text).version !== version)
+    throw new Error(`${path}: top-level version was not stamped`);
   writes.set(path, text);
 }
 
@@ -81,7 +87,10 @@ for (const path of LOCKS) {
   let found = 0;
   for (const name of names) {
     const escaped = name.replace(/[-.]/g, "\\$&");
-    const pattern = new RegExp(`^(\\[\\[package\\]\\]\\nname = "${escaped}"\\nversion = )"[^"]*"$`, "m");
+    const pattern = new RegExp(
+      `^(\\[\\[package\\]\\]\\nname = "${escaped}"\\nversion = )"[^"]*"$`,
+      "m",
+    );
     if (!pattern.test(lock)) continue;
     lock = replaceOne(path, lock, pattern, `$1"${version}"`);
     found += 1;

@@ -11,14 +11,27 @@ import { fileURLToPath } from "node:url";
 
 const appDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const script = join(appDir, "scripts", "set-version.mjs");
-const CRATE_DIRS = ["tandem-core", "tandem-github", "tandem-cache", "tandem-agents", "tandem-cli", "tandem-tui"];
+const CRATE_DIRS = [
+  "tandem-core",
+  "tandem-github",
+  "tandem-cache",
+  "tandem-agents",
+  "tandem-cli",
+  "tandem-tui",
+];
 const MANIFESTS = ["src-tauri/Cargo.toml", ...CRATE_DIRS.map((dir) => `crates/${dir}/Cargo.toml`)];
 const LOCKS = ["../Cargo.lock", "src-tauri/Cargo.lock"];
 const FILES = ["package.json", "src-tauri/tauri.conf.json", ...MANIFESTS, ...LOCKS];
 // The packages each lockfile records and the script must stamp.
 const CRATES = {
   "../Cargo.lock": CRATE_DIRS,
-  "src-tauri/Cargo.lock": ["tandem", "tandem-core", "tandem-github", "tandem-cache", "tandem-agents"],
+  "src-tauri/Cargo.lock": [
+    "tandem",
+    "tandem-core",
+    "tandem-github",
+    "tandem-cache",
+    "tandem-agents",
+  ],
 };
 
 const temps = [];
@@ -60,7 +73,11 @@ test("stamps every version location", () => {
   assert.equal(JSON.parse(read(dir, "src-tauri/tauri.conf.json")).version, "4.5.6");
   assert.match(read(dir, "src-tauri/Cargo.toml"), /\[workspace\.package\]\nversion = "4\.5\.6"\n/);
   for (const file of MANIFESTS.slice(1)) {
-    assert.match(read(dir, file), /^\[package\]\nname = "[^"]+"\n(?:description = .*\n)?version = "4\.5\.6"\n/m, file);
+    assert.match(
+      read(dir, file),
+      /^\[package\]\nname = "[^"]+"\n(?:description = .*\n)?version = "4\.5\.6"\n/m,
+      file,
+    );
   }
 
   for (const [file, crates] of Object.entries(CRATES)) {
@@ -68,7 +85,8 @@ test("stamps every version location", () => {
     const stamped = lockVersions(read(dir, file));
     for (const name of crates) assert.equal(stamped.get(name), "4.5.6", `${file} ${name}`);
     for (const [name, version] of before) {
-      if (!crates.includes(name)) assert.equal(stamped.get(name), version, `${file} ${name} untouched`);
+      if (!crates.includes(name))
+        assert.equal(stamped.get(name), version, `${file} ${name} untouched`);
     }
   }
 });
