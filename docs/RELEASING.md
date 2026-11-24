@@ -16,7 +16,7 @@ releases the app if any **release-relevant** path changed:
 | tandem    | `tandem/**`                                                                                                                                                         |
 | rca       | `rca/**`, `skills/beagle/**`, `skills/beagle-review/**` (embedded in the binary)                                                                                    |
 | workflows | `workflows/**`                                                                                                                                                      |
-| cli       | `beagle/**` (its folder), `cli/**` (tools not yet moved); the crates it links from other apps: `rca/cli/**`, `rca/crates/beagle-agent{,d}/**`, `tandem/crates/tandem-{cli,core,tui,cache,github}/**`, `workflows/crates/{agent-core,agentctl,agentd,agenttop}/**` (plus what agentctl embeds: `workflows/{deploy,assets/notify}/**`, `workflows/scripts/build-notifier.sh`); and the rca skills |
+| cli       | `beagle/**` (its folder); the tools that live only in `beagle`: `scout/**`, `recap/**`, `standup/**`; the crates it links from other apps: `rca/cli/**`, `rca/crates/beagle-agent{,d}/**`, `tandem/crates/tandem-{cli,core,tui,cache,github}/**`, `workflows/crates/{agent-core,agentctl,agentd,agenttop}/**` (plus what agentctl embeds: `workflows/{deploy,assets/notify}/**`, `workflows/scripts/build-notifier.sh`); and the rca skills |
 | all four  | `utils/**`, `rust-toolchain.toml`, the root `Cargo.toml` and `Cargo.lock` (the one cargo workspace; compiled into every app)                                          |
 
 `cli` is the unified `beagle` command. It compiles rca's CLI crate and
@@ -25,7 +25,7 @@ releases the app if any **release-relevant** path changed:
 Excluded everywhere: `**/*.md` and `<app>/docs/**`. Docs-only merges don't
 release. Markdown an app embeds with `include_str!` is the exception: the
 rca skills (`skills/beagle/**`, `skills/beagle-review/**`, in rca and cli)
-and, in cli, `cli/crates/{recap,standup}/docs/` and
+and, in cli, `{recap,standup}/tui/docs/` and
 `scout/tui/skills/`. Changes to CI, `scripts/` or this workflow
 don't release anything by themselves either.
 

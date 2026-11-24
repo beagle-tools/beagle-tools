@@ -15,7 +15,7 @@ path = "src/main.rs"
 doc = false
 
 [dependencies]
-beagle-agent-tool.workspace = true
+agentctl.workspace = true
 beagle-agentd.workspace = true
 beagle-rca.workspace = true
 beagle-recap.workspace = true

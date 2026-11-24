@@ -42,16 +42,15 @@ export function stampTomlTable(text, table, version) {
 
 /**
  * The crates that release as `beagle-cli`, relative to beagle/: the command
- * itself, `beagle serve`, and every tool it links (`<tool>/tui`, or cli/crates/
- * for those not moved yet).
+ * itself, `beagle serve`, and the tools that live only in `beagle`
+ * (`<tool>/tui`).
  */
 export const CRATES = [
   ".",
   "serve",
-  "../cli/crates/agent",
-  "../cli/crates/recap",
+  "../recap/tui",
   "../scout/tui",
-  "../cli/crates/standup",
+  "../standup/tui",
 ];
 
 /** Manifests of the CRATES, under `appDir` (beagle/). */

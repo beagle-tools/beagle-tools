@@ -7,10 +7,10 @@ binary, `beagle`, and each tool is a subcommand:
 |---|---|
 | `beagle agent` | Schedule and run coding agents (agentd): the live dashboard (bare, or `top`), the control CLI (`apply`, `get`, `-j <job>`, `logs`, `errors`, …) and the daemon (`daemon run`, `daemon install`) ([`../workflows/`](../workflows/README.md)) |
 | `beagle rca` | Root-cause analysis workspaces: a live TUI plus commands for agents, and the daemon that implements handed-off RCAs (`rca agentd run`, installed by `rca agent install`) ([`../rca/`](../rca/README.md)) |
-| `beagle recap` | PR recaps: the diff plus a plain-language write-up ([`cli/crates/recap/`](../cli/crates/recap/README.md)) |
+| `beagle recap` | PR recaps: the diff plus a plain-language write-up ([`recap/tui/`](../recap/tui/README.md)) |
 | `beagle scout` | Watch agent work as projects of small, ordered tasks ([`scout/tui/`](../scout/tui/README.md)) |
 | `beagle serve` | Every tool's data, read-only over HTTPS on your Tailscale address, for the phone app ([`../docs/serve-api.md`](../docs/serve-api.md)) |
-| `beagle standup` | Standup reports: an overview, then a short write-up per ticket ([`cli/crates/standup/`](../cli/crates/standup/README.md)) |
+| `beagle standup` | Standup reports: an overview, then a short write-up per ticket ([`standup/tui/`](../standup/tui/README.md)) |
 | `beagle tandem` | Review PRs in a terminal queue (no arguments opens the TUI; `add`, `list`, `claim`, `ingest`, `fail`), read Tandem's local review data as JSON, and queue reviews ([`../tandem/docs/CLI.md`](../tandem/docs/CLI.md)) |
 
 ## Install

@@ -18,8 +18,8 @@ members = [
   "beagle/serve",
   # Each tool's folder (docs/LAYOUT.md).
   "scout/tui",
-  # Tools that still live in cli/ (they move to their own folders next).
-  "cli/crates/*",
+  "recap/tui",
+  "standup/tui",
   # rca: the `beagle` (rca) crate, its agent engine and daemon.
   "rca/cli",
   "rca/crates/*",
@@ -39,11 +39,10 @@ repository = "https://github.com/beagle-tools/beagle-tools"
 # ---- local crates ----
 beagle-utils = { path = "utils" }
 beagle-tui = { path = "utils/tui" }
-beagle-agent-tool = { path = "cli/crates/agent" }
-beagle-recap = { path = "cli/crates/recap" }
+beagle-recap = { path = "recap/tui" }
 beagle-scout = { path = "scout/tui" }
 beagle-serve = { path = "beagle/serve" }
-beagle-standup = { path = "cli/crates/standup" }
+beagle-standup = { path = "standup/tui" }
 # rca's crate is named `beagle`, so it is renamed here to say which tool it is.
 beagle-rca = { package = "beagle", path = "rca/cli" }
 # rca's daemon, run as `beagle rca agentd run`.

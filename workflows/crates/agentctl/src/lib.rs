@@ -5,9 +5,11 @@
 //! which *is* the daemon, run in the foreground.
 //!
 //! A library entry point ([`run_as`]) so the unified `beagle` command can
-//! link it as `beagle agent …`; `main.rs` is the standalone `agentctl`.
+//! link it as `beagle agent …` ([`beagle::run`]); `main.rs` is the
+//! standalone `agentctl`.
 
 mod apply;
+pub mod beagle;
 mod cli;
 mod daemon;
 mod errors;

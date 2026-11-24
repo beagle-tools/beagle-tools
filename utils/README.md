@@ -1,7 +1,7 @@
 # beagle-utils
 
 Small, dependency-free helpers shared by the apps in this monorepo
-(`tandem/`, `rca/`, `workflows/`, `cli/`). Members of the repo-root Cargo workspace, MSRV
+(`beagle/`, `scout/`, `recap/`, `standup/`, `tandem/`, `rca/`, `workflows/`). Members of the repo-root Cargo workspace, MSRV
 1.79: `beagle-utils` (this directory, std-only) and
 `beagle-tui` (`tui/`, terminal-UI pieces).
 

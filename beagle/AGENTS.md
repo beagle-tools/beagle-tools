@@ -14,12 +14,12 @@ the tool.
 
 | Tool | Crate | Where it lives |
 |---|---|---|
-| `agent` | `beagle-agent-tool` → `agentctl` (which runs `agenttop` as `top` and `agentd` as `daemon run`) | `../cli/crates/agent`, over `../workflows/crates/*` — which also build the standalone binaries until they are retired |
+| `agent` | `agentctl` (`agentctl::beagle::run`: the `beagle agent` name and a bare-command default of `top`; agentctl runs `agenttop` as `top` and `agentd` as `daemon run`) | `../workflows/crates/agentctl` (`src/beagle.rs`), over `../workflows/crates/*` — which also build the standalone binaries until they are retired |
 | `rca` | `beagle` (renamed `beagle-rca` in `Cargo.toml`), plus `beagle-agentd` for `beagle rca agentd` (routed in `tools.rs`: the daemon depends on rca, so rca can't link it) | `../rca/cli`, `../rca/crates/beagle-agentd` — also build the standalone binaries until they are retired |
-| `recap` | `beagle-recap` | `../cli/crates/recap` |
+| `recap` | `beagle-recap` | `../recap/tui` |
 | `scout` | `beagle-scout` | `../scout/tui` |
 | `serve` | `beagle-serve` | `serve/` — the tools' stores as a read-only HTTPS JSON API ([`../docs/serve-api.md`](../docs/serve-api.md)); it reads each store through that tool's crate |
-| `standup` | `beagle-standup` | `../cli/crates/standup` |
+| `standup` | `beagle-standup` | `../standup/tui` |
 | `tandem` | `tandem-cli` (linked through `run_as("beagle tandem", …)`) | `../tandem/crates/tandem-cli` — also ships inside the Tandem app |
 
 A tool that lives with its own app is a path dependency in the root
