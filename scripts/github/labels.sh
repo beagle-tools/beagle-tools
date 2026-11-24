@@ -21,7 +21,7 @@ gh auth status >/dev/null 2>&1 || {
 labels=(
   "app:tandem|1d76db|Tandem (tandem/) — PR review desktop app"
   "app:rca|0e8a16|Beagle RCA (rca/) — CLI/TUI, agent daemon, desktop, web"
-  "app:workflows|5319e7|agentd + Agentdesk (workflows/)"
+  "app:workflows|5319e7|agentd + Agentdesk (agent/)"
   "app:utils|c5def5|Shared beagle-utils crate (utils/) — releases every app"
   "release:major|b60205|Merging cuts a major release of the app (breaking change)"
   "release:minor|fbca04|Merging cuts a minor release of the app (new feature)"

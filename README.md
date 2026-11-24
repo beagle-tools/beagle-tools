@@ -22,7 +22,7 @@ with you in control.
 | ------------------------------------------------------------ | ------------------ | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------- |
 | <img src="docs/assets/tandem-logo.svg" alt="" width="32">    | Tandem             | Review GitHub PRs with Claude/Codex riding along; agent comments stay local until you post                                 | macOS, Linux, Windows desktop                        | [`tandem/`](tandem/README.md)       |
 | <img src="docs/assets/beagle-logo.png" alt="" width="32">    | Beagle (RCA)       | An agent investigates an incident and writes the RCA; a TUI/desktop app renders it live; a daemon can ship the fix as a PR | CLI/TUI (macOS, Linux), desktop, daemon, static site | [`rca/`](rca/README.md)             |
-| <img src="docs/assets/agentdesk-logo.svg" alt="" width="32"> | agentd + Agentdesk | Schedule coding agents from YAML manifests; each run in its own tmux session, recorded in SQLite                           | macOS                                                | [`workflows/`](workflows/README.md) |
+| <img src="docs/assets/agentdesk-logo.svg" alt="" width="32"> | agentd + Agentdesk | Schedule coding agents from YAML manifests; each run in its own tmux session, recorded in SQLite                           | macOS                                                | [`agent/`](agent/README.md) |
 |                                                              | scout              | Watch agent work live as projects of small, ordered tasks (`beagle scout`)                                                 | CLI/TUI (macOS, Linux)                               | [`scout/`](scout/README.md)         |
 |                                                              | recap              | PR recaps: the diff plus a plain-language write-up of what it fixes and why (`beagle recap`)                               | CLI/TUI (macOS, Linux)                               | [`recap/`](recap/README.md)         |
 |                                                              | standup            | Standup reports: one overview, then a short write-up per ticket (`beagle standup`)                                         | CLI/TUI (macOS, Linux)                               | [`standup/`](standup/README.md)         |
@@ -99,7 +99,7 @@ brew install --cask beagle-tools/tap/beagle-agentdesk   # the Agentdesk app (opt
 beagle agent daemon install                             # the scheduler, under launchd
 ```
 
-Direct downloads and the tmux/notifier setup: [`workflows/README.md`](workflows/README.md#install).
+Direct downloads and the tmux/notifier setup: [`agent/README.md`](agent/README.md#install).
 
 </details>
 
@@ -118,12 +118,12 @@ beagle rca new <slug> --title "..."
 beagle rca                # open the TUI against ./rcas
 ```
 
-**agentd** — copy the [demo manifests](workflows/manifests/) into place (their scripts are
+**agentd** — copy the [demo manifests](agent/examples/demo/) into place (their scripts are
 referenced from there), then run the free, script-only `writeup` job:
 
 ```sh
 mkdir -p ~/.config/agentd/manifests
-cp -R workflows/manifests/demo ~/.config/agentd/manifests/
+cp -R agent/examples/demo ~/.config/agentd/manifests/
 beagle agent apply
 beagle agent get agents
 beagle agent -j writeup
@@ -175,7 +175,7 @@ before anything reaches GitHub.
 | [`recap/`](recap/README.md)         | recap (`beagle recap`): PR recaps (`tui/`)                                                   |
 | [`standup/`](standup/README.md)     | standup (`beagle standup`): standup reports (`tui/`)                                         |
 | [`rca/`](rca/README.md)             | Beagle RCA: the `beagle rca` CLI/TUI and daemon crates, desktop app and postmortem site      |
-| [`workflows/`](workflows/README.md) | agentd (`beagle agent`: CLI, TUI and daemon crates) and the Agentdesk desktop app            |
+| [`agent/`](agent/README.md) | agentd (`beagle agent`: CLI, TUI and daemon crates) and the Agentdesk desktop app            |
 | [`utils/`](utils/README.md)         | `beagle-utils`, Rust helpers shared by two or more apps                                      |
 | [`skills/`](skills/README.md)       | Agent skills: `/beagle`, `/beagle-review`, `/beagle-create-issue`, `/beagle-complete-issue`  |
 | [`standards/`](standards/)          | Shared lint and compiler config every app uses unchanged                                     |

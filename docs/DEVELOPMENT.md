@@ -48,13 +48,13 @@ target installs its `node_modules`.
 |---|---|---|
 | `tandem` | Tandem desktop (`pnpm tauri dev`, vite on 1420) | `tandem/desktop/` |
 | `rca-desktop` | Beagle RCA desktop (`pnpm tauri dev`, vite on 1420) | `rca/desktop/` |
-| `workflows-desktop` | Agentdesk (`pnpm tauri dev`, vite on 1421) | `workflows/desktop/` |
+| `agent-desktop` | Agentdesk (`pnpm tauri dev`, vite on 1421) | `agent/desktop/` |
 | `rca-tui` | `beagle` TUI/CLI (`cargo run -p beagle --`) | `rca/` |
 | `rca-agentd` | `beagle-agentd` daemon, foreground | `rca/` |
 | `rca-web` | RCA static site (`astro dev`) | `rca/web/` |
-| `agentd` | `agentd` scheduler daemon, foreground | `workflows/` |
-| `agenttop` | `agenttop` TUI | `workflows/` |
-| `agentctl` | `agentctl` CLI | `workflows/` |
+| `agentd` | `agentd` scheduler daemon, foreground | `agent/` |
+| `agenttop` | `agenttop` TUI | `agent/` |
+| `agentctl` | `agentctl` CLI | `agent/` |
 
 Notes:
 - `tandem` and `rca-desktop` both use port 1420; run one at a time.
@@ -62,7 +62,7 @@ Notes:
   release app (see each app's `AGENTS.md`).
 - The daemons use the same state dirs as an installed copy
   (`~/.local/state/agentd`, `~/.local/state/beagle-agent`). Stop the
-  launchd service first (see `workflows/AGENTS.md` / `rca/AGENTS.md`), or
+  launchd service first (see `agent/AGENTS.md` / `rca/AGENTS.md`), or
   point `XDG_STATE_HOME` at a scratch dir, so two daemons never write the
   same store.
 - One-shot CLI calls work too: `make dev APP=rca-tui ARGS="--version"`,
@@ -108,8 +108,8 @@ checks always go through mode `e2e`.
 ```sh
 make test-affected              # cargo tests for what changed vs origin/main (+ dependents)
 make test-affected BASE=HEAD    # only your uncommitted changes
-make e2e-tandem                 # Playwright: e2e-tandem, e2e-rca-desktop, e2e-rca-web, e2e-workflows-desktop
-make check-<app>                # the full CI gate for one app (tandem, rca, workflows, utils)
+make e2e-tandem                 # Playwright: e2e-tandem, e2e-rca-desktop, e2e-rca-web, e2e-agent-desktop
+make check-<app>                # the full CI gate for one app (tandem, rca, agent; check-rust for the root workspace)
 make standards                  # 400-line rule, shared-config drift, CI-script tests
 make check                      # everything CI runs
 ```

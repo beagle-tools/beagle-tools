@@ -224,8 +224,8 @@ jobs:
     secrets: inherit
     with:
       app-dir: workflows
-      project: workflows/desktop
-      cargo-dir: workflows/desktop
+      project: agent/desktop
+      cargo-dir: agent/desktop
       product: Agentdesk
       tag: ${{ needs.plan.outputs.workflows_tag }}
       version: ${{ needs.plan.outputs.workflows_version }}

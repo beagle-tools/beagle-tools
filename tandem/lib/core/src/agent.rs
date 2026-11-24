@@ -2,7 +2,7 @@
 //! and what its runs emit.
 //!
 //! The schema deliberately mirrors the `agentd` manifest format (agentd
-//! lives in this monorepo's `workflows/`): runner / model /
+//! lives in this monorepo's `agent/`): runner / model /
 //! `allowed_tools` / `append_system_prompt` / `env_file`, so specs feel
 //! familiar and could be shared later.
 

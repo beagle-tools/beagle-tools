@@ -213,7 +213,7 @@ accounts; reads use it too, or gh's active account while none is chosen).
 ### The reviewer
 
 Anything that runs these three commands can be the reviewer; the
-example is an agentd job, `workflows/manifests/demo/review-queue.yaml`
+example is an agentd job, `agent/examples/demo/review-queue.yaml`
 (with `review-pr.yaml` and `jobs/review-queue/job-purpose.md`):
 
 1. `tandem-cli claim --out <dir>` takes the oldest queued PR, fetches

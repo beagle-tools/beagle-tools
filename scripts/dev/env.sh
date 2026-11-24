@@ -20,4 +20,4 @@ export PATH
 if command -v pnpm >/dev/null 2>&1; then pnpm=(pnpm); else pnpm=(corepack pnpm); fi
 
 # The pnpm packages (frontends) in the repo.
-FRONTENDS=(tandem rca/desktop rca/web workflows/desktop)
+FRONTENDS=(tandem rca/desktop rca/web agent/desktop)

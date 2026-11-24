@@ -16,8 +16,8 @@ const fail = (msg) => errors.push(msg);
 // .github/workflows/ci.yml, so nothing ships without a gate.
 // "." is the root workspace (every crate but the Tauri shells, docs/LAYOUT.md
 // rule 7); each Tauri shell is its own workspace.
-const RUST_WORKSPACES = [".", "rca/desktop/src-tauri", "tandem/desktop/src-tauri", "workflows/desktop"];
-const FRONTENDS = ["tandem/desktop", "rca/desktop", "rca/web", "workflows/desktop"];
+const RUST_WORKSPACES = [".", "rca/desktop/src-tauri", "tandem/desktop/src-tauri", "agent/desktop"];
+const FRONTENDS = ["tandem/desktop", "rca/desktop", "rca/web", "agent/desktop"];
 const REQUIRED_SCRIPTS = ["format:check", "lint", "typecheck", "test", "build", "e2e"];
 const SKIP_DIRS = new Set([".git", ".claude", "target", "node_modules", "dist", ".astro", "gen"]);
 

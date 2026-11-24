@@ -89,7 +89,7 @@ git switch -c <type>/N-<slug>
 Read, fully, before writing code:
 
 1. Root `AGENTS.md`
-2. The app's `AGENTS.md` (`tandem/`, `rca/`, `workflows/`; `utils/README.md`)
+2. The app's `AGENTS.md` (`tandem/`, `rca/`, `agent/`; `utils/README.md`)
 3. `docs/CODING_STANDARDS.md`
 4. `docs/TESTING.md`
 5. Every file listed under the issue's **Code paths**, plus its tests.

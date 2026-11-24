@@ -14,7 +14,7 @@ the tool.
 
 | Tool | Crate | Where it lives |
 |---|---|---|
-| `agent` | `agentctl` (`agentctl::beagle::run`: the `beagle agent` name and a bare-command default of `top`; agentctl runs `agenttop` as `top` and `agentd` as `daemon run`) | `../workflows/crates/agentctl` (`src/beagle.rs`), over `../workflows/crates/*` — which also build the standalone binaries until they are retired |
+| `agent` | `agentctl` (`agentctl::beagle::run`: the `beagle agent` name and a bare-command default of `top`; agentctl runs `agenttop` as `top` and `agentd` as `daemon run`) | `../agent/tui` (`src/beagle.rs`), over `../agent/{daemon,lib/*}` — which also build the standalone binaries until they are retired |
 | `rca` | `beagle` (renamed `beagle-rca` in `Cargo.toml`), plus `beagle-agentd` for `beagle rca agentd` (routed in `tools.rs`: the daemon depends on rca, so rca can't link it) | `../rca/tui`, `../rca/daemon` — also build the standalone binaries until they are retired |
 | `recap` | `beagle-recap` | `../recap/tui` |
 | `scout` | `beagle-scout` | `../scout/tui` |
@@ -25,7 +25,7 @@ the tool.
 A tool that lives with its own app is a path dependency in the root
 `Cargo.toml`'s `[workspace.dependencies]`. A change to it releases `beagle`
 too ([`../docs/RELEASING.md`](../docs/RELEASING.md)), and its own app's
-gate (`make check-rca`, `make check-tandem`, `make check-workflows`) still
+gate (`make check-rca`, `make check-tandem`, `make check-agent`) still
 applies.
 
 **Daemons are `beagle` too.** Every long-running service is a subcommand,

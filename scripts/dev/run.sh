@@ -16,13 +16,13 @@ source "$(dirname "$0")/env.sh"
 TARGETS="\
 tandem|tauri|tandem/desktop|Tandem desktop app (tauri dev, port 1420)
 rca-desktop|tauri|rca/desktop|Beagle RCA desktop app (tauri dev, port 1420)
-workflows-desktop|tauri|workflows/desktop|Agentdesk desktop app (tauri dev, port 1421)
+agent-desktop|tauri|agent/desktop|Agentdesk desktop app (tauri dev, port 1421)
 rca-tui|cargo:beagle|rca|beagle TUI/CLI (cargo run -p beagle)
 rca-agentd|cargo:beagle-agentd|rca|beagle-agentd daemon, foreground
 rca-web|web|rca/web|RCA static site (astro dev)
-agentd|cargo:agentd|workflows|agentd scheduler daemon, foreground
-agenttop|cargo:agenttop|workflows|agenttop TUI
-agentctl|cargo:agentctl|workflows|agentctl CLI"
+agentd|cargo:agentd|agent|agentd scheduler daemon, foreground
+agenttop|cargo:agenttop|agent|agenttop TUI
+agentctl|cargo:agentctl|agent|agentctl CLI"
 
 usage() {
   echo "usage: scripts/dev/run.sh <target> [--browser] [-- <app args>]"

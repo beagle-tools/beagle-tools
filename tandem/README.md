@@ -137,7 +137,7 @@ tandem-cli app-review --repo acme/widgets --pr 123
 `tandem-cli` (or `beagle tandem`) with no arguments opens a terminal
 review queue. Queue PRs (`beagle tandem add acme/widgets#123`, or `a`
 in the TUI); a reviewer — for example the agentd job in
-`workflows/manifests/demo/review-queue.yaml` — claims each one and has
+`agent/examples/demo/review-queue.yaml` — claims each one and has
 an agent review it into local comments, a summary and a verdict; you
 read the diff, summary and comments in the terminal, post the comments
 you pick and approve, each only after a confirmation. It keeps its own

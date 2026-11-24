@@ -17,7 +17,7 @@ cask "beagle-agentdesk" do
 
   name "Agentdesk"
   desc "Desktop dashboard for agentd runs"
-  homepage "https://github.com/beagle-tools/beagle-tools/tree/main/workflows/desktop"
+  homepage "https://github.com/beagle-tools/beagle-tools/tree/main/agent/desktop"
 
   app "Agentdesk.app"
 

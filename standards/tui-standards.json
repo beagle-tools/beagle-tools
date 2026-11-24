@@ -28,7 +28,7 @@
     "scout/tui": "scout/tui/src/ui/keys_tests.rs",
     "standup/tui": "standup/tui/src/tests/ui_keymap.rs",
     "tandem/lib/queue": "tandem/lib/queue/src/ui/tests.rs",
-    "workflows/crates/agenttop": "workflows/crates/agenttop/src/tests/keymap.rs"
+    "agent/lib/top": "agent/lib/top/src/tests/keymap.rs"
   },
   "not_tuis": {
     "utils/tui": "the shared crate itself",

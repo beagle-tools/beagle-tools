@@ -33,7 +33,7 @@ jobs:
       utils: ${{ steps.filter.outputs.utils }}
       tandem: ${{ steps.filter.outputs.tandem }}
       rca: ${{ steps.filter.outputs.rca }}
-      workflows: ${{ steps.filter.outputs.workflows }}
+      agent: ${{ steps.filter.outputs.agent }}
       beagle: ${{ steps.filter.outputs.beagle }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -66,9 +66,9 @@ jobs:
               - "rca/**"
               - ".claude/skills/**"
               - "skills/**"
-            workflows:
+            agent:
               - *shared
-              - "workflows/**"
+              - "agent/**"
             beagle:
               - *shared
               - "beagle/**"
@@ -86,13 +86,13 @@ jobs:
               - "tandem/lib/github/**"
               - "rca/daemon/**"
               - "rca/lib/agent/**"
-              - "workflows/crates/agent-core/**"
-              - "workflows/crates/agentctl/**"
-              - "workflows/crates/agentd/**"
-              - "workflows/crates/agenttop/**"
-              - "workflows/deploy/**"
-              - "workflows/assets/notify/**"
-              - "workflows/scripts/build-notifier.sh"
+              - "agent/lib/core/**"
+              - "agent/tui/**"
+              - "agent/daemon/**"
+              - "agent/lib/top/**"
+              - "agent/deploy/**"
+              - "agent/assets/notify/**"
+              - "agent/scripts/build-notifier.sh"
               - "skills/beagle/**"
               - "skills/beagle-review/**"
 
@@ -135,7 +135,7 @@ jobs:
     needs: changes
     if: >-
       needs.changes.outputs.utils == 'true' || needs.changes.outputs.tandem == 'true' ||
-      needs.changes.outputs.rca == 'true' || needs.changes.outputs.workflows == 'true' ||
+      needs.changes.outputs.rca == 'true' || needs.changes.outputs.agent == 'true' ||
       needs.changes.outputs.beagle == 'true'
     uses: ./.github/workflows/_rust.yml
     with:
@@ -198,21 +198,21 @@ jobs:
           file: rca/web/Dockerfile
           push: false
 
-  workflows-desktop-rust:
+  agent-desktop-rust:
     needs: changes
-    if: needs.changes.outputs.workflows == 'true'
+    if: needs.changes.outputs.agent == 'true'
     uses: ./.github/workflows/_rust.yml
     with:
       affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
-      dir: workflows/desktop
+      dir: agent/desktop
       tauri: true
 
-  workflows-desktop-frontend:
+  agent-desktop-frontend:
     needs: changes
-    if: needs.changes.outputs.workflows == 'true'
+    if: needs.changes.outputs.agent == 'true'
     uses: ./.github/workflows/_frontend.yml
     with:
-      dir: workflows/desktop
+      dir: agent/desktop
 
   gate:
     name: gate
@@ -227,8 +227,8 @@ jobs:
       - rca-desktop-frontend
       - rca-web
       - rca-web-image
-      - workflows-desktop-rust
-      - workflows-desktop-frontend
+      - agent-desktop-rust
+      - agent-desktop-frontend
     runs-on: ubuntu-latest
     steps:
       - name: every gate that ran is green
