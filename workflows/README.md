@@ -6,7 +6,7 @@ schedules them, runs each one in its own tmux session, and records every run
 in a local SQLite store.
 
 All of it is one command, `beagle agent`, in the unified `beagle` binary
-([`../cli/`](../cli/README.md)):
+([`../beagle/`](../beagle/README.md)):
 
 | Command | What it does |
 |---|---|
@@ -144,7 +144,7 @@ brew install tmux terminal-notifier                     # runs live in tmux; not
 
 ### Direct download
 
-The `beagle` tarballs: [`../cli/README.md`](../cli/README.md). Agentdesk:
+The `beagle` tarballs: [`../beagle/README.md`](../beagle/README.md). Agentdesk:
 every workflows release refreshes the rolling
 [`beagle-workflows-latest`](https://github.com/beagle-tools/beagle-tools/releases/tag/beagle-workflows-latest)
 release, whose assets keep stable names:
@@ -205,7 +205,7 @@ stay).
 
 ```sh
 make install          # cargo install the standalone binaries + restart the daemon
-# or, for the unified command: cargo install --path ../cli/crates/beagle
+# or, for the unified command: cargo install --path ../beagle
 make install-daemon   # first time only: agentctl daemon install (standalone binaries)
 ```
 

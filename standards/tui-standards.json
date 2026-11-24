@@ -32,7 +32,7 @@
   },
   "not_tuis": {
     "utils/tui": "the shared crate itself",
-    "cli/crates/beagle": "uses only the release picker behind `beagle version list`",
-    "cli/crates/serve": "an HTTPS API, no terminal UI"
+    "beagle": "uses only the release picker behind `beagle version list`",
+    "beagle/serve": "an HTTPS API, no terminal UI"
   }
 }

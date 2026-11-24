@@ -11,7 +11,7 @@ NVM_DIR := $(HOME)/.nvm
 NODE_BIN_DIR := $(shell ls -d $(NVM_DIR)/versions/node/*/bin 2>/dev/null | sort -V | tail -1)
 export PATH := $(HOME)/.cargo/bin:$(NODE_BIN_DIR):$(PATH)
 
-.PHONY: help check standards check-rust check-utils check-tandem check-rca check-workflows check-cli
+.PHONY: help check standards check-rust check-utils check-tandem check-rca check-workflows check-beagle
 
 help:
 	@echo "make check            - every gate CI runs (standards + all apps)"
@@ -20,7 +20,7 @@ help:
 	@echo "make check-tandem     - root workspace + tandem's desktop shell + frontend"
 	@echo "make check-rca        - root workspace + rca's desktop shell + frontends (desktop, web)"
 	@echo "make check-workflows  - root workspace + Agentdesk's shell + frontend"
-	@echo "make check-utils / check-cli - same as check-rust (their crates live in it)"
+	@echo "make check-utils / check-beagle - same as check-rust (their crates live in it)"
 	@echo ""
 	@echo "make test-affected [BASE=origin/main] - cargo tests for packages changed since BASE (+ dependents)"
 	@echo "make test-scripts     - unit tests for the CI and release scripts"
@@ -38,7 +38,7 @@ standards:
 	./scripts/check-affiliation.sh;
 	./scripts/check-commit-email.sh;
 	node scripts/check-standards.mjs;
-	node --test scripts/ci/*.test.mjs scripts/release/*.test.mjs cli/scripts/*.test.mjs;
+	node --test scripts/ci/*.test.mjs scripts/release/*.test.mjs beagle/scripts/*.test.mjs;
 
 # One cargo workspace at the root holds every crate except the Tauri shells
 # (docs/LAYOUT.md), so every app's gate starts with it. Make runs a
@@ -46,7 +46,7 @@ standards:
 check-rust:
 	./scripts/ci/rust.sh .;
 
-check-utils check-cli: check-rust
+check-utils check-beagle: check-rust
 
 check-tandem: check-rust
 	./scripts/ci/rust.sh tandem/src-tauri;
@@ -75,7 +75,7 @@ test-affected:
 	done
 
 test-scripts:
-	node --test scripts/ci/*.test.mjs scripts/release/*.test.mjs cli/scripts/*.test.mjs;
+	node --test scripts/ci/*.test.mjs scripts/release/*.test.mjs beagle/scripts/*.test.mjs;
 
 e2e: e2e-tandem e2e-rca-desktop e2e-rca-web e2e-workflows-desktop
 

@@ -34,7 +34,7 @@ jobs:
       tandem: ${{ steps.filter.outputs.tandem }}
       rca: ${{ steps.filter.outputs.rca }}
       workflows: ${{ steps.filter.outputs.workflows }}
-      cli: ${{ steps.filter.outputs.cli }}
+      beagle: ${{ steps.filter.outputs.beagle }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
@@ -69,8 +69,10 @@ jobs:
             workflows:
               - *shared
               - "workflows/**"
-            cli:
+            beagle:
               - *shared
+              - "beagle/**"
+              # Tools that still live in cli/ until they move.
               - "cli/**"
               # Linked into the `beagle` binary or embedded in it (the rca
               # skills); scripts/release/linked.test.mjs checks this list.
@@ -122,7 +124,7 @@ jobs:
         run: ./scripts/check-commit-email.sh
       - run: node scripts/check-standards.mjs
       - name: unit tests for the CI and release scripts
-        run: node --test scripts/ci/*.test.mjs scripts/release/*.test.mjs cli/scripts/*.test.mjs
+        run: node --test scripts/ci/*.test.mjs scripts/release/*.test.mjs beagle/scripts/*.test.mjs
 
   # The root cargo workspace: every crate except the Tauri shells. Runs when
   # any app's paths change; on pull requests, affected.mjs then tests only
@@ -132,7 +134,7 @@ jobs:
     if: >-
       needs.changes.outputs.utils == 'true' || needs.changes.outputs.tandem == 'true' ||
       needs.changes.outputs.rca == 'true' || needs.changes.outputs.workflows == 'true' ||
-      needs.changes.outputs.cli == 'true'
+      needs.changes.outputs.beagle == 'true'
     uses: ./.github/workflows/_rust.yml
     with:
       affected-base: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}

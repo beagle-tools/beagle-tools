@@ -24,7 +24,9 @@ test("app paths release only their app", () => {
     "workflows",
   ]);
   assert.deepEqual(changedApps(["cli/crates/scout/src/lib.rs"]), ["cli"]);
-  assert.deepEqual(changedApps(["cli/crates/beagle/Cargo.toml"]), ["cli"]);
+  // The cli app lives in beagle/ (APPS.cli.dir).
+  assert.deepEqual(changedApps(["beagle/Cargo.toml"]), ["cli"]);
+  assert.deepEqual(changedApps(["beagle/src/main.rs", "beagle/serve/src/lib.rs"]), ["cli"]);
 });
 
 test("shared inputs release every app", () => {
@@ -82,7 +84,7 @@ test("embedded markdown releases the apps that embed it", () => {
   assert.deepEqual(changedApps(["cli/crates/recap/docs/AGENT_GUIDE.md"]), ["cli"]);
   assert.deepEqual(changedApps(["cli/crates/standup/docs/AGENT_GUIDE.md"]), ["cli"]);
   assert.deepEqual(changedApps(["cli/crates/scout/skills/scout/SKILL.md"]), ["cli"]);
-  assert.deepEqual(changedApps(["cli/README.md", "cli/AGENTS.md", "cli/docs/x.txt"]), []);
+  assert.deepEqual(changedApps(["beagle/README.md", "beagle/AGENTS.md", "beagle/docs/x.txt"]), []);
 });
 
 test("repo tooling outside the apps does not release", () => {

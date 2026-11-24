@@ -16,7 +16,7 @@ releases the app if any **release-relevant** path changed:
 | tandem    | `tandem/**`                                                                                                                                                         |
 | rca       | `rca/**`, `skills/beagle/**`, `skills/beagle-review/**` (embedded in the binary)                                                                                    |
 | workflows | `workflows/**`                                                                                                                                                      |
-| cli       | `cli/**`; the crates it links from other apps: `rca/cli/**`, `rca/crates/beagle-agent{,d}/**`, `tandem/crates/tandem-{cli,core,tui,cache,github}/**`, `workflows/crates/{agent-core,agentctl,agentd,agenttop}/**` (plus what agentctl embeds: `workflows/{deploy,assets/notify}/**`, `workflows/scripts/build-notifier.sh`); and the rca skills |
+| cli       | `beagle/**` (its folder), `cli/**` (tools not yet moved); the crates it links from other apps: `rca/cli/**`, `rca/crates/beagle-agent{,d}/**`, `tandem/crates/tandem-{cli,core,tui,cache,github}/**`, `workflows/crates/{agent-core,agentctl,agentd,agenttop}/**` (plus what agentctl embeds: `workflows/{deploy,assets/notify}/**`, `workflows/scripts/build-notifier.sh`); and the rca skills |
 | all four  | `utils/**`, `rust-toolchain.toml`, the root `Cargo.toml` and `Cargo.lock` (the one cargo workspace; compiled into every app)                                          |
 
 `cli` is the unified `beagle` command. It compiles rca's CLI crate and
@@ -48,7 +48,7 @@ app that releases:
 3. Else if the app has no tag yet, the version comes from its version file:
    `tandem/src-tauri/tauri.conf.json`, `rca/cli/Cargo.toml` `[package]`,
    `workflows/crates/agentctl/Cargo.toml` `[package]` or
-   `cli/crates/beagle/Cargo.toml` `[package]`. Crates in the one root cargo
+   `beagle/Cargo.toml` `[package]`. Crates in the one root cargo
    workspace carry their own versions, so each app stamps only its own.
 4. Else the app's highest tag is bumped by the merged PR's label:
 
@@ -152,7 +152,7 @@ Stable URL: `https://github.com/beagle-tools/beagle-tools/releases/download/beag
 ## CLI self-update
 
 The unified `beagle` updates itself with `beagle update` / `beagle version
-list` (`cli/crates/beagle/src/selfupdate/`): it downloads the
+list` (`beagle/src/selfupdate/`): it downloads the
 `beagle-cli-<target>.tar.gz` for a `beagle-cli-vX.Y.Z` tag, verifies its
 `.sha256` and swaps the binary atomically (`beagle_utils::update`). A
 Homebrew install runs `brew upgrade beagle-tools/tap/beagle` instead, and a
@@ -253,7 +253,7 @@ releases and GHCR, through `contents: write` and `packages: write`.
 ## Testing the pipeline locally
 
 ```sh
-make test-scripts    # plan.test.mjs, cli/scripts/set-version.test.mjs and the CI-script tests
+make test-scripts    # plan.test.mjs, beagle/scripts/set-version.test.mjs and the CI-script tests
 node scripts/release/plan.mjs --dry-run --before <sha> --after <sha> [--labels release:minor]
 ```
 

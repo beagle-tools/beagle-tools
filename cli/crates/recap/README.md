@@ -81,7 +81,7 @@ automated_markers = []   # e.g. ["Automated reply"]: hide replies a tool posted 
 ## Develop
 
 ```sh
-make check-cli     # from the repo root: fmt, clippy, tests, docs
+make check-beagle     # from the repo root: fmt, clippy, tests, docs
 ```
 
 Shared TUI pieces (markdown, wrapping, the scrolling pane, widgets) live in

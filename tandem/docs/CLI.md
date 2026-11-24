@@ -54,7 +54,7 @@ cargo build --release -p tandem-cli   # target/release/tandem-cli (repo root)
 ```
 
 Or install the `beagle` command (`brew install beagle-tools/tap/beagle`,
-see `cli/README.md` at the repo root) and use `beagle tandem …`.
+see `beagle/README.md` at the repo root) and use `beagle tandem …`.
 
 ## Commands
 

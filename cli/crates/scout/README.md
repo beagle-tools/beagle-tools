@@ -27,7 +27,7 @@ j/k select · enter read · tab/1-4 tabs · b back · F follow · E edit · ? he
 Scout ships inside the `beagle` binary. From a checkout of this repo:
 
 ```sh
-cargo install --path cli/crates/beagle   # puts `beagle` on your PATH
+cargo install --path beagle   # puts `beagle` on your PATH
 beagle scout skill install               # the /scout and /scout-build skills for Claude Code (+ Codex)
 ```
 
@@ -111,7 +111,7 @@ into.
 Set it up once:
 
 ```sh
-cargo install --path cli/crates/beagle   # the hooks call this binary by its absolute path
+cargo install --path beagle   # the hooks call this binary by its absolute path
 beagle scout hook install                # adds scout's hooks to ~/.claude/settings.json (backup kept)
 ```
 
@@ -350,6 +350,6 @@ vanishing. A file that fails to load is skipped (the status bar counts them;
 ## Development
 
 See [AGENTS.md](AGENTS.md) for the module layout and the rules for working
-on scout. From the repo root, `make check-cli` runs exactly what CI runs:
+on scout. From the repo root, `make check-beagle` runs exactly what CI runs:
 `cargo fmt --check`, pedantic `cargo clippy --all-targets -D warnings`,
 `cargo test`, and `cargo doc` with warnings denied.

@@ -1,6 +1,6 @@
 # AGENTS.md — scout (`beagle scout`)
 
-Read [`../../AGENTS.md`](../../AGENTS.md) (the cli tool contract) and
+Read [`../../../beagle/AGENTS.md`](../../../beagle/AGENTS.md) (the beagle tool contract) and
 [`../../../docs/CODING_STANDARDS.md`](../../../docs/CODING_STANDARDS.md) first.
 
 `beagle-scout` is a library crate behind `beagle scout`: a TUI + CLI that

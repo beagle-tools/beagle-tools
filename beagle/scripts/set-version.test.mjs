@@ -1,6 +1,6 @@
 // node:test suite for set-version.mjs. Runs against a temp copy of the real
 // version files, so a manifest change that moves a version location breaks
-// this test rather than a release. Run: node --test cli/scripts/
+// this test rather than a release. Run: node --test beagle/scripts/
 // (`make test-scripts` and the CI standards job run it).
 
 import assert from "node:assert/strict";
@@ -14,10 +14,10 @@ import { memberManifests, packageName, setVersion, stampLock, stampTomlTable } f
 
 const appDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** A temp repo root: cli's crate manifests under `cli/`, the root Cargo.lock beside it. */
+/** A temp repo root: the CRATES' manifests at their real relative paths, plus the root Cargo.lock. */
 function tempCopy() {
-  const root = mkdtempSync(join(tmpdir(), "cli-set-version-"));
-  const dir = join(root, "cli");
+  const root = mkdtempSync(join(tmpdir(), "beagle-set-version-"));
+  const dir = join(root, "beagle");
   for (const rel of memberManifests(appDir).map((p) => relative(appDir, p))) {
     cpSync(join(appDir, rel), join(dir, rel), { recursive: true });
   }
@@ -59,7 +59,7 @@ test("rejects anything that is not X.Y.Z", () => {
 
 test("fails loudly, and writes nothing, when a crate lost its version", () => {
   const dir = tempCopy();
-  const path = join(dir, "crates/beagle/Cargo.toml");
+  const path = join(dir, "Cargo.toml");
   const lockBefore = readFileSync(join(dir, "../Cargo.lock"), "utf8");
   writeFileSync(path, readFileSync(path, "utf8").replace(/^version = .*$/m, ""));
   assert.throws(() => setVersion(dir, "1.0.0"), /no \[package\] version/);

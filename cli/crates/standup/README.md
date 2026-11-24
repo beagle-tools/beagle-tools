@@ -68,7 +68,7 @@ report · `o` open the ticket · `p` open its PRs · `w` resize the list (←/�
 ## Develop
 
 ```sh
-make check-cli     # from the repo root: fmt, clippy, tests, docs
+make check-beagle     # from the repo root: fmt, clippy, tests, docs
 ```
 
 Shared TUI pieces (markdown, wrapping, the scrolling pane, widgets) live in

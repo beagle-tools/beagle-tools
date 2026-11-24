@@ -9,7 +9,8 @@ change code in an app.
 | `tandem/` | Tandem: Tauri desktop app for reviewing GitHub PRs alongside coding agents | `tandem/AGENTS.md` |
 | `rca/` | Beagle: RCA workspaces, with a TUI/CLI (`cli/`), an agent daemon (`crates/`), a desktop app (`desktop/`) and a static site (`web/`) | `rca/AGENTS.md` |
 | `workflows/` | agentd: a scheduled agent-job daemon with CLIs/TUI (`crates/`) and the Agentdesk desktop app (`desktop/`) | `workflows/AGENTS.md` |
-| `cli/` | The single `beagle` command: one library crate per tool, linked into one binary | `cli/AGENTS.md` |
+| `beagle/` | The single `beagle` command (help, update, doctor, setup), linking every tool into one binary; `beagle/serve/` is `beagle serve` | `beagle/AGENTS.md` |
+| `cli/` | Tools not yet in their own folder (`crates/scout`, `crates/recap`, `crates/standup`, `crates/agent`); they move out per `docs/LAYOUT.md` | `beagle/AGENTS.md` |
 | `utils/` | `beagle-utils`: Rust helpers shared by two or more apps | `utils/README.md` |
 | `standards/`, `scripts/`, root configs | Shared lint, format, compiler and CI configuration | `docs/CODING_STANDARDS.md` |
 | `skills/` | Agent skills: `beagle-create-issue`, `beagle-complete-issue`, and rca's `beagle` / `beagle-review` (embedded into `beagle`, served by `beagle rca skill install`). `.claude/skills/*` symlink here | `skills/README.md` |
@@ -84,7 +85,7 @@ The scripts behind these:
 ## Cargo workspaces and frontends (all gated in CI)
 
 - **Rust:**
-  - `.` (the root `Cargo.toml`): `utils`, `cli/crates/*`, `rca/cli`,
+  - `.` (the root `Cargo.toml`): `utils`, `beagle`, `beagle/serve`, `cli/crates/*`, `rca/cli`,
     `rca/crates/*`, `tandem/crates/*`, `workflows/crates/*`
   - `tandem/src-tauri`
   - `rca/desktop/src-tauri`

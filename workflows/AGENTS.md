@@ -41,7 +41,7 @@ Four tools share one state store:
 
 The three crates are **library entry points** (`run_as(program, args)`),
 linked into the unified `beagle` command by `../cli/crates/agent` as
-`beagle agent …` ([`../cli/AGENTS.md`](../cli/AGENTS.md)):
+`beagle agent …` ([`../beagle/AGENTS.md`](../beagle/AGENTS.md)):
 
 - agentctl owns the surface. `top` runs agenttop and `daemon run` runs
   agentd, so `beagle agent` alone covers CLI, TUI and daemon (bare

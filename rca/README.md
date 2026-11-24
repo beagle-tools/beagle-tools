@@ -74,8 +74,8 @@ brew install --cask beagle-tools/tap/beagle-rca-desktop    # the desktop app (ma
 
 or a `beagle-cli-<target>.tar.gz` from the
 [`beagle-cli-latest`](https://github.com/beagle-tools/beagle-tools/releases/tag/beagle-cli-latest)
-release, or `cargo install --locked --path cli/crates/beagle` from a checkout
-(see [`../cli/README.md`](../cli/README.md)). `beagle update` keeps it current.
+release, or `cargo install --locked --path beagle` from a checkout
+(see [`../beagle/README.md`](../beagle/README.md)). `beagle update` keeps it current.
 
 The agent daemon ships inside `beagle` too: `beagle rca agentd run` (or
 `once`), installed as a login service with `beagle rca agent install`. The
@@ -162,7 +162,7 @@ command = ["codex", "exec"] # argv; the prompt + write-up go to its stdin
 prompt = "~/.config/beagle/handoff-prompt.md"
 ```
 
-Updating is `beagle update` (see [`../cli/README.md`](../cli/README.md)):
+Updating is `beagle update` (see [`../beagle/README.md`](../beagle/README.md)):
 it replaces the whole `beagle` binary, so `beagle rca update` and
 `beagle rca version list` only point you there. The standalone rca binary
 still updates itself: its `beagle update` downloads
