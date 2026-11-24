@@ -5,7 +5,8 @@ Read [`../AGENTS.md`](../AGENTS.md) and
 
 ## What it is
 
-One cargo workspace that builds the single `beagle` binary — the one
+The crates (members of the repo-root cargo workspace) that build the
+single `beagle` binary — the one
 binary users install (`brew install beagle-tools/tap/beagle`, see
 [`README.md`](README.md)). Each tool is a library crate; `crates/beagle`
 (package `beagle-cli`) links them all and dispatches `beagle <tool> …` to
@@ -21,10 +22,10 @@ the tool.
 | `standup` | `beagle-standup` | `crates/standup` |
 | `tandem` | `tandem-cli` (linked through `run_as("beagle tandem", …)`) | `../tandem/crates/tandem-cli` — also ships inside the Tandem app |
 
-A tool that lives with its own app is a path dependency in the workspace
-`Cargo.toml`. A change to it releases `beagle` too
-([`../docs/RELEASING.md`](../docs/RELEASING.md)), and its own gate
-(`make check-rca`, `make check-tandem`, `make check-workflows`) still
+A tool that lives with its own app is a path dependency in the root
+`Cargo.toml`'s `[workspace.dependencies]`. A change to it releases `beagle`
+too ([`../docs/RELEASING.md`](../docs/RELEASING.md)), and its own app's
+gate (`make check-rca`, `make check-tandem`, `make check-workflows`) still
 applies.
 
 **Daemons are `beagle` too.** Every long-running service is a subcommand,
@@ -107,7 +108,8 @@ cargo run -p beagle-cli -- rca list --root ../rca
 ## Releases
 
 `beagle` releases as `beagle-cli-vX.Y.Z` (tarball `beagle-cli-<target>.tar.gz`
-holding `beagle`; formula `beagle`). The version is `[workspace.package]`
-in `Cargo.toml`; CI stamps it with `scripts/set-version.mjs` (tested by
+holding `beagle`; formula `beagle`). The version is each
+`crates/*/Cargo.toml`'s `[package] version`; CI stamps them (and their
+root `Cargo.lock` entries) with `scripts/set-version.mjs` (tested by
 `scripts/set-version.test.mjs`, run by `make test-scripts`) and never
 commits the result. See [`../docs/RELEASING.md`](../docs/RELEASING.md).

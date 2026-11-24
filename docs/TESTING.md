@@ -238,7 +238,8 @@ make e2e-tandem                       # Playwright for one frontend (also e2e-rc
 make test-scripts                     # the selection logic's own tests
 ```
 
-Narrower, inside a workspace dir (`cd rca`, `cd tandem`, …):
+Narrower, from anywhere in the root workspace (the repo root, `cd rca`, …;
+for a Tauri shell, `cd` into it first):
 
 ```sh
 cargo test -p beagle                          # one crate

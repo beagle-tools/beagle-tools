@@ -128,9 +128,11 @@ jobs:
           (cd "${{ inputs.extra-cargo-dir }}" && \
             cargo build --release --locked --target "${{ matrix.target }}" "${args[@]}")
           dest="${{ inputs.cargo-dir }}/target/${{ matrix.target }}/release"
-          for bin in $EXTRA_BINS; do
-            cp "${{ inputs.extra-cargo-dir }}/target/${{ matrix.target }}/release/$bin" "$dest/"
-          done
+          src="${{ inputs.extra-cargo-dir }}/target/${{ matrix.target }}/release"
+          # Same workspace (the root one): the binaries are already in place.
+          if [ ! "$src" -ef "$dest" ]; then
+            for bin in $EXTRA_BINS; do cp "$src/$bin" "$dest/"; done
+          fi
 
       - name: package
         env:

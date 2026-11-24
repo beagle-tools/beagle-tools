@@ -6,7 +6,7 @@
 #   scripts/release/package-cli.sh <prefix> <target> <bin-dir> <out-dir> <bin>...
 #
 # e.g. package-cli.sh beagle-rca aarch64-apple-darwin \
-#        rca/target/aarch64-apple-darwin/release dist beagle beagle-agentd
+#        target/aarch64-apple-darwin/release dist beagle beagle-agentd
 set -euo pipefail
 
 prefix=${1:?usage: package-cli.sh <prefix> <target> <bin-dir> <out-dir> <bin>...}

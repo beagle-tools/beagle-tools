@@ -23,6 +23,6 @@ toml = "0.8"
 tempfile = "3"
 
 # Lints and the release profile are defined once at the workspace root
-# (../Cargo.toml) and inherited here.
+# (../../Cargo.toml, the repo root) and inherited here.
 [lints]
 workspace = true

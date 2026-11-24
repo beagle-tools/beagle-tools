@@ -19,10 +19,10 @@ const MANIFESTS = [
   "crates/beagle-agentd/Cargo.toml",
   "desktop/src-tauri/Cargo.toml",
 ];
-const LOCKS = ["Cargo.lock", "desktop/src-tauri/Cargo.lock"];
+const LOCKS = ["../Cargo.lock", "desktop/src-tauri/Cargo.lock"];
 const FILES = [...JSON_FILES, ...MANIFESTS, ...LOCKS];
 const CRATES = {
-  "Cargo.lock": ["beagle", "beagle-agent", "beagle-agentd"],
+  "../Cargo.lock": ["beagle", "beagle-agent", "beagle-agentd"],
   "desktop/src-tauri/Cargo.lock": ["beagle", "beagle-desktop"],
 };
 
@@ -31,9 +31,11 @@ after(() => {
   for (const dir of temps) rmSync(dir, { recursive: true, force: true });
 });
 
+/** A temp repo root holding rca's version files under `app/`. */
 function copyApp() {
-  const dir = mkdtempSync(join(tmpdir(), "rca-set-version-"));
-  temps.push(dir);
+  const root = mkdtempSync(join(tmpdir(), "rca-set-version-"));
+  temps.push(root);
+  const dir = join(root, "app");
   for (const file of FILES) {
     mkdirSync(dirname(join(dir, file)), { recursive: true });
     cpSync(join(appDir, file), join(dir, file));

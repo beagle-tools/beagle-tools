@@ -96,7 +96,10 @@ jobs:
     with:
       app-dir: tandem
       project: tandem
-      cargo-dir: tandem
+      # The shell is its own workspace; tandem-cli (the sidecar) is built in the
+      # root workspace.
+      cargo-dir: tandem/src-tauri
+      sidecar-cargo-dir: .
       product: Tandem
       # tandem-cli rides inside the app; the beagle-tandem cask links it.
       sidecar-package: tandem-cli
@@ -126,7 +129,7 @@ jobs:
     uses: ./.github/workflows/_release-cli.yml
     with:
       app-dir: rca
-      cargo-dir: rca
+      cargo-dir: .
       packages: beagle beagle-agentd
       bins: beagle beagle-agentd
       asset-prefix: beagle-rca
@@ -204,7 +207,7 @@ jobs:
     uses: ./.github/workflows/_release-cli.yml
     with:
       app-dir: workflows
-      cargo-dir: workflows
+      cargo-dir: .
       packages: agentd agentctl agenttop
       bins: agentd agentctl agenttop
       asset-prefix: beagle-workflows
@@ -242,20 +245,21 @@ jobs:
 
   # ---- cli (the unified `beagle` command) -----------------------------------
   # Links rca/cli (and rca's daemon), tandem-cli and the workflows crates
-  # in, so it also releases when
-  # those change (scripts/release/lib.mjs).
+  # in, so it also releases when those change (scripts/release/lib.mjs).
+  # Everything builds in the root workspace, so beagle-agentd lands in the
+  # same target/ as beagle.
   cli-build:
     needs: plan
     if: needs.plan.outputs.cli == 'true'
     uses: ./.github/workflows/_release-cli.yml
     with:
       app-dir: cli
-      cargo-dir: cli
+      cargo-dir: .
       packages: beagle-cli
       bins: beagle
       # rca's remediation daemon ships with beagle (`beagle rca agent install`).
       extra-app-dir: rca
-      extra-cargo-dir: rca
+      extra-cargo-dir: .
       extra-packages: beagle-agentd
       extra-bins: beagle-agentd
       asset-prefix: beagle-cli

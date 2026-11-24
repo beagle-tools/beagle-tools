@@ -42,3 +42,59 @@ tauri-plugin-window-state = "2"
 
 [lints]
 workspace = true
+
+# Its own workspace root (docs/LAYOUT.md, rule 7): built by the Tauri
+# toolchain with its own Cargo.lock, separate from the repo-root workspace
+# (which excludes it). tandem's crates come in as path dependencies.
+[workspace]
+members = ["."]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+license = "Apache-2.0"
+
+[workspace.dependencies]
+tandem-core = { path = "../crates/tandem-core" }
+tandem-github = { path = "../crates/tandem-github" }
+tandem-cache = { path = "../crates/tandem-cache" }
+tandem-agents = { path = "../crates/tandem-agents" }
+beagle-utils = { path = "../../utils" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "process", "sync", "io-util", "time", "fs"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+tracing = "0.1"
+dirs = "5"
+
+# Copied verbatim from ../../standards/cargo-lints.toml (drift-checked).
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+dbg_macro = "deny"
+large_enum_variant = "warn"
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+
+# Tauri recommends these for smaller bundles; profiles must live at the
+# workspace root or cargo ignores them.
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

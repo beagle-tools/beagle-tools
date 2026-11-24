@@ -187,10 +187,12 @@ merge to `main` touches release-relevant paths: `tandem/**` except
   release uses the current version-file value.
 - **Versions are stamped in CI only.**
   `node scripts/set-version.mjs X.Y.Z`, run from `tandem/`, stamps
-  `package.json`, `src-tauri/tauri.conf.json`, `Cargo.toml`'s
-  `[workspace.package] version`, and the workspace members' `Cargo.lock`
-  entries, so `--locked` builds still work. Never commit the stamped
-  files.
+  `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`'s
+  `[workspace.package] version` (the shell is its own cargo workspace),
+  each `crates/*/Cargo.toml` `[package] version` (members of the repo-root
+  workspace), and their entries in the root `Cargo.lock` and
+  `src-tauri/Cargo.lock`, so `--locked` builds still work. Never commit the
+  stamped files.
 - **The mirror.** Each release refreshes the rolling
   `beagle-tandem-latest` release, which holds the stable-named installers
   (`Tandem-macos-arm64.dmg`, `Tandem-macos-x64.dmg`,

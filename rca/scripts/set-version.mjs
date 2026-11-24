@@ -2,7 +2,8 @@
 // CLI, its crates, the desktop app and the web app all ship as one version:
 //   cli/Cargo.toml, crates/*/Cargo.toml, desktop/src-tauri/Cargo.toml,
 //   desktop/src-tauri/tauri.conf.json, desktop/package.json, web/package.json,
-//   and those crates' entries in Cargo.lock + desktop/src-tauri/Cargo.lock
+//   and those crates' entries in the repo-root ../Cargo.lock +
+//   desktop/src-tauri/Cargo.lock
 //   (so `cargo build --locked` keeps working).
 //
 // Run from rca/ by release CI only; the result is never committed.
@@ -22,7 +23,7 @@ const crateDirs = readdirSync("crates", { withFileTypes: true })
   .map((entry) => join("crates", entry.name))
   .sort();
 const MANIFESTS = ["cli", ...crateDirs, "desktop/src-tauri"].map((dir) => join(dir, "Cargo.toml"));
-const LOCKS = ["Cargo.lock", "desktop/src-tauri/Cargo.lock"];
+const LOCKS = ["../Cargo.lock", "desktop/src-tauri/Cargo.lock"];
 
 /** Replace exactly one match of `pattern` in `text`, or fail loudly. */
 function replaceOne(path, text, pattern, replacement) {

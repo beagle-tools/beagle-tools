@@ -66,6 +66,14 @@ describe("fullWorkspaceReason", () => {
     assert.equal(fullWorkspaceReason(["rca/cli/Cargo.toml"], "rca"), null);
   });
 
+  test("the repo-root workspace (`.`) uses the root manifest and lockfile", () => {
+    for (const file of ["Cargo.toml", "Cargo.lock", ".cargo/config.toml"]) {
+      assert.notEqual(fullWorkspaceReason([file], "."), null, file);
+    }
+    assert.equal(fullWorkspaceReason(["rca/cli/Cargo.toml"], "."), null);
+    assert.equal(fullWorkspaceReason(["tandem/src-tauri/Cargo.lock"], "."), null);
+  });
+
   test("release workflows do not force a full run", () => {
     assert.equal(fullWorkspaceReason([".github/workflows/release.yml"], "rca"), null);
   });

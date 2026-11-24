@@ -14,6 +14,8 @@ NVM_DIR := $(HOME)/.nvm
 NODE_BIN_DIR := $(shell ls -d $(NVM_DIR)/versions/node/*/bin 2>/dev/null | sort -V | tail -1)
 export PATH := $(HOME)/.cargo/bin:$(NODE_BIN_DIR):$(PATH)
 PNPM := corepack pnpm
+# tandem's crates live in the repo-root cargo workspace; src-tauri is its own.
+CRATES := -p tandem-core -p tandem-github -p tandem-cache -p tandem-agents -p tandem-cli -p tandem-tui
 
 .PHONY: help install dev dev-bg fmt lint test build check clean
 
@@ -41,15 +43,18 @@ dev-bg:
 	nohup $(PNPM) tauri dev > .tandem-dev.log 2>&1 & echo "started — tail -f .tandem-dev.log";
 
 fmt:
-	cargo fmt --all;
+	cargo fmt $(CRATES);
+	cd src-tauri && cargo fmt --all;
 	$(PNPM) format;
 
 lint:
-	cargo clippy --workspace --all-targets --all-features -- -D warnings;
+	cargo clippy $(CRATES) --all-targets --all-features -- -D warnings;
+	cd src-tauri && cargo clippy --workspace --all-targets --all-features -- -D warnings;
 	$(PNPM) lint;
 
 test:
-	cargo test --workspace;
+	cargo test $(CRATES);
+	cd src-tauri && cargo test --workspace;
 	$(PNPM) test;
 
 build:

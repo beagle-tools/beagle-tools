@@ -123,7 +123,7 @@ verify that by running it before applying the fix when practical.
 From the repo root:
 
 ```sh
-cargo fmt --all            # in each touched cargo workspace
+cargo fmt --all            # at the root, and in each touched Tauri shell
 corepack pnpm format       # in each touched frontend
 make check-<app>           # exactly what CI runs for the app (incl. e2e)
 make standards

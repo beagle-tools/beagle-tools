@@ -16,8 +16,8 @@ releases the app if any **release-relevant** path changed:
 | tandem    | `tandem/**`                                                                                                                                                         |
 | rca       | `rca/**`, `skills/beagle/**`, `skills/beagle-review/**` (embedded in the binary)                                                                                    |
 | workflows | `workflows/**`                                                                                                                                                      |
-| cli       | `cli/**`; the crates it links from other apps: `rca/cli/**`, `rca/crates/beagle-agent{,d}/**`, `rca/Cargo.toml`, `tandem/crates/tandem-{cli,core,tui,cache,github}/**`, `tandem/Cargo.toml`, `workflows/crates/{agent-core,agentctl,agentd,agenttop}/**` (plus what agentctl embeds: `workflows/{deploy,assets/notify}/**`, `workflows/scripts/build-notifier.sh`, `workflows/Cargo.toml`); and the rca skills |
-| all four  | `utils/**`, `rust-toolchain.toml` (compiled into every app)                                                                                                         |
+| cli       | `cli/**`; the crates it links from other apps: `rca/cli/**`, `rca/crates/beagle-agent{,d}/**`, `tandem/crates/tandem-{cli,core,tui,cache,github}/**`, `workflows/crates/{agent-core,agentctl,agentd,agenttop}/**` (plus what agentctl embeds: `workflows/{deploy,assets/notify}/**`, `workflows/scripts/build-notifier.sh`); and the rca skills |
+| all four  | `utils/**`, `rust-toolchain.toml`, the root `Cargo.toml` and `Cargo.lock` (the one cargo workspace; compiled into every app)                                          |
 
 `cli` is the unified `beagle` command. It compiles rca's CLI crate and
 `tandem-cli` in, plus rca's daemon (`beagle rca agentd`) and the agentd stack (`beagle agent`), so a change there releases both that app and `cli`.
@@ -47,8 +47,9 @@ app that releases:
    it is skipped. The newer push's run releases it.
 3. Else if the app has no tag yet, the version comes from its version file:
    `tandem/src-tauri/tauri.conf.json`, `rca/cli/Cargo.toml` `[package]`,
-   `workflows/Cargo.toml` `[workspace.package]` or `cli/Cargo.toml`
-   `[workspace.package]`.
+   `workflows/crates/agentctl/Cargo.toml` `[package]` or
+   `cli/crates/beagle/Cargo.toml` `[package]`. Crates in the one root cargo
+   workspace carry their own versions, so each app stamps only its own.
 4. Else the app's highest tag is bumped by the merged PR's label:
 
 | PR label                  | Bump              |

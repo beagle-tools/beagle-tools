@@ -1,4 +1,4 @@
-# Agentdesk is its own cargo workspace, separate from ../Cargo.toml: it pulls
+# Agentdesk is its own cargo workspace, separate from the repo-root one: it pulls
 # in Tauri and a node toolchain, which the daemon/CLI crates should not need
 # to build or test. CI gates both (see `make check-workflows` at repo root).
 [workspace]

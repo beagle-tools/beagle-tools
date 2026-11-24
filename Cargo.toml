@@ -1,0 +1,111 @@
+# The one Cargo workspace for every Rust crate in the repo (docs/LAYOUT.md,
+# rule 7): one `Cargo.lock`, one `target/`, one gate (`scripts/ci/rust.sh .`).
+#
+# The Tauri desktop shells are excluded: each is built by the Tauri/Vite
+# toolchain with its own workspace and lockfile, and path-depends on the
+# crates here.
+#
+# Versions are per crate, not `[workspace.package]`: each app releases on its
+# own version (scripts/release/lib.mjs), and its `scripts/set-version.mjs`
+# stamps only its own crates.
+[workspace]
+resolver = "2"
+members = [
+  "utils",
+  "utils/tui",
+  # The `beagle` command and the tools that live in it.
+  "cli/crates/*",
+  # rca: the `beagle` (rca) crate, its agent engine and daemon.
+  "rca/cli",
+  "rca/crates/*",
+  # tandem: the core libraries, the review TUI and tandem-cli.
+  "tandem/crates/*",
+  # `beagle agent`: the agentd stack.
+  "workflows/crates/*",
+]
+exclude = ["rca/desktop", "tandem/src-tauri", "workflows/desktop"]
+
+[workspace.package]
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/beagle-tools/beagle-tools"
+
+[workspace.dependencies]
+# ---- local crates ----
+beagle-utils = { path = "utils" }
+beagle-tui = { path = "utils/tui" }
+beagle-agent-tool = { path = "cli/crates/agent" }
+beagle-recap = { path = "cli/crates/recap" }
+beagle-scout = { path = "cli/crates/scout" }
+beagle-serve = { path = "cli/crates/serve" }
+beagle-standup = { path = "cli/crates/standup" }
+# rca's crate is named `beagle`, so it is renamed here to say which tool it is.
+beagle-rca = { package = "beagle", path = "rca/cli" }
+# rca's daemon, run as `beagle rca agentd run`.
+beagle-agentd = { path = "rca/crates/beagle-agentd" }
+tandem-core = { path = "tandem/crates/tandem-core" }
+tandem-github = { path = "tandem/crates/tandem-github" }
+tandem-cache = { path = "tandem/crates/tandem-cache" }
+tandem-agents = { path = "tandem/crates/tandem-agents" }
+tandem-tui = { path = "tandem/crates/tandem-tui" }
+tandem-cli = { path = "tandem/crates/tandem-cli" }
+# The agentd stack, run as `beagle agent`; agentctl links agenttop and agentd.
+agent-core = { path = "workflows/crates/agent-core" }
+agentd = { path = "workflows/crates/agentd" }
+agentctl = { path = "workflows/crates/agentctl" }
+agenttop = { path = "workflows/crates/agenttop" }
+
+# ---- registry crates ----
+anyhow = "1"
+base64 = "0.22"
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4", features = ["derive", "string"] }
+cron = "0.12"
+crossterm = "0.28"
+dirs = "5"
+notify = "7"
+ratatui = { version = "0.29", features = ["unstable-rendered-line-info"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+# Crates that need key order kept (`beagle scout hook install` rewrites
+# ~/.claude/settings.json) add `features = ["preserve_order"]` themselves.
+serde_json = "1"
+serde_yaml = "0.9"
+tempfile = "3"
+thiserror = "2"
+time = { version = "0.3", features = ["formatting", "macros", "parsing", "serde-well-known"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "process", "sync", "io-util", "time", "fs"] }
+toml = "0.8"
+tracing = "0.1"
+unicode-width = "0.2"
+uuid = { version = "1", features = ["v4"] }
+
+# Shared lint profile for every member, copied verbatim from
+# standards/cargo-lints.toml (scripts/check-standards.mjs checks it).
+# Members opt in with `[lints] workspace = true`.
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+dbg_macro = "deny"
+large_enum_variant = "warn"
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+
+# Release profile for every binary built here (Cargo ignores `[profile.*]`
+# outside the workspace root). The Tauri shells set their own.
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

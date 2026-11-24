@@ -1,11 +1,13 @@
 // Stamp a release version into every place Tandem records one:
-//   package.json, src-tauri/tauri.conf.json, Cargo.toml's
-//   [workspace.package] version, and the workspace members' entries in
-//   Cargo.lock (so `cargo build --locked` keeps working).
+//   package.json, src-tauri/tauri.conf.json, src-tauri/Cargo.toml's
+//   [workspace.package] version (the desktop shell's own workspace), each
+//   crates/*/Cargo.toml [package] version, and those crates' entries in the
+//   repo-root Cargo.lock and src-tauri/Cargo.lock (so `cargo build --locked`
+//   keeps working).
 //
 // Run from tandem/ by release CI only; the result is never committed.
 //   node scripts/set-version.mjs 0.1.4
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const version = process.argv[2];
@@ -14,14 +16,21 @@ if (!version || !/^\d+\.\d+\.\d+$/.test(version)) {
   process.exit(1);
 }
 
-/** Replace exactly one match of `pattern` in `path`, or fail loudly. */
-function stamp(path, pattern, replacement) {
-  const text = readFileSync(path, "utf8");
+const SHELL = "src-tauri/Cargo.toml";
+// The repo-root workspace holds the crates; the shell keeps its own lock.
+const LOCKS = ["../Cargo.lock", "src-tauri/Cargo.lock"];
+const CRATE_MANIFESTS = readdirSync("crates", { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && existsSync(join("crates", entry.name, "Cargo.toml")))
+  .map((entry) => join("crates", entry.name, "Cargo.toml"))
+  .sort();
+
+/** Replace exactly one match of `pattern` in `text`, or fail loudly. */
+function replaceOne(path, text, pattern, replacement) {
   const matches = text.match(new RegExp(pattern.source, pattern.flags + "g"));
   if (matches?.length !== 1) {
     throw new Error(`${path}: expected one version to stamp, found ${matches?.length ?? 0}`);
   }
-  writeFileSync(path, text.replace(pattern, replacement));
+  return text.replace(pattern, replacement);
 }
 
 /** The `[section]` body of a TOML file: from its header to the next header. */
@@ -34,41 +43,54 @@ function section(text, header) {
   return end < 0 ? rest : rest.slice(0, end);
 }
 
+/** Stamp `version = "…"` inside one table of a manifest. */
+function stampTable(path, text, header) {
+  const body = section(text, header);
+  if (body === null) throw new Error(`${path}: no ${header} table`);
+  const stamped = replaceOne(path, body, /^version = "[^"]*"$/m, `version = "${version}"`);
+  return text.replace(body, stamped);
+}
+
+// Validate and compute everything first so a failure leaves no file half-stamped.
+const writes = new Map();
+
 // JSON: rewrite the top-level "version" in place so formatting survives.
 for (const path of ["package.json", "src-tauri/tauri.conf.json"]) {
-  stamp(path, /^ {2}"version": "[^"]*"/m, `  "version": "${version}"`);
-  if (JSON.parse(readFileSync(path, "utf8")).version !== version) {
-    throw new Error(`${path}: top-level version was not stamped`);
+  const text = replaceOne(path, readFileSync(path, "utf8"), /^ {2}"version": "[^"]*"/m, `  "version": "${version}"`);
+  if (JSON.parse(text).version !== version) throw new Error(`${path}: top-level version was not stamped`);
+  writes.set(path, text);
+}
+
+// The shell's [workspace.package] version, inherited by the `tandem` package.
+const shell = readFileSync(SHELL, "utf8");
+writes.set(SHELL, stampTable(SHELL, shell, "[workspace.package]"));
+const names = ["tandem"];
+
+// Each crate's own [package] version.
+for (const path of CRATE_MANIFESTS) {
+  const text = readFileSync(path, "utf8");
+  const name = /^name = "([^"]+)"$/m.exec(section(text, "[package]") ?? "")?.[1];
+  if (!name) throw new Error(`${path}: no [package] name`);
+  writes.set(path, stampTable(path, text, "[package]"));
+  names.push(name);
+}
+
+// Lockfiles: every tandem crate each one records.
+for (const path of LOCKS) {
+  let lock = readFileSync(path, "utf8");
+  let found = 0;
+  for (const name of names) {
+    const escaped = name.replace(/[-.]/g, "\\$&");
+    const pattern = new RegExp(`^(\\[\\[package\\]\\]\\nname = "${escaped}"\\nversion = )"[^"]*"$`, "m");
+    if (!pattern.test(lock)) continue;
+    lock = replaceOne(path, lock, pattern, `$1"${version}"`);
+    found += 1;
   }
+  if (found === 0) throw new Error(`${path}: no tandem crates to stamp`);
+  writes.set(path, lock);
+}
+
+for (const [path, text] of writes) {
+  writeFileSync(path, text);
   console.log(`${path} -> ${version}`);
-}
-
-// Cargo.toml: [workspace.package] version, inherited by every member.
-const manifest = readFileSync("Cargo.toml", "utf8");
-const pkgSection = section(manifest, "[workspace.package]");
-if (pkgSection === null || !/^version = "[^"]*"$/m.test(pkgSection)) {
-  throw new Error("Cargo.toml: no [workspace.package] version to stamp");
-}
-const stampedSection = pkgSection.replace(/^version = "[^"]*"$/m, `version = "${version}"`);
-writeFileSync("Cargo.toml", manifest.replace(pkgSection, stampedSection));
-console.log(`Cargo.toml [workspace.package] -> ${version}`);
-
-// Cargo.lock: the members that inherit the workspace version.
-const membersBlock = /^members = \[([^\]]*)\]/m.exec(manifest);
-if (!membersBlock) throw new Error("Cargo.toml: no [workspace] members list");
-const members = [...membersBlock[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
-const crateNames = members.flatMap((dir) => {
-  const toml = readFileSync(join(dir, "Cargo.toml"), "utf8");
-  const pkg = section(toml, "[package]") ?? "";
-  const name = /^name = "([^"]+)"/m.exec(pkg)?.[1];
-  return name && /^version\.workspace = true/m.test(pkg) ? [name] : [];
-});
-for (const name of crateNames) {
-  const escaped = name.replace(/[-.]/g, "\\$&");
-  stamp(
-    "Cargo.lock",
-    new RegExp(`^(\\[\\[package\\]\\]\\nname = "${escaped}"\\nversion = )"[^"]*"$`, "m"),
-    `$1"${version}"`,
-  );
-  console.log(`Cargo.lock ${name} -> ${version}`);
 }

@@ -1,20 +1,23 @@
+# The crates live in the repo-root cargo workspace; desktop/ is its own.
+CRATES := -p agent-core -p agentd -p agentctl -p agenttop
+
 .PHONY: build check fmt clippy test install install-daemon restart-daemon clean
 
 build:
-	cargo build --workspace
+	cargo build $(CRATES)
 
 # The full gate (crates + desktop, exactly what CI runs) lives at the repo root.
 check:
 	$(MAKE) -C .. check-workflows;
 
 fmt:
-	cargo fmt --all --check
+	cargo fmt $(CRATES) --check
 
 clippy:
-	cargo clippy --workspace --all-targets -- -D warnings
+	cargo clippy $(CRATES) --all-targets -- -D warnings
 
 test:
-	cargo test --workspace
+	cargo test $(CRATES)
 
 # Installing without restarting the daemon leaves the OLD agentd reconciling
 # manifests. Because manifests use serde(deny_unknown_fields), any manifest

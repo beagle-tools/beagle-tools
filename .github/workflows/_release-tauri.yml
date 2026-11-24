@@ -38,7 +38,12 @@ on:
         required: true
         type: string
       sidecar-package:
-        description: optional cargo package (in cargo-dir) whose binary ships inside the bundle (scripts/release/stage-sidecar.sh)
+        description: optional cargo package (in sidecar-cargo-dir) whose binary ships inside the bundle (scripts/release/stage-sidecar.sh)
+        required: false
+        type: string
+        default: ""
+      sidecar-cargo-dir:
+        description: cargo workspace that builds sidecar-package (default cargo-dir)
         required: false
         type: string
         default: ""
@@ -128,7 +133,7 @@ jobs:
         env:
           ARGS: ${{ matrix.args }}
         run: >
-          ./scripts/release/stage-sidecar.sh "${{ inputs.project }}" "${{ inputs.cargo-dir }}"
+          ./scripts/release/stage-sidecar.sh "${{ inputs.project }}" "${{ inputs.sidecar-cargo-dir || inputs.cargo-dir }}"
           "${{ inputs.sidecar-package }}" "${{ inputs.sidecar-bin }}" "$ARGS"
 
       - name: build + upload into the draft release
