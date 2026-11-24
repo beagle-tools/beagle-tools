@@ -16,6 +16,8 @@ members = [
   # The `beagle` command and `beagle serve`.
   "beagle",
   "beagle/serve",
+  # Each tool's folder (docs/LAYOUT.md).
+  "scout/tui",
   # Tools that still live in cli/ (they move to their own folders next).
   "cli/crates/*",
   # rca: the `beagle` (rca) crate, its agent engine and daemon.
@@ -39,7 +41,7 @@ beagle-utils = { path = "utils" }
 beagle-tui = { path = "utils/tui" }
 beagle-agent-tool = { path = "cli/crates/agent" }
 beagle-recap = { path = "cli/crates/recap" }
-beagle-scout = { path = "cli/crates/scout" }
+beagle-scout = { path = "scout/tui" }
 beagle-serve = { path = "beagle/serve" }
 beagle-standup = { path = "cli/crates/standup" }
 # rca's crate is named `beagle`, so it is renamed here to say which tool it is.

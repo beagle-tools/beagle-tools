@@ -32,7 +32,7 @@ const EMBEDDED_PREFIXES = {
     ...RCA_SKILLS,
     "cli/crates/recap/docs/",
     "cli/crates/standup/docs/",
-    "cli/crates/scout/skills/",
+    "scout/tui/skills/",
   ],
 };
 /**
@@ -60,9 +60,11 @@ export const LINKED_PREFIXES = {
   // Every local crate `beagle` links (scripts/release/linked.test.mjs keeps
   // this in step with the Cargo.toml files).
   cli: [
-    // The tools still in cli/ (scout, recap, standup, the agent shim) until
+    // The tools still in cli/ (recap, standup, the agent shim) until
     // they move to their own folders.
     "cli/",
+    // Tools in their own folders (docs/LAYOUT.md).
+    "scout/",
     "rca/cli/",
     // `beagle rca agentd`: the daemon and the engine it hosts.
     "rca/crates/beagle-agentd/",

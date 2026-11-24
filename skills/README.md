@@ -19,7 +19,7 @@ The issue → PR → release flow these drive is in
 
 **Not here:** scout's own skills, `scout` and `scout-build`, live with the
 crate that embeds them, in
-[`cli/crates/scout/skills/`](../cli/crates/scout/skills/), and install with
+[`scout/tui/skills/`](../scout/tui/skills/), and install with
 `beagle scout skill install`. `scripts/skills/install.sh`
 only installs the skills in this directory.
 

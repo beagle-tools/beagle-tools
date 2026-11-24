@@ -26,7 +26,7 @@ Excluded everywhere: `**/*.md` and `<app>/docs/**`. Docs-only merges don't
 release. Markdown an app embeds with `include_str!` is the exception: the
 rca skills (`skills/beagle/**`, `skills/beagle-review/**`, in rca and cli)
 and, in cli, `cli/crates/{recap,standup}/docs/` and
-`cli/crates/scout/skills/`. Changes to CI, `scripts/` or this workflow
+`scout/tui/skills/`. Changes to CI, `scripts/` or this workflow
 don't release anything by themselves either.
 
 If the push's previous SHA is unknown (the first push, or a force push),
