@@ -214,7 +214,7 @@ jobs:
     if: needs.plan.outputs.workflows == 'true'
     uses: ./.github/workflows/_release-cli.yml
     with:
-      app-dir: workflows
+      app-dir: agent
       cargo-dir: .
       packages: agentd agentctl agenttop
       bins: agentd agentctl agenttop
@@ -231,7 +231,7 @@ jobs:
     uses: ./.github/workflows/_release-tauri.yml
     secrets: inherit
     with:
-      app-dir: workflows
+      app-dir: agent
       project: agent/desktop
       cargo-dir: agent/desktop
       product: Agentdesk
