@@ -4,6 +4,7 @@ import SwiftUI
 struct RootView: View {
   @Environment(Pairing.self) private var pairing
   @State private var tab = Tab.scout
+  @State private var path = NavigationPath()
   /// A `beagle://pair?…` link that opened the app, waiting for confirmation.
   @State private var openedLink: OpenedLink?
 
@@ -16,9 +17,11 @@ struct RootView: View {
 
   var body: some View {
     TabView(selection: $tab) {
-      NavigationStack {
+      NavigationStack(path: $path) {
         Group {
-          if pairing.current == nil {
+          if let api = pairing.api {
+            ProjectListView(api: api)
+          } else {
             ContentUnavailableView {
               Label("Not paired", systemImage: "binoculars")
             } description: {
@@ -26,15 +29,18 @@ struct RootView: View {
             } actions: {
               Button("Open Settings") { tab = .settings }
             }
-          } else {
-            ContentUnavailableView(
-              "Projects are coming",
-              systemImage: "binoculars",
-              description: Text("Paired. The project list arrives in the next version."))
+            .navigationTitle("Scout")
           }
         }
-        .navigationTitle("Scout")
+        .navigationDestination(for: ProjectRoute.self) { route in
+          if let api = pairing.api { ProjectView(api: api, route: route) }
+        }
+        .navigationDestination(for: TaskRoute.self) { route in
+          if let api = pairing.api { TaskView(api: api, route: route) }
+        }
       }
+      // A new pairing starts from the project list, not a stale screen.
+      .onChange(of: pairing.current) { path = NavigationPath() }
       .tabItem { Label("Scout", systemImage: "binoculars") }
       .tag(Tab.scout)
 

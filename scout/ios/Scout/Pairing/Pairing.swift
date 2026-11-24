@@ -66,6 +66,18 @@ final class Pairing {
     return version
   }
 
+  #if DEBUG
+    /// Already paired with the in-app DemoServer, with throwaway storage.
+    static func demo() -> Pairing {
+      let suite = "dev.beagletools.scout.demo"
+      let pairing = Pairing(
+        keychain: Keychain(service: suite), defaults: UserDefaults(suiteName: suite) ?? .standard,
+        session: DemoServer.session)
+      pairing.current = DemoServer.link
+      return pairing
+    }
+  #endif
+
   /// Forgets the server and deletes the token from the Keychain.
   func unpair() throws {
     try keychain.delete(Self.tokenAccount)

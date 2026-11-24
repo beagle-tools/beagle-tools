@@ -68,5 +68,21 @@ final class LaunchTests: XCTestCase {
     XCTAssertTrue(app.descendants(matching: .any)["settings.server"].waitForExistence(timeout: 10))
     let connected = app.descendants(matching: .any)["settings.connected"]
     XCTAssertTrue(connected.waitForExistence(timeout: 10))
+
+    // Optionally: a project and task the local store holds, as `beagle scout show` lists them.
+    guard let project = env["SCOUT_E2E_PROJECT"], let task = env["SCOUT_E2E_TASK"] else { return }
+    // iOS may still offer to save the typed token as a password.
+    if app.buttons["Not Now"].waitForExistence(timeout: 2) { app.buttons["Not Now"].tap() }
+    let row = app.buttons["project.\(project)"]
+    for _ in 0..<3 where !row.exists {
+      app.buttons["Scout"].firstMatch.tap()
+      _ = row.waitForExistence(timeout: 5)
+    }
+    XCTAssertTrue(row.exists)
+    row.tap()
+    XCTAssertTrue(app.buttons["task.\(task)"].waitForExistence(timeout: 10))
+    if let progress = env["SCOUT_E2E_TASK_PROGRESS"] {
+      XCTAssertTrue(app.buttons["task.\(task)"].label.contains(progress))
+    }
   }
 }

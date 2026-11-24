@@ -6,12 +6,19 @@ import Testing
 /// Pairing against a stubbed server, with a throwaway Keychain service and
 /// defaults suite per test.
 @MainActor
+@Suite(.serialized)
 struct PairingTests {
   let stub = StubServer()
   let keychain = Keychain(service: "dev.beagletools.scout.tests.\(UUID().uuidString)")
   let suite = "dev.beagletools.scout.tests.\(UUID().uuidString)"
 
-  var defaults: UserDefaults { UserDefaults(suiteName: suite)! }
+  // One defaults instance per test, created once: CFPrefs in the simulator
+  // has crashed when many suite instances are created and wiped in parallel.
+  let defaults: UserDefaults
+
+  init() {
+    defaults = UserDefaults(suiteName: suite)!
+  }
   var link: PairingLink {
     try! PairingLink(server: stub.server.absoluteString, token: Fixture.token)
   }
@@ -22,7 +29,7 @@ struct PairingTests {
 
   func cleanUp() {
     try? keychain.delete(Pairing.tokenAccount)
-    defaults.removePersistentDomain(forName: suite)
+    defaults.removeObject(forKey: Pairing.serverKey)
   }
 
   @Test func pairingSavesTheTokenInTheKeychainAndSurvivesARestart() async throws {

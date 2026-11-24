@@ -43,7 +43,10 @@ struct PairView: View {
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .accessibilityIdentifier("pair.server")
+          // Not a password: keep iOS from offering to save it to Passwords
+          // (the app keeps it in its own Keychain item).
           SecureField("Token", text: $token)
+            .textContentType(.oneTimeCode)
             .accessibilityIdentifier("pair.token")
         }
 

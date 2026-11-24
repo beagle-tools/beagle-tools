@@ -1,0 +1,57 @@
+import XCTest
+
+/// The Scout screens against the in-app demo server (`-demo-server`, Debug
+/// builds): projects → project tabs → task tabs.
+final class ScoutScreensTests: XCTestCase {
+  override func setUp() {
+    continueAfterFailure = false
+  }
+
+  @MainActor
+  func testBrowseProjectTasksAndLog() {
+    let app = XCUIApplication()
+    app.launchArguments = ["-demo-server"]
+    app.launch()
+
+    // Projects: open and closed sections, the working project first.
+    let project = app.buttons["project.rate-limit-the-api"]
+    XCTAssertTrue(project.waitForExistence(timeout: 10))
+    XCTAssertTrue(app.staticTexts["Rate-limit the public API"].exists)
+    XCTAssertTrue(app.staticTexts["Tidy the docs"].exists)
+    project.tap()
+
+    // Project: handoff and tasks.
+    XCTAssertTrue(app.buttons["task.02-add-allowlist"].waitForExistence(timeout: 10))
+    XCTAssertTrue(app.staticTexts["Next steps · from 01-map-request-path"].exists)
+    snapshot(app, "project")
+
+    // Log tab, newest first.
+    app.segmentedControls["project.tabs"].buttons["Log"].tap()
+    XCTAssertTrue(
+      app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'add the allowlist table'"))
+        .firstMatch.waitForExistence(timeout: 10))
+    snapshot(app, "log")
+
+    // Task: plan sections, then the outcome tab.
+    app.segmentedControls["project.tabs"].buttons["Tasks"].tap()
+    app.buttons["task.01-map-request-path"].tap()
+    XCTAssertTrue(app.staticTexts["task.status"].waitForExistence(timeout: 10))
+    XCTAssertEqual(app.staticTexts["task.status"].label, "Done")
+    XCTAssertTrue(app.staticTexts["CONTEXT"].exists || app.staticTexts["Context"].exists)
+    snapshot(app, "task")
+    app.segmentedControls["task.tabs"].buttons["Outcome"].tap()
+    XCTAssertTrue(
+      app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'middleware/limit.rs'"))
+        .firstMatch.waitForExistence(timeout: 5))
+    snapshot(app, "outcome")
+  }
+
+  /// Keeps a screenshot in the test results, for reviewing the screens.
+  @MainActor
+  private func snapshot(_ app: XCUIApplication, _ name: String) {
+    let shot = XCTAttachment(screenshot: app.screenshot())
+    shot.name = name
+    shot.lifetime = .keepAlways
+    add(shot)
+  }
+}
