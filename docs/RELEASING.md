@@ -8,8 +8,9 @@ version bump and no release PR.
 ## What triggers a release
 
 Every push to `main` runs `release`. For each app (`tandem`, `rca`,
-`workflows`, `cli`) it diffs the push (`github.event.before..HEAD`) and
-releases the app if any **release-relevant** path changed:
+`workflows`, `cli`) it diffs **from the app's last published release** (its
+highest `beagle-<app>-v*` tag whose GitHub release is not a draft) to
+`HEAD`, and releases the app if any **release-relevant** path changed:
 
 | App       | Release-relevant paths                                                                                                                                              |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -29,8 +30,12 @@ and, in cli, `{recap,standup}/tui/docs/` and
 `scout/tui/skills/`. Changes to CI, `scripts/` or this workflow
 don't release anything by themselves either.
 
-If the push's previous SHA is unknown (the first push, or a force push),
-every app counts as changed.
+An app with no published release yet always counts as changed.
+
+Diffing from the last published release (not from the push's `before`)
+means no merge's release can be lost: if a run never runs (replaced in the
+queue, see [Pipeline](#pipeline)) or is cancelled, the next run releases
+its changes too.
 
 The rules live in `scripts/release/lib.mjs` and are unit tested in
 `scripts/release/plan.test.mjs`. Keep this doc, that file and the tests in
@@ -45,12 +50,18 @@ app that releases:
    released as-is. This covers re-runs and manual re-releases.
 2. Else if `main` has moved past this commit (the run waited in the queue),
    it is skipped. The newer push's run releases it.
-3. Else if the app has no tag yet, the version comes from its version file:
+3. **Leftover drafts are replaced.** Tags above the last published version
+   whose release is still a draft (or missing), left by a cancelled or
+   failed run, are deleted along with their drafts, and their version numbers
+   are reused. So versions never skip, and no draft is left behind.
+4. Else if the app has no published release yet, the version comes from its
+   version file:
    `tandem/desktop/src-tauri/tauri.conf.json`, `rca/tui/Cargo.toml` `[package]`,
    `agent/tui/Cargo.toml` `[package]` or
    `beagle/Cargo.toml` `[package]`. Crates in the one root cargo
    workspace carry their own versions, so each app stamps only its own.
-4. Else the app's highest tag is bumped by the merged PR's label:
+5. Else the app's last published version is bumped by the labels of the
+   PRs merged since it (the highest one wins):
 
 | PR label                  | Bump              |
 | ------------------------- | ----------------- |
@@ -104,8 +115,21 @@ plan ─┬─ tandem-desktop ────────────────�
   copies its casks into `beagle-tools/homebrew-tap`, then commits
   `beagle-<app> X.Y.Z` and pushes.
 
-Runs serialize on the `release-main` concurrency group and are never
-cancelled.
+Runs serialize on the `release-main` concurrency group: one runs, one
+waits, and a newer merge replaces the waiting one. That is safe because the
+next run plans from each app's last published release.
+
+**Jobs that never got a runner.** GitHub's hosted macOS runners sometimes
+never pick a job up ("The job was not acquired by Runner of type hosted"),
+which cancels it; the app's publish then doesn't run, so nothing half-built
+ships. `release-retry.yml` runs when a release run ends cancelled or failed.
+It re-runs the run's failed jobs (`gh run rerun --failed`) when every
+failure was a job that never started on a runner and the run has attempts
+left (3 in all). It doesn't re-run when a newer release run is already
+queued, because that run releases the same apps and replaces the leftover
+drafts. A real build failure is never retried: fix it, and the next merge
+(or a manual run) releases. The rule is `scripts/release/retry.mjs`, tested
+by `retry.test.mjs`.
 
 ## Assets
 
@@ -253,9 +277,12 @@ releases and GHCR, through `contents: write` and `packages: write`.
 ## Testing the pipeline locally
 
 ```sh
-make test-scripts    # plan.test.mjs, beagle/scripts/set-version.test.mjs and the CI-script tests
-node scripts/release/plan.mjs --dry-run --before <sha> --after <sha> [--labels release:minor]
+make test-scripts    # plan/published/retry tests, beagle/scripts/set-version.test.mjs and the CI-script tests
+node scripts/release/plan.mjs --dry-run --after <sha> [--labels release:minor]
 ```
 
-`--dry-run` skips the stale-main check, the GitHub API and the tag push.
+`--dry-run` skips the stale-main check, the PR-label lookup and every tag
+push or delete. It still reads the release list (with `GH_TOKEN` and
+`GITHUB_REPOSITORY` set) to find each app's last published release; without
+it every tag counts as published.
 It prints which apps would release and at which version.

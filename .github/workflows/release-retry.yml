@@ -1,0 +1,33 @@
+name: release retry
+
+# GitHub's hosted macOS runners sometimes never pick a job up ("The job was
+# not acquired by Runner of type hosted even after multiple attempts"), which
+# cancels it and leaves the app's release as an unpublished draft. When a
+# release run ends cancelled or failed, this re-runs just its failed jobs if
+# the only problem was jobs that never got a runner, unless a newer release
+# run is already queued (it releases those apps anyway) or the run is on its
+# last attempt. The rule lives in scripts/release/retry.mjs (tested).
+on:
+  workflow_run:
+    workflows: [release]
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  retry:
+    if: >-
+      github.event.workflow_run.conclusion == 'cancelled' ||
+      github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+      - name: re-run jobs that never got a runner
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/release/retry.mjs "${{ github.event.workflow_run.id }}"

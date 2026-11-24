@@ -25,6 +25,7 @@ with one folder per runnable part (`tui/`, `daemon/`, `desktop/`, `web/`,
 | `standards/`, `scripts/`, root configs | Shared lint, format, compiler and CI configuration | `docs/CODING_STANDARDS.md` |
 | `skills/` | Agent skills: `beagle-create-issue`, `beagle-complete-issue`, and rca's `beagle` / `beagle-review` (embedded into `beagle`, served by `beagle rca skill install`). `.claude/skills/*` symlink here | `skills/README.md` |
 | `packaging/`, `scripts/release/` | Homebrew formulas and casks, plus the per-app release pipeline | `docs/RELEASING.md` |
+
 ## How work flows
 
 Read the doc for the stage you are in:
