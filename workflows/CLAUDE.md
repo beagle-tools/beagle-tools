@@ -1,3 +1,0 @@
-# workflows (agentd)
-
-@AGENTS.md

@@ -1,7 +1,7 @@
 # beagle-utils
 
 Small, dependency-free helpers shared by the apps in this monorepo
-(`beagle/`, `scout/`, `recap/`, `standup/`, `tandem/`, `rca/`, `workflows/`). Members of the repo-root Cargo workspace, MSRV
+(`beagle/`, `scout/`, `recap/`, `standup/`, `tandem/`, `rca/`, `agent/`). Members of the repo-root Cargo workspace, MSRV
 1.79: `beagle-utils` (this directory, std-only) and
 `beagle-tui` (`tui/`, terminal-UI pieces).
 
@@ -65,7 +65,7 @@ the pane when it is hidden), and while `pane.is_active()` hand every key to
 - The width is not saved: a restart returns to the default. Show
   `pane_resize::HINT` in the footer while resizing and list
   `pane_resize::HELP` in the `?` overlay.
-- agenttop (`workflows/`) has no resizable side pane, so it has no resize
+- agenttop (`agent/`) has no resizable side pane, so it has no resize
   mode: its `w` reads a step's write-up.
 
 ## Rules

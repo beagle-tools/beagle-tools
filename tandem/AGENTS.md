@@ -121,7 +121,7 @@ triage. Deeper background: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md),
   `~/.config/tandem-tui/config.yaml` is the fallback; a broken file warns
   and the defaults apply). The reviewer's contract
   is in `docs/CLI.md` ("The review TUI"); an example agentd job is
-  `workflows/manifests/demo/review-queue.yaml`.
+  `agent/examples/demo/review-queue.yaml`.
 
 ## App commands (run inside `tandem/`; frontend ones run in `desktop/`)
 

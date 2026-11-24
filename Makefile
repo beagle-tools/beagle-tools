@@ -11,7 +11,7 @@ NVM_DIR := $(HOME)/.nvm
 NODE_BIN_DIR := $(shell ls -d $(NVM_DIR)/versions/node/*/bin 2>/dev/null | sort -V | tail -1)
 export PATH := $(HOME)/.cargo/bin:$(NODE_BIN_DIR):$(PATH)
 
-.PHONY: help check standards check-rust check-utils check-tandem check-rca check-workflows check-beagle
+.PHONY: help check standards check-rust check-utils check-tandem check-rca check-agent check-beagle
 
 help:
 	@echo "make check            - every gate CI runs (standards + all apps)"
@@ -19,19 +19,19 @@ help:
 	@echo "make check-rust       - the root cargo workspace: every crate but the Tauri shells"
 	@echo "make check-tandem     - root workspace + tandem's desktop shell + frontend"
 	@echo "make check-rca        - root workspace + rca's desktop shell + frontends (desktop, web)"
-	@echo "make check-workflows  - root workspace + Agentdesk's shell + frontend"
+	@echo "make check-agent  - root workspace + Agentdesk's shell + frontend"
 	@echo "make check-utils / check-beagle - same as check-rust (their crates live in it)"
 	@echo ""
 	@echo "make test-affected [BASE=origin/main] - cargo tests for packages changed since BASE (+ dependents)"
 	@echo "make test-scripts     - unit tests for the CI and release scripts"
-	@echo "make e2e-<app>        - Playwright e2e: tandem, rca-desktop, rca-web, workflows-desktop"
+	@echo "make e2e-<app>        - Playwright e2e: tandem, rca-desktop, rca-web, agent-desktop"
 	@echo ""
 	@echo "make bootstrap        - install/verify the local toolchain on macOS (idempotent)"
 	@echo "make bootstrap-check  - report what's missing, change nothing"
 	@echo "make dev APP=<target> [BROWSER=1] [ARGS=...]  - start an app (or make dev-<target>)"
 	@echo "                        targets: ./scripts/dev/run.sh --list"
 
-check: standards check-rust check-tandem check-rca check-workflows
+check: standards check-rust check-tandem check-rca check-agent
 
 standards:
 	./scripts/check-file-length.sh;
@@ -57,17 +57,17 @@ check-rca: check-rust
 	./scripts/ci/frontend.sh rca/desktop;
 	./scripts/ci/frontend.sh rca/web;
 
-check-workflows: check-rust
-	./scripts/ci/rust.sh workflows/desktop;
-	./scripts/ci/frontend.sh workflows/desktop;
+check-agent: check-rust
+	./scripts/ci/rust.sh agent/desktop;
+	./scripts/ci/frontend.sh agent/desktop;
 
 # ---- tests ----------------------------------------------------------------
 # Same selection CI applies to pull requests (docs/TESTING.md). Includes
 # uncommitted and untracked files, so it works before you commit.
 BASE ?= origin/main
-RUST_WORKSPACES := . tandem/desktop/src-tauri rca/desktop/src-tauri workflows/desktop
+RUST_WORKSPACES := . tandem/desktop/src-tauri rca/desktop/src-tauri agent/desktop
 
-.PHONY: test-affected test-scripts e2e e2e-tandem e2e-rca-desktop e2e-rca-web e2e-workflows-desktop
+.PHONY: test-affected test-scripts e2e e2e-tandem e2e-rca-desktop e2e-rca-web e2e-agent-desktop
 
 test-affected:
 	@set -e; for ws in $(RUST_WORKSPACES); do \
@@ -77,7 +77,7 @@ test-affected:
 test-scripts:
 	node --test scripts/ci/*.test.mjs scripts/release/*.test.mjs beagle/scripts/*.test.mjs;
 
-e2e: e2e-tandem e2e-rca-desktop e2e-rca-web e2e-workflows-desktop
+e2e: e2e-tandem e2e-rca-desktop e2e-rca-web e2e-agent-desktop
 
 e2e-tandem:
 	cd tandem/desktop && corepack pnpm e2e;
@@ -85,8 +85,8 @@ e2e-rca-desktop:
 	cd rca/desktop && corepack pnpm e2e;
 e2e-rca-web:
 	cd rca/web && corepack pnpm e2e;
-e2e-workflows-desktop:
-	cd workflows/desktop && corepack pnpm e2e;
+e2e-agent-desktop:
+	cd agent/desktop && corepack pnpm e2e;
 
 # ---- local dev (docs/DEVELOPMENT.md) --------------------------------------
 .PHONY: bootstrap bootstrap-check dev

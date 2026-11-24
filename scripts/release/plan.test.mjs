@@ -19,7 +19,7 @@ import {
 
 test("app paths release only their app", () => {
   assert.deepEqual(changedApps(["tandem/desktop/src/App.tsx"]), ["tandem"]);
-  assert.deepEqual(changedApps(["rca/desktop/src/App.tsx", "workflows/desktop/Cargo.lock"]), [
+  assert.deepEqual(changedApps(["rca/desktop/src/App.tsx", "agent/desktop/Cargo.lock"]), [
     "rca",
     "workflows",
   ]);
@@ -53,17 +53,17 @@ test("crates the unified cli links in release it too", () => {
   assert.deepEqual(changedApps(["rca/daemon/src/lib.rs"]), ["rca", "cli"]);
   assert.deepEqual(changedApps(["rca/lib/agent/src/lib.rs"]), ["rca", "cli"]);
   assert.deepEqual(changedApps(["rca/daemon/Cargo.toml"]), ["rca", "cli"]);
-  assert.deepEqual(changedApps(["workflows/crates/agentctl/src/lib.rs"]), ["workflows", "cli"]);
-  assert.deepEqual(changedApps(["workflows/crates/agent-core/src/state.rs"]), ["workflows", "cli"]);
-  assert.deepEqual(changedApps(["workflows/deploy/com.agentd.daemon.plist"]), ["workflows", "cli"]);
-  assert.deepEqual(changedApps(["workflows/scripts/build-notifier.sh"]), ["workflows", "cli"]);
-  assert.deepEqual(changedApps(["workflows/crates/agentctl/Cargo.toml"]), ["workflows", "cli"]);
+  assert.deepEqual(changedApps(["agent/tui/src/lib.rs"]), ["workflows", "cli"]);
+  assert.deepEqual(changedApps(["agent/lib/core/src/state.rs"]), ["workflows", "cli"]);
+  assert.deepEqual(changedApps(["agent/deploy/com.agentd.daemon.plist"]), ["workflows", "cli"]);
+  assert.deepEqual(changedApps(["agent/scripts/build-notifier.sh"]), ["workflows", "cli"]);
+  assert.deepEqual(changedApps(["agent/tui/Cargo.toml"]), ["workflows", "cli"]);
   // The parts of those apps the cli does not link stay theirs alone.
   assert.deepEqual(changedApps(["rca/desktop/src-tauri/src/lib.rs"]), ["rca"]);
   assert.deepEqual(changedApps(["tandem/lib/agents/src/runner.rs"]), ["tandem"]);
-  assert.deepEqual(changedApps(["workflows/desktop/src/App.tsx"]), ["workflows"]);
-  assert.deepEqual(changedApps(["workflows/manifests/demo/fanout.yaml"]), ["workflows"]);
-  assert.deepEqual(changedApps(["workflows/scripts/agentman"]), ["workflows"]);
+  assert.deepEqual(changedApps(["agent/desktop/src/App.tsx"]), ["workflows"]);
+  assert.deepEqual(changedApps(["agent/examples/demo/fanout.yaml"]), ["workflows"]);
+  assert.deepEqual(changedApps(["agent/scripts/agentman"]), ["workflows"]);
   assert.deepEqual(changedApps(["tandem/desktop/src-tauri/Cargo.lock"]), ["tandem"]);
   // Their docs don't release anything.
   assert.deepEqual(changedApps(["rca/tui/README.md", "tandem/tui/NOTES.md"]), []);

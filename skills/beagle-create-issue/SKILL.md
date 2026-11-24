@@ -43,7 +43,7 @@ Read, in this order:
 1. Root `AGENTS.md` — which apps exist and what lives where.
 2. `docs/CODING_STANDARDS.md`, `docs/TESTING.md`, `docs/SDLC.md`.
 3. The `AGENTS.md` of every app the request might touch
-   (`tandem/`, `rca/`, `workflows/`, `utils/README.md`).
+   (`tandem/`, `rca/`, `agent/`, `utils/README.md`).
 
 Then locate the code. Use `rg`/`grep` for the nouns in the request (UI
 labels, command names, config keys, error strings, types), and read the
@@ -94,7 +94,7 @@ Split the work so **each issue is one small, single-purpose PR**
 (CODING_STANDARDS §4):
 
 - **One app per issue.** An issue touches exactly one of `tandem/`, `rca/`,
-  `workflows/` — or `utils/` when it's genuinely shared code (used by ≥2
+  `agent/` — or `utils/` when it's genuinely shared code (used by ≥2
   apps). A change that needs a new util and its use in two apps is three
   issues: utils first, then one per app.
 - **Split by layer when it's big:** data format/persistence → Rust domain

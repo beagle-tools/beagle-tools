@@ -1,6 +1,6 @@
 //! Build the argv for each runner kind.
 //!
-//! Flags deliberately mirror agentd (`workflows/` in this monorepo) so behaviour matches
+//! Flags deliberately mirror agentd (`agent/` in this monorepo) so behaviour matches
 //! what already works there:
 //! - claude: `claude -p --output-format stream-json --verbose`
 //! - codex:  `codex exec --json --skip-git-repo-check -` (prompt on stdin)

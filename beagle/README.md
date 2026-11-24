@@ -5,7 +5,7 @@ binary, `beagle`, and each tool is a subcommand:
 
 | Command | What it does |
 |---|---|
-| `beagle agent` | Schedule and run coding agents (agentd): the live dashboard (bare, or `top`), the control CLI (`apply`, `get`, `-j <job>`, `logs`, `errors`, …) and the daemon (`daemon run`, `daemon install`) ([`../workflows/`](../workflows/README.md)) |
+| `beagle agent` | Schedule and run coding agents (agentd): the live dashboard (bare, or `top`), the control CLI (`apply`, `get`, `-j <job>`, `logs`, `errors`, …) and the daemon (`daemon run`, `daemon install`) ([`../agent/`](../agent/README.md)) |
 | `beagle rca` | Root-cause analysis workspaces: a live TUI plus commands for agents, and the daemon that implements handed-off RCAs (`rca agentd run`, installed by `rca agent install`) ([`../rca/`](../rca/README.md)) |
 | `beagle recap` | PR recaps: the diff plus a plain-language write-up ([`recap/tui/`](../recap/tui/README.md)) |
 | `beagle scout` | Watch agent work as projects of small, ordered tasks ([`scout/tui/`](../scout/tui/README.md)) |

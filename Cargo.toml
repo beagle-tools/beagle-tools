@@ -28,9 +28,11 @@ members = [
   "tandem/tui",
   "tandem/lib/*",
   # `beagle agent`: the agentd stack.
-  "workflows/crates/*",
+  "agent/tui",
+  "agent/daemon",
+  "agent/lib/*",
 ]
-exclude = ["rca/desktop", "tandem/desktop", "workflows/desktop"]
+exclude = ["rca/desktop", "tandem/desktop", "agent/desktop"]
 
 [workspace.package]
 edition = "2021"
@@ -56,10 +58,10 @@ tandem-agents = { path = "tandem/lib/agents" }
 tandem-tui = { path = "tandem/lib/queue" }
 tandem-cli = { path = "tandem/tui" }
 # The agentd stack, run as `beagle agent`; agentctl links agenttop and agentd.
-agent-core = { path = "workflows/crates/agent-core" }
-agentd = { path = "workflows/crates/agentd" }
-agentctl = { path = "workflows/crates/agentctl" }
-agenttop = { path = "workflows/crates/agenttop" }
+agent-core = { path = "agent/lib/core" }
+agentd = { path = "agent/daemon" }
+agentctl = { path = "agent/tui" }
+agenttop = { path = "agent/lib/top" }
 
 # ---- registry crates ----
 anyhow = "1"

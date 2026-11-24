@@ -1,7 +1,7 @@
 # Coding standards
 
 These are the coding standards for **every app in this monorepo**:
-`tandem/`, `rca/`, `workflows/`, and the shared crate `utils/`. Every app
+`tandem/`, `rca/`, `agent/`, and the shared crate `utils/`. Every app
 follows the same rules. Each app's `AGENTS.md` adds only app-specific facts:
 architecture, commands and domain invariants. It never loosens a rule here.
 

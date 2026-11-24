@@ -130,7 +130,7 @@ is on in CI).
   specific cells/lines (a title, a selected row marker), not whole-screen
   snapshots.
 
-### Tauri commands (`tandem/desktop/src-tauri`, `rca/desktop/src-tauri`, `workflows/desktop/src-tauri`)
+### Tauri commands (`tandem/desktop/src-tauri`, `rca/desktop/src-tauri`, `agent/desktop/src-tauri`)
 - The `#[tauri::command]` fn only extracts state and delegates. The logic it
   delegates to is a plain function tested like library code.
 - Pin the wire format: a `serde_json::to_value` test for each result type and

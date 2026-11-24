@@ -10,7 +10,8 @@
 export const APPS = {
   tandem: { versionFile: "tandem/desktop/src-tauri/tauri.conf.json", kind: "json" },
   rca: { versionFile: "rca/tui/Cargo.toml", kind: "cargo-package" },
-  workflows: { versionFile: "workflows/crates/agentctl/Cargo.toml", kind: "cargo-package" },
+  // `beagle agent`'s stack (agent/); the key stays for its tags and updaters.
+  workflows: { dir: "agent", versionFile: "agent/tui/Cargo.toml", kind: "cargo-package" },
   // The unified `beagle` command (beagle/), which links rca (and its daemon),
   // tandem-cli and the agentd stack in.
   cli: { dir: "beagle", versionFile: "beagle/Cargo.toml", kind: "cargo-package" },
@@ -74,14 +75,16 @@ export const LINKED_PREFIXES = {
     "tandem/lib/cache/",
     "tandem/lib/github/",
     // `beagle agent`: the whole agentd stack, plus what agentctl embeds.
-    "workflows/crates/",
-    "workflows/deploy/",
-    "workflows/assets/notify/",
+    "agent/tui/",
+    "agent/daemon/",
+    "agent/lib/",
+    "agent/deploy/",
+    "agent/assets/notify/",
   ],
 };
 /** Files outside `<app>/` that a linked crate embeds. */
 const LINKED_FILES = {
-  cli: new Set(["workflows/scripts/build-notifier.sh"]),
+  cli: new Set(["agent/scripts/build-notifier.sh"]),
 };
 
 const ZERO_SHA = /^0+$/;

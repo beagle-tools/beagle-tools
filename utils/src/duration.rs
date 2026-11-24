@@ -50,7 +50,7 @@ pub fn age_single_unit(secs: i64) -> String {
 mod tests {
     use super::*;
 
-    // Copied from workflows/crates/agenttop/src/format.rs.
+    // Copied from agent/lib/top/src/format.rs.
     #[test]
     fn human_duration_agenttop_cases() {
         assert_eq!(human_duration(0), "0s");
@@ -64,7 +64,7 @@ mod tests {
         assert_eq!(human_duration(-5), "0s");
     }
 
-    // Copied from workflows/crates/agentctl/src/fmt.rs (format_duration).
+    // Copied from agent/tui/src/fmt.rs (format_duration).
     #[test]
     fn human_duration_agentctl_cases() {
         assert_eq!(human_duration(45), "45s");
@@ -74,7 +74,7 @@ mod tests {
         assert_eq!(human_duration(86_400 + 20 * 60), "1d20m");
     }
 
-    // Copied from workflows/crates/agentctl/src/fmt.rs (format_age).
+    // Copied from agent/tui/src/fmt.rs (format_age).
     #[test]
     fn age_single_unit_cases() {
         assert_eq!(age_single_unit(0), "0s");

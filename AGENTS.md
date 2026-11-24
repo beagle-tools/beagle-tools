@@ -8,7 +8,7 @@ change code in an app.
 |---|---|---|
 | `tandem/` | Tandem: Tauri desktop app for reviewing GitHub PRs alongside coding agents | `tandem/AGENTS.md` |
 | `rca/` | Beagle: RCA workspaces, with a TUI/CLI (`tui/`), an agent daemon (`daemon/`) and its engine (`lib/agent/`), a desktop app (`desktop/`), a static site (`web/`) and an example store (`examples/`) | `rca/AGENTS.md` |
-| `workflows/` | agentd: a scheduled agent-job daemon with CLIs/TUI (`crates/`) and the Agentdesk desktop app (`desktop/`) | `workflows/AGENTS.md` |
+| `agent/` | `beagle agent` (agentd): the CLI/TUI (`tui/`, agentctl), the scheduler daemon (`daemon/`), libraries (`lib/core`, `lib/top`), the Agentdesk desktop app (`desktop/`) and demo manifests (`examples/demo/`) | `agent/AGENTS.md` |
 | `beagle/` | The single `beagle` command (help, update, doctor, setup), linking every tool into one binary; `beagle/serve/` is `beagle serve` | `beagle/AGENTS.md` |
 | `scout/` | `beagle scout`: the TUI/CLI crate (`tui/`); `ios/` is where the iPhone app goes | `scout/README.md`, `scout/tui/AGENTS.md` |
 | `recap/` | `beagle recap`: PR recaps (`tui/`) | `recap/tui/README.md` |
@@ -71,7 +71,7 @@ Run these from the repo root. Each runs exactly what CI runs:
 ```sh
 make standards          # 400-line rule, affiliation guard, shared-config drift, CI-script tests
 make check-rust         # the root cargo workspace (every crate but the Tauri shells)
-make check-tandem       # or check-rca / check-workflows: root workspace + that app's desktop shell + frontends
+make check-tandem       # or check-rca / check-agent: root workspace + that app's desktop shell + frontends
 make test-affected      # only the cargo tests your change affects (vs origin/main)
 make e2e-tandem         # Playwright for one frontend (see docs/TESTING.md)
 make check              # everything
@@ -88,15 +88,15 @@ The scripts behind these:
 
 - **Rust:**
   - `.` (the root `Cargo.toml`): `utils`, `beagle`, `beagle/serve`, `scout/tui`, `recap/tui`, `standup/tui`, `rca/tui`,
-    `rca/daemon`, `rca/lib/agent`, `tandem/tui`, `tandem/lib/*`, `workflows/crates/*`
+    `rca/daemon`, `rca/lib/agent`, `tandem/tui`, `tandem/lib/*`, `agent/tui`, `agent/daemon`, `agent/lib/*`
   - `tandem/desktop/src-tauri`
   - `rca/desktop/src-tauri`
-  - `workflows/desktop`
+  - `agent/desktop`
 - **Frontends:**
   - `tandem/desktop`
   - `rca/desktop`
   - `rca/web`
-  - `workflows/desktop`
+  - `agent/desktop`
 
 To add a workspace or frontend, add it to `scripts/check-standards.mjs`,
 `.github/workflows/ci.yml` and the root `Makefile` in the same PR.

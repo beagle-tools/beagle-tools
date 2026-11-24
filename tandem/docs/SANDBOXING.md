@@ -4,7 +4,7 @@
 
 Agents run as local child processes (`claude -p`, `codex exec`, custom
 commands). That means they run with your user's permissions and your
-network. This matches how `agentd` (this monorepo's `workflows/`) runs
+network. This matches how `agentd` (this monorepo's `agent/`) runs
 today and is fine
 for a single-user local tool, but the isolation is **trust-based, not
 enforced**:
