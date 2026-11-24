@@ -3,22 +3,36 @@ import SwiftUI
 
 /// Something fetched from `beagle serve`: the last good value, and the last
 /// error. A failed refresh keeps showing the last value with the error above it.
-@Observable
-final class Remote<Value> {
+///
+/// A value type kept in `@State`: a generic `@Observable` class here crashed
+/// the Swift 6.3 optimizer (Release builds, Xcode 26.6).
+struct Remote<Value> {
   private(set) var value: Value?
   private(set) var error: String?
 
-  func load(_ fetch: () async throws -> Value) async {
+  /// Runs `fetch`; cancellations (a screen closing, a refresh restarting) are `nil`.
+  static func fetch(_ fetch: () async throws -> Value) async -> Result<Value, Error>? {
     do {
-      value = try await fetch()
-      error = nil
-    } catch let urlError as APIError {
-      if case .transport(let e) = urlError, e.code == .cancelled { return }
-      error = urlError.localizedDescription
+      return .success(try await fetch())
+    } catch APIError.transport(let e) where e.code == .cancelled {
+      return nil
     } catch is CancellationError {
-      return
+      return nil
     } catch {
-      self.error = error.localizedDescription
+      return .failure(error)
+    }
+  }
+
+  /// Records a fetch's outcome; a failure keeps the last value.
+  mutating func apply(_ result: Result<Value, Error>?) {
+    switch result {
+    case .success(let new):
+      value = new
+      error = nil
+    case .failure(let failure):
+      error = failure.localizedDescription
+    case nil:
+      break
     }
   }
 }

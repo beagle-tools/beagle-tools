@@ -71,6 +71,7 @@ struct TaskView: View {
   }
 
   private func load() async {
-    await remote.load { try await api.task(project: route.project, task: route.task) }
+    remote.apply(
+      await Remote.fetch { try await api.task(project: route.project, task: route.task) })
   }
 }

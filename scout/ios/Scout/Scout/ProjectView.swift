@@ -45,9 +45,9 @@ struct ProjectView: View {
   }
 
   private func load() async {
-    await project.load { try await api.project(route.id) }
+    project.apply(await Remote.fetch { try await api.project(route.id) })
     if tab == .log {
-      await log.load { try await api.log(project: route.id) }
+      log.apply(await Remote.fetch { try await api.log(project: route.id) })
     }
   }
 }

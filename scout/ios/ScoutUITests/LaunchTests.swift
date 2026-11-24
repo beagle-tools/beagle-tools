@@ -79,8 +79,13 @@ final class LaunchTests: XCTestCase {
       _ = row.waitForExistence(timeout: 5)
     }
     XCTAssertTrue(row.exists)
-    row.tap()
-    XCTAssertTrue(app.buttons["task.\(task)"].waitForExistence(timeout: 10))
+    let taskRow = app.buttons["task.\(task)"]
+    // A tap can land while a refresh redraws the list; tap again if so.
+    for _ in 0..<3 where !taskRow.exists {
+      if row.exists { row.tap() }
+      _ = taskRow.waitForExistence(timeout: 5)
+    }
+    XCTAssertTrue(taskRow.exists)
     if let progress = env["SCOUT_E2E_TASK_PROGRESS"] {
       XCTAssertTrue(app.buttons["task.\(task)"].label.contains(progress))
     }

@@ -42,7 +42,7 @@ struct ProjectListView: View {
   }
 
   private func load() async {
-    await remote.load { try await api.projects() }
+    remote.apply(await Remote.fetch { try await api.projects() })
   }
 }
 
