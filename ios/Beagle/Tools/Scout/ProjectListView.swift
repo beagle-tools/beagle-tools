@@ -53,7 +53,9 @@ struct ProjectRow: View {
 
   var body: some View {
     HStack(alignment: .firstTextBaseline, spacing: 10) {
-      ProjectGlyph(status: project.status, working: !project.working.isEmpty)
+      ProjectGlyph(
+        status: project.status, working: !project.working.isEmpty,
+        waiting: !project.waitingTasks.isEmpty)
       VStack(alignment: .leading, spacing: 4) {
         Text(project.title).font(.headline)
         if let goal = project.goal {
@@ -62,6 +64,13 @@ struct ProjectRow: View {
         ForEach(project.working, id: \.self) { task in
           HStack(spacing: 4) {
             Text("now").bold().foregroundStyle(Color.working)
+            Text(task).foregroundStyle(.secondary)
+          }
+          .font(.caption)
+        }
+        ForEach(project.waitingTasks, id: \.self) { task in
+          HStack(spacing: 4) {
+            Text("waiting").bold().foregroundStyle(TaskStatus.waiting.color)
             Text(task).foregroundStyle(.secondary)
           }
           .font(.caption)

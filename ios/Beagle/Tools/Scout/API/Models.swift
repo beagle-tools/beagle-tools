@@ -20,7 +20,7 @@ nonisolated enum ProjectStatus: String, Decodable, Sendable, CaseIterable {
 
 /// A task's status, with the same `.unknown` fallback.
 nonisolated enum TaskStatus: String, Decodable, Sendable, CaseIterable {
-  case todo, working, paused, blocked, done, skipped, unknown
+  case todo, working, paused, waiting, blocked, done, skipped, unknown
 
   init(from decoder: Decoder) throws {
     let raw = try decoder.singleValueContainer().decode(String.self)
@@ -43,10 +43,15 @@ nonisolated struct ProjectSummary: Decodable, Equatable, Sendable, Identifiable 
   let tasksClosed: Int
   let tasksTotal: Int
   let working: [String]
+  /// Tasks waiting on CI, a review or a merge; nil from a server older than the `waiting` status.
+  let waiting: [String]?
   let links: [String]
   let created: String?
   let updated: String?
   let lastActivity: String?
+
+  /// The waiting task ids, empty when the server does not send them.
+  var waitingTasks: [String] { waiting ?? [] }
 }
 
 /// `{ "done": 1, "total": 4 }`: ticked and total checklist items.
