@@ -9,6 +9,7 @@ use crate::api;
 use crate::auth::Token;
 use crate::http::{Method, Request, Response};
 use crate::push::devices::DeviceStore;
+use crate::push::SharedSender;
 use crate::stores::Stores;
 
 /// Everything a request needs: the token it must carry, the stores, and
@@ -18,6 +19,7 @@ pub struct Ctx {
     token: Token,
     stores: Stores,
     devices: Option<Arc<DeviceStore>>,
+    push: Option<SharedSender>,
 }
 
 impl Ctx {
@@ -29,6 +31,7 @@ impl Ctx {
             token,
             stores,
             devices: None,
+            push: None,
         }
     }
 
@@ -36,6 +39,13 @@ impl Ctx {
     #[must_use]
     pub fn with_devices(mut self, devices: Arc<DeviceStore>) -> Self {
         self.devices = Some(devices);
+        self
+    }
+
+    /// The same context, sending test pushes through `push`.
+    #[must_use]
+    pub fn with_push(mut self, push: SharedSender) -> Self {
+        self.push = Some(push);
         self
     }
 }
@@ -88,7 +98,8 @@ pub fn handle(ctx: &Ctx, req: &Request) -> Response {
             let Some(store) = &ctx.devices else {
                 return api::ApiError::internal("no device store").into();
             };
-            return api::devices::route(store, rest, req).unwrap_or_else(Into::into);
+            return api::devices::route(store, ctx.push.as_ref(), rest, req)
+                .unwrap_or_else(Into::into);
         }
         ["v1", "scout", rest @ ..] => api::root("scout", &ctx.stores.scout)
             .and_then(|root| api::scout::route(root, rest, req)),

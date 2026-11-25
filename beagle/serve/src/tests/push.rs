@@ -2,6 +2,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 use beagle_scout::events::{self, Record};
 use beagle_scout::notify::Event;
@@ -57,12 +58,13 @@ fn follower(dir: &Path) -> Follower {
     )
 }
 
-#[derive(Default)]
-struct Recorder(Vec<Pending>);
+#[derive(Debug, Default, Clone)]
+struct Recorder(Arc<Mutex<Vec<Pending>>>);
 
 impl Sender for Recorder {
-    fn send(&mut self, pending: &Pending) {
-        self.0.push(pending.clone());
+    fn send(&mut self, pending: &Pending) -> Outcome {
+        self.0.lock().unwrap().push(pending.clone());
+        Outcome::sent("recorded".into())
     }
 }
 
@@ -233,15 +235,17 @@ fn a_scout_status_change_becomes_a_pending_notification_for_a_matching_phone() {
         })
         .unwrap();
     let mut f = follower(tmp.path());
-    let mut sender = Recorder::default();
-    assert_eq!(tick(&mut f, &store, &mut sender), 0);
+    let recorder = Recorder::default();
+    let sender: SharedSender = Arc::new(Mutex::new(Box::new(recorder.clone())));
+    assert_eq!(tick(&mut f, &store, &sender), 0);
 
     // What `beagle scout task block` writes, and a task_done no phone wants.
     let now = OffsetDateTime::now_utc();
     events::append(&dir, &blocked_record(now)).unwrap();
     events::append(&dir, &task_done_record(now)).unwrap();
-    assert_eq!(tick(&mut f, &store, &mut sender), 1);
-    let p = &sender.0[0];
+    assert_eq!(tick(&mut f, &store, &sender), 1);
+    let sent = recorder.0.lock().unwrap().clone();
+    let p = &sent[0];
     assert_eq!(p.device, "aaaaaaaa-0000-0000-0000-000000000001");
     assert_eq!(p.apns_token, "ab".repeat(32));
     assert_eq!(p.topic, "dev.beagletools.beagle");
@@ -251,9 +255,22 @@ fn a_scout_status_change_becomes_a_pending_notification_for_a_matching_phone() {
         p.record.link,
         "beagle://scout/projects/rate-limit-the-api/tasks/03-open-pr"
     );
+    assert_eq!(tick(&mut f, &store, &sender), 0, "each event is sent once");
+}
+
+#[test]
+fn the_held_sender_is_not_configured_and_test_pushes_need_a_token() {
+    let held: SharedSender = Arc::new(Mutex::new(Box::new(HeldSender)));
+    assert!(!held.lock().unwrap().configured());
+    let mut d = phone(settings::defaults());
+    let p = test_pending("aaaaaaaa-0000-0000-0000-000000000001", &d).unwrap();
     assert_eq!(
-        tick(&mut f, &store, &mut sender),
-        0,
-        "each event is sent once"
+        (p.record.tool.as_str(), p.record.kind.as_str()),
+        ("beagle", "test")
     );
+    assert_eq!(p.record.id.len(), 36);
+    assert_eq!(&p.record.id[14..15], "4", "a v4 UUID");
+    d.apns_token = None;
+    assert!(test_pending("x", &d).is_none());
+    assert!(!send_test(&held, "x", &d).delivered);
 }

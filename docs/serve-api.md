@@ -149,6 +149,7 @@ Every non-2xx response has this body:
 | 413 | `too_large` | Request head or body over 16 KiB |
 | 415 | `unsupported_media_type` | A device API body that isn't JSON |
 | 500 | `internal` | A store failed to read; `message` says which file |
+| 502 | `push_failed` | APNs didn't take a test push; `message` says why |
 | 503 | `push_not_configured` | A test push while `[push]` isn't set up |
 
 ## Server
@@ -612,7 +613,7 @@ The full design (event spool, APNs, the app side) is
 | `DELETE /v1/devices/{device}` | `204`, also when it was already gone |
 | `GET /v1/devices/{device}/notifications` | `200`, the settings document |
 | `PUT /v1/devices/{device}/notifications` | `200`, the settings document as saved |
-| `POST /v1/devices/{device}/test` | A test push (`503 push_not_configured` until `[push]` is set up) |
+| `POST /v1/devices/{device}/test` | Sends a test push now: `200 {"delivered": true, "message"}`, `502 push_failed` with APNs' reason, or `503 push_not_configured` without `[push]` |
 
 `PUT /v1/devices/{device}` takes:
 

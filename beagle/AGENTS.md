@@ -79,7 +79,8 @@ tool may be named after one:
 - `doctor`: old standalone binaries (`scout`, `recap`, `standup`,
   `agentctl`, `agenttop`, `agentd`, another `beagle`) still on `PATH`, and
   (macOS) whether the `beagle serve` launchd agent is running — both fail
-  it — plus setup checks that only warn (`health.rs`: `gh` signed in,
+  it — and, when it is installed, whether push is set up (a warning),
+  plus setup checks that only warn (`health.rs`: `gh` signed in,
   agent services still running a retired binary, `tmux`, skills, scout
   hooks).
 
