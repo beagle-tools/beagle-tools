@@ -1,3 +1,5 @@
+import SwiftUI
+
 /// Every tool the home screen lists, in order.
 ///
 /// A tool with screens is a folder here (`Scout/`) with an entry point like ``ScoutTool``; the
@@ -29,4 +31,17 @@ enum Tools {
 
   /// The tool with this id, if the app knows it.
   static func named(_ id: String) -> Tool? { all.first { $0.id == id } }
+
+  /// The navigation stack a `beagle://<tool>/…` link opens: home → the tool → its screens.
+  ///
+  /// The tool routes its own link shapes. Nil for `beagle://pair` and links no tool knows.
+  static func path(for url: URL) -> NavigationPath? {
+    guard url.scheme?.lowercased() == "beagle", let id = url.host(), let tool = named(id),
+      tool.isAvailable, let routes = tool.routes?(url.pathComponents.filter { $0 != "/" })
+    else { return nil }
+    var path = NavigationPath()
+    path.append(HomeRoute.tool(id))
+    for route in routes { path.append(route) }
+    return path
+  }
 }

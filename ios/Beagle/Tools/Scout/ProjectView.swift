@@ -40,7 +40,7 @@ struct ProjectView: View {
         RemoteContent(remote: log, retry: load) { LogList(log: $0) }
       }
     }
-    .navigationTitle(route.title)
+    .navigationTitle(project.value?.title ?? route.title)
     .navigationBarTitleDisplayMode(.inline)
     .autoRefresh(load)
     .onChange(of: tab) { Task { await load() } }

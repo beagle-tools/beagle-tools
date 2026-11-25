@@ -56,7 +56,7 @@ struct TaskView: View {
         }
       }
     }
-    .navigationTitle(String(format: "%@ · %@", taskNumber, route.title))
+    .navigationTitle(String(format: "%@ · %@", taskNumber, remote.value?.title ?? route.title))
     .navigationBarTitleDisplayMode(.inline)
     .autoRefresh(load)
   }

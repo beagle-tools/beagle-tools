@@ -1,13 +1,16 @@
 import BeagleAPI
 import BeaglePairing
+import BeaglePush
 import SwiftUI
 
 /// The "Server" section of an app's Settings: which Mac it's paired with, whether it answers, and
 /// Pair / Pair again / Unpair.
 ///
-/// Reads the `Pairing` from the environment.
+/// Reads the `Pairing` from the environment, and the `Push` when the app has one: Unpair first
+/// asks the Mac to forget this phone, so it stops pushing to it.
 public struct ServerSection: View {
   @Environment(Pairing.self) private var pairing
+  @Environment(Push.self) private var push: Push?
   @State private var showPair = false
   @State private var status: Status = .unknown
   @State private var problem: String?
@@ -32,7 +35,7 @@ public struct ServerSection: View {
         // The sheet hangs off a row: a .sheet on a Section inside a Form never shows.
         Button("Pair again") { showPair = true }
           .sheet(isPresented: $showPair) { PairView() }
-        Button("Unpair", role: .destructive) { unpair() }
+        Button("Unpair", role: .destructive) { Task { await unpair() } }
       } else {
         Text("Not paired")
           .foregroundStyle(.secondary)
@@ -75,7 +78,8 @@ public struct ServerSection: View {
     }
   }
 
-  private func unpair() {
+  private func unpair() async {
+    await push?.forget()
     do {
       try pairing.unpair()
       problem = nil

@@ -36,6 +36,10 @@
       let (status, body): (Int, Any) =
         if !authorized {
           (401, DemoData.error("unauthorized", "missing or wrong bearer token"))
+        } else if let answer = DemoDevices.answer(
+          request.httpMethod ?? "GET", path, request.bodyData)
+        {
+          answer
         } else if let body = DemoData.routes[path] {
           (200, body)
         } else {

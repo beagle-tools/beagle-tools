@@ -78,7 +78,8 @@ Xcode project references it as a local package (`../../utils/swift`).
 |---|---|
 | `BeagleAPI` | The `beagle serve` client: `BeagleAPI` (bearer token, `get` for each tool's endpoints, health, version), `APIError` (readable messages), `Health`, `ServerVersion`, `ErrorBody`, `Timestamp` |
 | `BeaglePairing` | `PairingLink` (`beagle://pair?url=…&token=…`), `Pairing` (verify, then save; refuses a server without the app's tool), `SecretStore` with `Keychain` and `MemorySecretStore` |
-| `BeagleUI` | `PairView` (scan, paste or type), `QRScanner` (VisionKit), `ServerSection` (Settings: paired Mac, status, pair/unpair), `Remote` + `RemoteContent` + `.autoRefresh`, `Spinner` (the TUIs' braille spinner), `Markdown` + `MarkdownView` |
+| `BeaglePush` | `Push` (permission, the APNs token, registering with the Mac, per-tool settings there), `PushAuthorizer` with `SystemPushAuthorizer`, `InstallID` (docs/serve-push.md) |
+| `BeagleUI` | `PairView` (scan, paste or type), `QRScanner` (VisionKit), `ServerSection` (Settings: paired Mac, status, pair/unpair; Unpair asks the Mac to forget the phone), `NotificationSettingsSection` (one section per tool from the server's catalog), `Remote` + `RemoteContent` + `.autoRefresh`, `Spinner` (the TUIs' braille spinner), `Markdown` + `MarkdownView` |
 | `BeagleTestSupport` | Tests only: `StubServer`, a fake `beagle serve` behind URLProtocol |
 
 Tool-specific models, endpoints (an `extension BeagleAPI` in the app) and

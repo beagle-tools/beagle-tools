@@ -10,6 +10,7 @@
 		5C0000000000000000000075 /* BeagleAPI in Frameworks */ = {isa = PBXBuildFile; productRef = 5C0000000000000000000071 /* BeagleAPI */; };
 		5C0000000000000000000076 /* BeaglePairing in Frameworks */ = {isa = PBXBuildFile; productRef = 5C0000000000000000000072 /* BeaglePairing */; };
 		5C0000000000000000000077 /* BeagleUI in Frameworks */ = {isa = PBXBuildFile; productRef = 5C0000000000000000000073 /* BeagleUI */; };
+		5C00000000000000000000B1 /* BeaglePush in Frameworks */ = {isa = PBXBuildFile; productRef = 5C00000000000000000000B2 /* BeaglePush */; };
 		5C0000000000000000000078 /* BeagleTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 5C0000000000000000000074 /* BeagleTestSupport */; };
 /* End PBXBuildFile section */
 
@@ -63,6 +64,7 @@
 				5C0000000000000000000075 /* BeagleAPI in Frameworks */,
 				5C0000000000000000000076 /* BeaglePairing in Frameworks */,
 				5C0000000000000000000077 /* BeagleUI in Frameworks */,
+				5C00000000000000000000B1 /* BeaglePush in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -128,6 +130,7 @@
 				5C0000000000000000000071 /* BeagleAPI */,
 				5C0000000000000000000072 /* BeaglePairing */,
 				5C0000000000000000000073 /* BeagleUI */,
+				5C00000000000000000000B2 /* BeaglePush */,
 			);
 			productName = Beagle;
 			productReference = 5C0000000000000000000010 /* Beagle.app */;
@@ -326,6 +329,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Beagle.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -352,6 +356,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Beagle.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -495,6 +500,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 5C0000000000000000000070 /* XCLocalSwiftPackageReference "../utils/swift" */;
 			productName = BeagleUI;
+		};
+		5C00000000000000000000B2 /* BeaglePush */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5C0000000000000000000070 /* XCLocalSwiftPackageReference "../utils/swift" */;
+			productName = BeaglePush;
 		};
 		5C0000000000000000000074 /* BeagleTestSupport */ = {
 			isa = XCSwiftPackageProductDependency;

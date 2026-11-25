@@ -1,10 +1,13 @@
 import BeaglePairing
+import BeaglePush
 import BeagleUI
 import SwiftUI
 
 /// The app's one navigation stack: the home screen of tools, each tool's screens, and Settings.
 struct RootView: View {
   @Environment(Pairing.self) private var pairing
+  @Environment(Push.self) private var push
+  @Environment(OpenedLinks.self) private var links
   @State private var path = NavigationPath()
   /// A `beagle://pair?…` link that opened the app, waiting for confirmation.
   @State private var openedLink: OpenedLink?
@@ -21,6 +24,8 @@ struct RootView: View {
           switch route {
           case .settings:
             SettingsView()
+          case .notifications:
+            NotificationsView()
           case .tool(let id):
             toolScreen(id)
           }
@@ -31,14 +36,29 @@ struct RootView: View {
     .onChange(of: pairing.current) {
       if path.count > 1 { path = NavigationPath() }
     }
-    // Scanning the QR code with the iPhone Camera app opens this link here.
-    // Pairing still waits for a tap on Pair, so a stray link can't repoint the app.
-    .onOpenURL { url in
-      guard url.scheme?.lowercased() == "beagle" else { return }
-      openedLink = OpenedLink(text: url.absoluteString)
+    // A tool's link (a tapped notification, or `beagle://scout/projects/…`) opens its screen.
+    // Anything else is a pairing link: scanning the QR code with the iPhone Camera app opens it
+    // here, and pairing still waits for a tap on Pair, so a stray link can't repoint the app.
+    .onOpenURL(perform: open)
+    .onChange(of: links.pending, initial: true) {
+      guard let url = links.pending else { return }
+      links.pending = nil
+      open(url)
     }
+    // Registers this phone for push with the paired Mac, again after every new pairing.
+    .task(id: pairing.current?.server) { await push.sync() }
     .sheet(item: $openedLink) { opened in
       PairView(initialLink: opened.text)
+    }
+  }
+
+  private func open(_ url: URL) {
+    guard url.scheme?.lowercased() == "beagle" else { return }
+    if let toolPath = Tools.path(for: url) {
+      openedLink = nil
+      path = toolPath
+    } else {
+      openedLink = OpenedLink(text: url.absoluteString)
     }
   }
 
@@ -73,7 +93,10 @@ enum AppInfo {
 
 #if DEBUG
   #Preview {
-    RootView().environment(
-      Pairing(tool: "scout", preview: DemoServer.link, session: DemoServer.session))
+    let pairing = Pairing(tool: "scout", preview: DemoServer.link, session: DemoServer.session)
+    RootView()
+      .environment(pairing)
+      .environment(DemoPushAuthorizer.push(for: pairing))
+      .environment(OpenedLinks())
   }
 #endif

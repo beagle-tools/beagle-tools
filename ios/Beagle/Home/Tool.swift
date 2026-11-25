@@ -16,12 +16,15 @@ struct Tool: Identifiable {
   let systemImage: String
   /// The tool's first screen, given the paired server; nil while it has none.
   let screen: (@MainActor (BeagleAPI) -> AnyView)?
+  /// The screens a `beagle://<id>/…` link opens past the tool's first one, given the link's path
+  /// segments (a tapped notification's link, docs/serve-push.md); nil for a link it doesn't know.
+  var routes: (([String]) -> [any Hashable]?)?
 
   /// Whether the tool has screens in this version of the app.
   var isAvailable: Bool { screen != nil }
 
   /// A tool the app has no screens for yet.
   static func comingSoon(_ id: String, name: String, summary: String, systemImage: String) -> Tool {
-    Tool(id: id, name: name, summary: summary, systemImage: systemImage, screen: nil)
+    Tool(id: id, name: name, summary: summary, systemImage: systemImage, screen: nil, routes: nil)
   }
 }
