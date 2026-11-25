@@ -73,6 +73,8 @@ mod imp {
     const OFF_MACOS: &str =
         "the Keychain is macOS-only; set BEAGLE_APNS_* in the server's environment instead";
 
+    // Same signature as the macOS one.
+    #[allow(clippy::unnecessary_wraps)]
     pub fn get(_: &str, _: &str) -> Result<Option<String>, String> {
         Ok(None)
     }
