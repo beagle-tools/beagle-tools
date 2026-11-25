@@ -37,6 +37,7 @@ pub mod pair;
 pub mod push;
 pub mod router;
 mod run;
+pub mod secrets;
 pub mod server;
 pub mod service;
 pub mod stores;

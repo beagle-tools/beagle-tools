@@ -77,3 +77,32 @@ fn help_and_mistakes() {
     assert!(p(&["--port", "70000"]).unwrap_err().contains("not a port"));
     assert!(p(&["--bogus"]).unwrap_err().contains("unknown argument"));
 }
+
+#[test]
+fn secrets_commands() {
+    let cmd = "vault export --format json";
+    assert_eq!(
+        p(&["secrets", "sync", "--from", cmd]).unwrap(),
+        Command::Secrets(SecretsCommand::Sync {
+            from: Some(cmd.into())
+        })
+    );
+    assert_eq!(
+        p(&["secrets", "sync"]).unwrap(),
+        Command::Secrets(SecretsCommand::Sync { from: None })
+    );
+    assert_eq!(
+        p(&["secrets", "status"]).unwrap(),
+        Command::Secrets(SecretsCommand::Status)
+    );
+    assert_eq!(
+        p(&["secrets", "clear"]).unwrap(),
+        Command::Secrets(SecretsCommand::Clear)
+    );
+    let err = |args: &[&str]| p(args).unwrap_err();
+    assert!(err(&["secrets", "sync", "--from"]).contains("needs a command"));
+    assert!(err(&["secrets", "sync", "--from", " "]).contains("needs a command"));
+    assert!(err(&["secrets", "status", "--from", "x"]).contains("unknown argument"));
+    assert!(err(&["secrets", "show"]).contains("unknown secrets command"));
+    assert!(err(&["secrets"]).contains("needs a command"));
+}

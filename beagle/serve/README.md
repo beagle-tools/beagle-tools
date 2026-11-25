@@ -89,6 +89,8 @@ beagle serve uninstall               # stop and remove it
 beagle serve status                  # running? url, token set?, phones registered, push state
 beagle serve push setup --key <AuthKey_….p8> --key-id <id> --team-id <id>
 beagle serve push test [--device <id>]
+beagle serve secrets sync [--from "<command>"]   # push key from a secret manager into the Keychain
+beagle serve secrets status | clear
 ```
 
 `beagle serve --help` is the authoritative list.
@@ -113,6 +115,14 @@ push service directly with your own APNs key: no relay, no third party.
    It checks the key, copies it to `~/.config/beagle/serve/` with mode
    `0600`, writes `[push]` to `serve.toml` and restarts the service. Delete
    the download afterwards.
+
+   Or keep the key in a secret manager: store `BEAGLE_APNS_KEY`,
+   `BEAGLE_APNS_KEY_ID` and `BEAGLE_APNS_TEAM_ID` there and run
+   `beagle serve secrets sync --from "<command that prints them>"`; they go
+   to the macOS Keychain, not a file
+   ([`docs/serve-push.md`](../../docs/serve-push.md), "Keeping the key in a
+   secret manager"). The key is taken from the environment first, then the
+   Keychain, then `[push]`.
 3. `beagle serve push test` sends "Beagle · test push" to every registered
    phone and prints Apple's answer.
 

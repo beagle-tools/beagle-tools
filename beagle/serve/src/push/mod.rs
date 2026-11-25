@@ -10,7 +10,8 @@
 //! ```
 //!
 //! One background thread runs the loop every [`POLL_EVERY`]. The sender is
-//! [`apns::ApnsSender`] when `[push]` is set in `serve.toml`, else
+//! [`apns::ApnsSender`] when a key is configured (the `BEAGLE_APNS_*`
+//! environment, the Keychain, or `[push]` in `serve.toml`: [`source`]), else
 //! [`HeldSender`], which only logs. `POST /v1/devices/{id}/test` and
 //! `beagle serve push test` share it.
 
@@ -20,6 +21,7 @@ pub mod devices;
 pub mod follow;
 pub mod jwt;
 pub mod settings;
+pub mod source;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -137,7 +139,7 @@ pub struct HeldSender;
 
 impl Sender for HeldSender {
     fn send(&mut self, _: &Pending) -> Outcome {
-        Outcome::failed("held: push is not configured ([push] in serve.toml)".into())
+        Outcome::failed("held: push is not configured (BEAGLE_APNS_* or [push])".into())
     }
 
     fn configured(&self) -> bool {
@@ -145,20 +147,44 @@ impl Sender for HeldSender {
     }
 }
 
-/// The sender `config` asks for: APNs with its key, or [`HeldSender`]
-/// without `[push]`. A broken `[push]` is an error, never a crash.
+/// The push key from this process's environment, the Keychain, or
+/// `config`, in that order ([`source::resolve`]).
 ///
 /// # Errors
-/// What is wrong with `[push]` or its key, for a person.
+/// What is wrong, for a person; never contains key material.
+pub fn load(config: &Config) -> std::result::Result<Option<source::Loaded>, String> {
+    source::resolve(
+        config,
+        &source::process_env,
+        &crate::secrets::Keychain::default(),
+    )
+}
+
+/// The sender for `loaded`: APNs with its key, or [`HeldSender`] without
+/// one.
+///
+/// # Errors
+/// The HTTP client's error, for a person.
+pub fn sender_from(
+    loaded: Option<source::Loaded>,
+    store: Arc<DeviceStore>,
+) -> std::result::Result<Box<dyn Sender>, String> {
+    let Some(loaded) = loaded else {
+        return Ok(Box::new(HeldSender));
+    };
+    Ok(Box::new(apns::ApnsSender::new(loaded.signer, store)?))
+}
+
+/// The sender `config` and the environment ask for. A broken config is an
+/// error, never a crash.
+///
+/// # Errors
+/// As [`load`] and [`sender_from`].
 pub fn sender_for(
     config: &Config,
     store: Arc<DeviceStore>,
 ) -> std::result::Result<Box<dyn Sender>, String> {
-    let Some(push) = &config.push else {
-        return Ok(Box::new(HeldSender));
-    };
-    let signer = cmd::signer(push)?;
-    Ok(Box::new(apns::ApnsSender::new(signer, store)?))
+    sender_from(load(config)?, store)
 }
 
 /// Sends `p` and logs how it went.
@@ -292,14 +318,10 @@ pub fn spawn(store: Arc<DeviceStore>, sender: SharedSender) -> Result<()> {
 pub fn status() -> std::result::Result<String, String> {
     let path = config::path().map_err(|e| e.to_string())?;
     let config = config::load(&path).map_err(|e| e.to_string())?;
-    let push = config.push.ok_or_else(|| {
-        "not set up — run `beagle serve push setup` (docs/serve-push.md)".to_owned()
-    })?;
-    cmd::signer(&push)?;
-    Ok(format!(
-        "configured (key {}, team {})",
-        push.key_id, push.team_id
-    ))
+    load(&config)?.map(|l| l.summary()).ok_or_else(|| {
+        "not set up — run `beagle serve secrets sync` or `beagle serve push setup` (docs/serve-push.md)"
+            .to_owned()
+    })
 }
 
 #[cfg(test)]

@@ -370,6 +370,68 @@ the tool's module handles its `link`.
 4. **On the phone:** Settings → Notifications → Turn on, then "Send a test
    notification". Or run `beagle serve push test` on the Mac.
 
+## Keeping the key in a secret manager
+
+Instead of step 2's key file, the key can live in any secret manager, with
+only a copy in the macOS Keychain. Store three secrets in it:
+
+| Name | Value |
+|---|---|
+| `BEAGLE_APNS_KEY` | the whole `.p8` file, `-----BEGIN PRIVATE KEY-----` to `-----END PRIVATE KEY-----` (real newlines, or `\n` on one line) |
+| `BEAGLE_APNS_KEY_ID` | the Key ID |
+| `BEAGLE_APNS_TEAM_ID` | the Team ID |
+
+Then give `beagle serve` a command that prints them, as a JSON object or
+as `KEY=VALUE` lines (dotenv: `export`, comments, single/double quotes and
+multi-line quoted values are fine). With Doppler, for example:
+
+```sh
+beagle serve secrets sync --from "doppler secrets download --project <project> --config <config> --no-file --format json"
+```
+
+`secrets sync` runs the command with `sh -c` (30 s timeout), keeps only the
+three names (everything else it prints is dropped), checks they make a
+working key, stores each as a generic-password item in the login Keychain
+(service `dev.beagletools.serve`, account = the name), saves the command
+as `[secrets] command` in `serve.toml`, and restarts the service. Then:
+
+- `beagle serve secrets sync` (no `--from`) reruns the saved command, e.g.
+  after rotating the key. `beagle serve` also reruns it at startup; if it
+  fails (offline, logged out) the server logs it and keeps what the
+  Keychain already has. It never blocks startup beyond the timeout.
+- `beagle serve secrets status` lists which names the Keychain holds
+  (never values), the saved command, and where push config comes from.
+- `beagle serve secrets clear` removes the three items.
+- `beagle serve status` and `beagle doctor` name the source.
+
+**Where the key comes from**, first match wins:
+
+1. `BEAGLE_APNS_*` in the server's environment (e.g. `doppler run --
+   beagle serve` in the foreground; launchd's service has no such
+   variables),
+2. the Keychain items,
+3. `[push]` in `serve.toml` (step 2's file).
+
+The first source holding any of the names is used whole: a partial or
+broken one turns push off with a log line rather than falling through to
+the next, so you never push with a key you didn't mean to use.
+
+**Security notes.**
+
+- Values are never printed or logged; only the names, the source and the
+  two ids are. The key stays in the server's memory; with the Keychain it
+  is never written to a file by beagle.
+- Values reach the Keychain through the Security framework, never a
+  command line (`security add-generic-password -w` would show them in
+  `ps`).
+- The command is run, not stored output: let the secret manager inject or
+  print secrets for the pipe, and don't paste `secrets get` output into
+  shells, logs or issues.
+- After `brew upgrade beagle`, macOS may ask whether the new binary may
+  read the items: choose **Always Allow** (or run `beagle serve secrets
+  sync` again, which re-creates them).
+- Off macOS there is no Keychain: use the environment or `[push]`.
+
 ## Build order
 
 Each step is one PR that leaves everything working:
