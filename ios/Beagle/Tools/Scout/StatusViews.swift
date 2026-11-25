@@ -9,6 +9,7 @@ extension TaskStatus {
     case .todo: "○"
     case .working: "⠋"
     case .paused: "‖"
+    case .waiting: "◷"
     case .blocked: "■"
     case .done: "✔"
     case .skipped: "–"
@@ -21,6 +22,7 @@ extension TaskStatus {
     case .todo: .gray
     case .working: .working
     case .paused: .yellow
+    case .waiting: .blue
     case .blocked: .red
     case .done: .green
     case .skipped, .unknown: .secondary
@@ -71,15 +73,20 @@ struct TaskGlyph: View {
   }
 }
 
-/// A project's glyph: spins while any of its tasks is working.
+/// A project's glyph: spins while any of its tasks is working, else shows
+/// the waiting glyph while any is waiting (the TUI's order), else its status.
 struct ProjectGlyph: View {
   let status: ProjectStatus
   let working: Bool
+  let waiting: Bool
 
   var body: some View {
     Group {
       if working {
         Spinner()
+      } else if waiting {
+        Text(TaskStatus.waiting.glyph).foregroundStyle(TaskStatus.waiting.color)
+          .accessibilityLabel(TaskStatus.waiting.rawValue)
       } else {
         Text(status.glyph).foregroundStyle(status.color)
           .accessibilityLabel(status.rawValue)

@@ -60,7 +60,8 @@
     }
   }
 
-  /// The demo store: one active project with a working task, one fresh one.
+  /// The demo store: one active project with a working task, one whose last
+  /// task waits on a merge, and one fresh one.
   nonisolated enum DemoData {
     static func error(_ code: String, _ message: String) -> [String: Any] {
       ["error": ["code": code, "message": message]]
@@ -105,7 +106,10 @@
       return [
         "/v1/health": ["ok": true],
         "/v1/version": ["beagle": "0.0.0-demo", "api": 1, "tools": ["scout"]],
-        base: ["projects": [rateLimitRow, tidyRow], "warnings": []],
+        base: ["projects": [rateLimitRow, queueRow, tidyRow], "warnings": []],
+        "\(base)/\(queue)": queueDetail,
+        "\(base)/\(queue)/tasks/02-open-the-pr": queueTask,
+        "\(base)/\(queue)/log": ["project": queue, "lines": [], "truncated": false],
         "\(base)/\(project)": rateLimit,
         "\(base)/tidy-the-docs": tidy,
         "\(base)/\(project)/tasks/01-map-request-path": detail(
@@ -126,6 +130,41 @@
         "created": stamp(minutesAgo: 90), "updated": stamp(minutesAgo: 20),
         "last_activity": stamp(minutesAgo: 2),
       ]
+    }
+
+    static let queue = "upgrade-the-queue"
+    static var queueTasks: [[String: Any]] {
+      [
+        task(1, "bump-queue-lib", "Bump the queue library", "done", 2, 2),
+        task(2, "open-the-pr", "Open the PR", "waiting", 2, 2),
+      ]
+    }
+
+    static var queueRow: [String: Any] {
+      [
+        "id": queue, "title": "Upgrade the job queue", "status": "active", "goal": NSNull(),
+        "tasks_closed": 1, "tasks_total": 2, "working": [], "waiting": ["02-open-the-pr"],
+        "links": [], "created": stamp(minutesAgo: 300), "updated": stamp(minutesAgo: 40),
+        "last_activity": stamp(minutesAgo: 40),
+      ]
+    }
+
+    static var queueDetail: [String: Any] {
+      var out = queueRow
+      for key in ["tasks_closed", "tasks_total", "working"] { out[key] = nil }
+      out["markdown"] = "## Goal\n\nThe workers run on the new queue library.\n"
+      out["tasks"] = queueTasks
+      out["handoff"] = NSNull()
+      out["warnings"] = []
+      return out
+    }
+
+    static var queueTask: [String: Any] {
+      var out = queueTasks[1]
+      out["project"] = queue
+      out["markdown"] = "## Steps\n\n- [x] Push the branch\n- [x] Open the PR\n"
+      out["next_steps"] = NSNull()
+      return out
     }
 
     static var tidyRow: [String: Any] {

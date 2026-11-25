@@ -62,7 +62,8 @@ private struct TasksList: View {
       Section {
         HStack(spacing: 8) {
           ProjectGlyph(
-            status: project.status, working: project.tasks.contains { $0.status == .working })
+            status: project.status, working: project.tasks.contains { $0.status == .working },
+            waiting: project.tasks.contains { $0.status == .waiting })
           Text(project.status.rawValue.capitalized).foregroundStyle(project.status.color)
           Spacer()
           if let when = ago(project.lastActivity) {

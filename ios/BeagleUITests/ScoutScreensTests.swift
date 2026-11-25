@@ -55,6 +55,29 @@ final class ScoutScreensTests: XCTestCase {
     snapshot(app, "outcome")
   }
 
+  /// A task waiting on a merge shows as waiting (◷), not unknown, in the list and on the task.
+  @MainActor
+  func testWaitingTask() {
+    let app = XCUIApplication()
+    app.launchArguments = ["-demo-server"]
+    app.launch()
+    XCTAssertTrue(app.buttons["tool.scout"].waitForExistence(timeout: 10))
+    app.buttons["tool.scout"].tap()
+
+    let project = app.buttons["project.upgrade-the-queue"]
+    XCTAssertTrue(project.waitForExistence(timeout: 10))
+    XCTAssertTrue(app.staticTexts["waiting"].exists)
+    snapshot(app, "projects-waiting")
+    project.tap()
+
+    let task = app.buttons["task.02-open-the-pr"]
+    XCTAssertTrue(task.waitForExistence(timeout: 10))
+    task.tap()
+    XCTAssertTrue(app.staticTexts["task.status"].waitForExistence(timeout: 10))
+    XCTAssertEqual(app.staticTexts["task.status"].label, "Waiting")
+    snapshot(app, "task-waiting")
+  }
+
   /// Keeps a screenshot in the test results, for reviewing the screens.
   @MainActor
   private func snapshot(_ app: XCUIApplication, _ name: String) {

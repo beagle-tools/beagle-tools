@@ -28,6 +28,22 @@ struct ScoutAPITests {
     #expect(list.projects[1].goal == nil)
     #expect(list.projects[1].updated == nil)
     #expect(list.projects[1].status == .planning)
+    // Captured before the `waiting` status: no `waiting` array, so none waiting.
+    #expect(first.waiting == nil && first.waitingTasks.isEmpty)
+  }
+
+  @Test func decodesWaitingTasks() async throws {
+    stub.serve([
+      "/v1/scout/projects": Fixture.data("projects-waiting"),
+      "/v1/scout/projects/upgrade-the-queue": Fixture.data("project-waiting"),
+    ])
+    let row = try #require(try await stub.api().projects().projects.first)
+    #expect(row.working.isEmpty)
+    #expect(row.waitingTasks == ["02-open-the-pr"])
+    #expect(row.tasksClosed == 1 && row.tasksTotal == 2)
+
+    let project = try await stub.api().project("upgrade-the-queue")
+    #expect(project.tasks.map(\.status) == [.done, .waiting])
   }
 
   @Test func decodesAProjectWithTasksAndHandoff() async throws {
