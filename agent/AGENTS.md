@@ -80,6 +80,8 @@ lib/top             agenttop, the TUI (ratatui; `beagle agent top`)
 desktop/            Agentdesk — its own cargo workspace + pnpm package
 examples/demo/      an example project — real manifests usually live
                     elsewhere and are linked in by agentman
+docs/               user reference: manifests.md (every field, params, run
+                    env), configuration.md (paths, config files, flags, guards)
 deploy/             launchd plist template for the daemon
 assets/notify/      notification icons; one notifier app is built per png
 ```

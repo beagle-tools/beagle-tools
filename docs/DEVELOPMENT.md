@@ -56,6 +56,15 @@ target installs its `node_modules`.
 | `agenttop` | `agenttop` TUI | `agent/` |
 | `agentctl` | `agentctl` CLI | `agent/` |
 
+The `beagle` command itself, and the tools that only live inside it (scout,
+recap, standup, serve), run straight from cargo:
+
+```sh
+cargo run -p beagle-cli -- help           # any `beagle …` command, from source
+cargo run -p beagle-cli -- scout          # e.g. the scout TUI
+cargo install --locked --path beagle      # put your build on PATH as `beagle`
+```
+
 Notes:
 - `tandem` and `rca-desktop` both use port 1420; run one at a time.
 - Debug builds of the desktop apps keep their data apart from an installed

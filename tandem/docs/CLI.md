@@ -14,7 +14,7 @@ Run with **no command**, it opens the [review TUI](#the-review-tui): a
 terminal review queue with its own store, where an agent reviews the
 PRs you queue and you triage the result.
 
-The code is a library crate (`tui`, `tandem_cli::run`)
+The code is a library crate (`tandem-cli` in `tui/`, `tandem_cli::run`)
 with a thin `main.rs`, so the same commands are also linked into the
 unified `beagle` command as **`beagle tandem`** (`tandem_cli::run_as`):
 `beagle tandem prs`, `beagle tandem app-queue`, … behave exactly like
@@ -54,7 +54,7 @@ cargo build --release -p tandem-cli   # target/release/tandem-cli (repo root)
 ```
 
 Or install the `beagle` command (`brew install beagle-tools/tap/beagle`,
-see `beagle/README.md` at the repo root) and use `beagle tandem …`.
+see [`beagle/README.md`](../../beagle/README.md)) and use `beagle tandem …`.
 
 ## Commands
 
@@ -76,6 +76,9 @@ tandem-cli claim --out <dir> [--agent name]      # for the reviewer
 tandem-cli ingest --run <id> --file <jsonl>      # for the reviewer
 tandem-cli fail --run <id> --error <why>         # for the reviewer
 ```
+
+`<pr>` is `owner/repo#123` or a `https://github.com/owner/repo/pull/123`
+URL. `add` runs the config's `kick` command afterwards unless `--no-kick`.
 
 The app-store commands print JSON on stdout (`--pretty` to indent), so it pipes
 into `jq` or straight into another agent's context. Errors go to
@@ -162,7 +165,8 @@ add / `a` ──▶ queued ──claim──▶ reviewing ──ingest──▶ 
 ```
 
 - **Left:** every queued PR and where it stands (`queued`, `reviewing`,
-  `ready`, `failed`, `done`) with the verdict as a badge.
+  `ready`, `failed`, `done`, or `merged` / `closed` once GitHub says so)
+  with the verdict as a badge.
 - **Right:** the selected PR in three tabs — **Summary** (the verdict
   first), **Diff** (your own `delta --side-by-side` when it is
   installed, a plain colored diff otherwise) and **Comments** (each
@@ -171,7 +175,8 @@ add / `a` ──▶ queued ──claim──▶ reviewing ──ingest──▶ 
   selected comment (a one-line fix on the new side becomes a GitHub
   suggestion), `A` approves. `x` dismisses a comment, `m` marks the PR
   gone-through, `a` queues another, `e` reviews it again, `r` refreshes
-  from GitHub, `?` lists every key.
+  from GitHub, `o` opens the PR in the browser, `z` hides the list for a
+  full-width diff, `?` lists every key.
 - **The posting account is always named.** The footer shows who the next
   post or approval goes out as; `u` picks among the accounts gh is logged
   into and saves the choice as `github_user`. With no `github_user` and
@@ -220,7 +225,8 @@ example is an agentd job, `agent/examples/demo/review-queue.yaml`
    it (detail, comments, diff) into the TUI's store, writes
    `<dir>/context.md` and prints `<run id> <context path>`. It prints
    nothing when the queue is empty. A PR it can't fetch is marked
-   failed, and the next one is tried.
+   failed, and the next one is tried. `--agent <name>` (default `claude`)
+   is only the name recorded on the run.
 2. An agent reads `context.md` — the PR, everything already said on it,
    the diff and the exact output contract — and writes JSON lines: one
    `tandem_verdict` (`mergeable`, `mergeable-with-suggestions`,

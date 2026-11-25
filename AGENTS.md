@@ -15,13 +15,12 @@ with one folder per runnable part (`tui/`, `daemon/`, `desktop/`, `web/`,
 | `beagle agent` | `agent/` | `tui/` agentctl, `daemon/` agentd, `desktop/` Agentdesk, `lib/core`, `lib/top` agenttop, `examples/demo` | `agent/AGENTS.md` |
 | `beagle rca` | `rca/` | `tui/`, `daemon/` (`beagle rca agentd`), `desktop/` Beagle app, `web/` postmortem site, `lib/agent`, `examples/rcas` | `rca/AGENTS.md` |
 | `beagle recap` | `recap/` | `tui/` | `recap/tui/README.md` |
-| `beagle scout` | `scout/` | `tui/` | `scout/tui/AGENTS.md` |
+| `beagle scout` | `scout/` | `tui/` (its phone screens are in `ios/Beagle/Tools/Scout/`) | `scout/tui/AGENTS.md` |
 | `beagle standup` | `standup/` | `tui/` | `standup/tui/README.md` |
 | `beagle tandem` | `tandem/` | `tui/` tandem-cli, `desktop/` Tandem app, `lib/{core,github,cache,agents,queue}` | `tandem/AGENTS.md` |
 
 | Shared | What it is | Guide |
 |---|---|---|
-| `ios/` | The Beagle iPhone app for every tool (home screen of tools; each tool's screens in `ios/Beagle/Tools/<Tool>/`) | `ios/AGENTS.md` |
 | `ios/` | The Beagle iPhone app for every tool (home screen of tools; each tool's screens in `ios/Beagle/Tools/<Tool>/`) | `ios/AGENTS.md` |
 | `utils/` | `beagle-utils` and `beagle-tui`: Rust helpers shared by two or more tools; `swift/` BeagleKit, the Swift package the iPhone apps share | `utils/README.md` |
 | `standards/`, `scripts/`, root configs | Shared lint, format, compiler and CI configuration | `docs/CODING_STANDARDS.md` |
@@ -36,6 +35,7 @@ Read the doc for the stage you are in:
 |---|---|
 | Spec work as GitHub issues → implement → PR → merge → release | [`docs/SDLC.md`](docs/SDLC.md) (skills: `beagle-create-issue`, `beagle-complete-issue`) |
 | What to test, and how test selection works | [`docs/TESTING.md`](docs/TESTING.md) |
+| Setting up a machine from scratch (install or build every tool) | [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) |
 | Running apps locally, browser mode with mocked IPC, tooling setup | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) |
 | What a merge releases, versions, tags, in-app updates, brew | [`docs/RELEASING.md`](docs/RELEASING.md) |
 

@@ -1,4 +1,4 @@
-# Deploying the beagle postmortem site
+# Deploying the Beagle RCA postmortem site
 
 The site is a static build, so you can deploy it three ways — as raw
 files, as a container, or on Kubernetes — and gate it with GitHub SSO
@@ -14,24 +14,35 @@ BEAGLE_SITE_URL=https://postmortems.example.com corepack pnpm build
 # → rca/web/dist/  — upload anywhere: Vercel, Netlify, Pages, S3, nginx, …
 ```
 
-`BEAGLE_RCAS_DIR` points the build at a store other than the repo's
-`../rcas` (e.g. an oncall checkout).
+By default the build reads the repo's example store (`../examples/rcas`).
+Point `BEAGLE_RCAS_DIR` at your own `rcas/` directory to publish your
+incidents (only RCAs marked with `beagle rca publish` are included).
 
 ## 2. Docker
 
-Build from the `rca/` directory (the build reads `web/` and `rcas/`):
+Build from the `rca/` directory. The image bakes in the RCAs under
+`rca/examples/rcas/` (published ones only), plus the repo's shared
+`standards/` as a named build context:
 
 ```sh
 cd rca
-docker build -f web/Dockerfile -t beagle-web .
+docker build --build-context standards=../standards \
+  --build-arg BEAGLE_SITE_URL=https://postmortems.example.com \
+  -f web/Dockerfile -t beagle-web .
 docker run -p 8080:8080 beagle-web        # → http://localhost:8080
 ```
 
-Or use Compose. **Public:**
+To ship your own incidents in the image, put your published RCA folders in
+`rca/examples/rcas/` of the build context (or build a static `dist/` as in
+section 1 and serve that instead).
+
+Or run the image with Compose. Its `build:` section does not pass the
+`standards` context, so build the image with the command above first, then
+start it without `--build`. **Public:**
 
 ```sh
 cd rca/web
-docker compose up --build                 # → http://localhost:8080
+docker compose up                         # → http://localhost:8080
 ```
 
 **Gated by GitHub SSO** (bring your own OAuth app):
@@ -39,7 +50,7 @@ docker compose up --build                 # → http://localhost:8080
 ```sh
 cd rca/web
 cp .env.example .env                       # fill in your GitHub OAuth app
-docker compose --profile auth up --build   # → http://localhost:4180
+docker compose --profile auth up           # → http://localhost:4180
 ```
 
 With auth on, reach the site through the proxy on `:4180`; do not expose
@@ -69,6 +80,9 @@ helm install postmortems rca/deploy/helm/beagle-web \
   --set ingress.enabled=true --set ingress.host=postmortems.example.com
 ```
 
+Or use the released image (example content only, see below):
+`--set image.repository=ghcr.io/beagle-tools/beagle-rca-web --set image.tag=<version>`.
+
 **Gated by GitHub SSO:**
 
 ```sh
@@ -95,4 +109,5 @@ own Secret and pass `--set auth.existingSecret=<name>`. See
 Every rca release (`beagle-rca-vX.Y.Z`, cut from `main` by the repo's
 release automation) publishes the image as
 `ghcr.io/beagle-tools/beagle-rca-web:X.Y.Z` and `:latest`, alongside the CLI
-and desktop builds of the same version.
+and desktop builds of the same version. That image bakes in the repo's
+example store, so build your own image to publish your incidents.
