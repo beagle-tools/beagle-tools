@@ -97,6 +97,7 @@ pub(super) fn scout_call_in(segment: &str) -> Option<ScoutCall> {
             let status = match *verb {
                 "start" => TaskStatus::Working,
                 "done" => TaskStatus::Done,
+                "wait" => TaskStatus::Waiting,
                 "block" => TaskStatus::Blocked,
                 "skip" => TaskStatus::Skipped,
                 "status" => TaskStatus::parse(&unquote(rest.first()?))?,

@@ -283,6 +283,40 @@ fn quiet_working_tasks_pause_and_resume_on_activity() {
 }
 
 #[test]
+fn waiting_tasks_never_auto_pause_and_keep_the_project_active() {
+    use std::time::{Duration, SystemTime};
+    let (_dir, store) = store();
+    store.create_project(&slug("p"), "P", vec![]).unwrap();
+    store.add_task("p", &slug("a"), "A", vec![]).unwrap();
+    store.add_task("p", &slug("b"), "B", vec![]).unwrap();
+    store
+        .set_task_status("p", "1", TaskStatus::Waiting)
+        .unwrap();
+    store.set_task_status("p", "2", TaskStatus::Done).unwrap();
+    let now = SystemTime::now();
+    let long_ago = |_: &Project, _: &Task| Some(now - Duration::from_hours(5));
+    let paused = store
+        .pause_quiet_tasks(Duration::from_mins(30), long_ago, now)
+        .unwrap();
+    assert!(paused.is_empty(), "waiting is never auto-paused");
+    store.append_log("p", Some("1"), "CI green").unwrap();
+    let p = store.project("p").unwrap();
+    assert_eq!(
+        p.tasks[0].meta.status,
+        TaskStatus::Waiting,
+        "a log line keeps it waiting"
+    );
+    assert_eq!(p.meta.status, ProjectStatus::Active);
+    assert_eq!(p.working().count(), 0);
+    assert_eq!(p.waiting().count(), 1);
+    let row = p.list_json();
+    assert_eq!(row["waiting"], serde_json::json!(["01-a"]));
+    assert_eq!(row["working"], serde_json::json!([]));
+    let log = fs::read_to_string(p.log_file()).unwrap();
+    assert!(log.contains("`01-a` todo → waiting"), "{log}");
+}
+
+#[test]
 fn task_stems() {
     assert_eq!(split_task_stem("01-a-b"), Some((1, "a-b")));
     assert_eq!(split_task_stem("120-x"), Some((120, "x")));

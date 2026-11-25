@@ -4,7 +4,7 @@
 use super::{
     activity, dim, pane_block, project_glyph, task_color, task_glyph, App, Block, Color,
     Constraint, Focus, Frame, Layout, Line, Modifier, Paragraph, Project, Rect, Span, Style, Tab,
-    Task, TaskStatus, Text, Wrap, WrapLayout, WORKING,
+    Task, TaskStatus, Text, Wrap, WrapLayout, WAITING, WORKING,
 };
 
 pub(super) fn draw_overview(frame: &mut Frame<'_>, app: &mut App, area: Rect) {
@@ -76,7 +76,7 @@ pub(super) fn tab_line(current: Tab) -> Line<'static> {
 }
 
 /// Status, progress bar, what is being worked now (or what is next), what
-/// is blocked, and links: the "where are we?" summary of a project.
+/// is waiting or blocked, and links: the "where are we?" summary of a project.
 pub(super) fn project_header(project: &Project, tick: usize) -> Vec<Line<'static>> {
     let (glyph, style) = project_glyph(project, tick);
     let total = project.tasks.len();
@@ -134,6 +134,13 @@ pub(super) fn project_header(project: &Project, tick: usize) -> Vec<Line<'static
             ));
         }
         lines.push(Line::from(spans));
+    }
+    for task in project.waiting() {
+        lines.push(Line::from(vec![
+            Span::styled("◷ waiting ", Style::default().fg(WAITING)),
+            Span::styled(format!("{} ", task.id), dim()),
+            Span::raw(task.meta.title.clone()),
+        ]));
     }
     for task in project
         .tasks

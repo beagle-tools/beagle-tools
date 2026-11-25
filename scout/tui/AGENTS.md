@@ -60,4 +60,8 @@ assets/               scout-dog.png (Noto Emoji, Apache-2.0; see assets/NOTICE)
   terminal (`ui/keys.rs` tests); drawing gets a `TestBackend` smoke test.
 - Notifications are macOS-only (`terminal-notifier` / `osascript`); every
   other platform is a silent no-op.
+- `waiting` is the silent status (CI, a review, a merge): it never builds a
+  notification or an events-spool line (`app/status.rs::status_event`) and
+  auto-pause only touches `working`. `blocked` is the one that alerts; keep
+  that split.
 - Keep key bindings aligned with the rca TUI's where an equivalent exists.

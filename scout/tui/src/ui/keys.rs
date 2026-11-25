@@ -48,6 +48,10 @@ pub(super) const HELP: &[(&str, &str)] = &[
     pane_resize::HELP,
     ("?", "this help"),
     ("q / Q / ctrl-c", "quit"),
+    (
+        "○ ▶ ‖ ◷ ■ ✔ –",
+        "todo · working · paused · waiting (CI/review/merge) · blocked (needs you) · done · skipped",
+    ),
 ];
 
 impl App {

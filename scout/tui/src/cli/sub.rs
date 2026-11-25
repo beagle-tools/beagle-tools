@@ -80,11 +80,14 @@ pub(super) fn parse_session(rest: &[String]) -> Result<Command, String> {
 
 pub(super) fn parse_task(args: &[String]) -> Result<Command, String> {
     let Some((sub, rest)) = args.split_first() else {
-        return Err("usage: beagle scout task add|start|done|block|skip|status|rm ...".to_owned());
+        return Err(
+            "usage: beagle scout task add|start|wait|done|block|skip|status|rm ...".to_owned(),
+        );
     };
     let shortcut = match sub.as_str() {
         "start" => Some(TaskStatus::Working),
         "done" => Some(TaskStatus::Done),
+        "wait" => Some(TaskStatus::Waiting),
         "block" => Some(TaskStatus::Blocked),
         "skip" => Some(TaskStatus::Skipped),
         "pause" => Some(TaskStatus::Paused),

@@ -40,8 +40,9 @@ beagle scout skill install               # the /scout and /scout-build skills fo
   task. It starts each task, narrates, ticks steps, verifies done-when,
   writes the outcome, and marks it done, so the TUI always shows exactly
   where it is. With no project it asks which one. It stops and asks before
-  anything outward-facing (push, PR, deploy) and when blocked, and never
-  leaves a task spinning when it stops.
+  anything outward-facing (push, PR, deploy) and when blocked, marks a task
+  `waiting` (silent) while CI, a review or a merge runs, and never leaves a
+  task spinning when it stops.
   ([skill](skills/scout-build/SKILL.md))
 
 Both skills are compiled into the binary, so the instructions always match
@@ -68,8 +69,27 @@ beagle scout new rate-limit-the-api --title "One noisy client can't take the API
 beagle scout task add rate-limit-the-api add-rate-limit --title "Add a per-key rate limit in gateway/limits.yaml"
 beagle scout task start rate-limit-the-api 2
 beagle scout log rate-limit-the-api --task 2 "found 3 existing routes in gateway/limits.yaml"
+beagle scout task wait rate-limit-the-api 2 --reason "PR #12: waiting on CI"
 beagle scout task done rate-limit-the-api 2
 ```
+
+### Task statuses
+
+| Glyph | Status | Means |
+|---|---|---|
+| `○` | `todo` | not started |
+| spinner | `working` | an agent is on it right now |
+| `‖` (yellow) | `paused` | started, nobody on it (by hand, or auto-paused after quiet) |
+| `◷` (blue) | `waiting` | the agent's part is done for now; it waits on CI, a review or a merge. **Silent**: no notification, no event, never auto-paused |
+| `■` (red) | `blocked` | needs you: a question to answer or something to do. Notifies |
+| `✔` | `done` | objective met |
+| `–` | `skipped` | replanned away, kept for the record |
+
+Use `wait` (`beagle scout task wait <project> <task> --reason "PR #12: waiting on CI"`)
+when nothing is needed from you, and `block` only when it is. A project
+with a waiting task (and none working) shows `◷` in the list and its
+waiting tasks under the progress bar; `beagle scout list` prints
+`[waiting: …]` and `--json` carries a `waiting` array next to `working`.
 
 ### Keys
 
@@ -233,7 +253,9 @@ TUI isn't open:
 ```
 
 By default: **blocked** (the agent needs you; plays a sound, and the text is
-the agent's `--reason`), **project started**, and **project done**. Clicking
+the agent's `--reason`), **project started**, and **project done**.
+`waiting` never notifies and is never written to the events file below: it
+means nothing is needed from you. Clicking
 a notification focuses the agent's Herdr pane (`herdr agent focus`) and
 brings your terminal forward. A project's banners replace each other instead
 of piling up.
@@ -270,7 +292,7 @@ pause_after = "30m"  # quiet this long → a working task becomes `paused`
 ```
 
 **Auto-pause.** A `working` task nobody has touched for `pause_after`
-becomes `paused` (`‖`, yellow) with a log line (`auto-paused: quiet 34m`)
+(never a `waiting` one) becomes `paused` (`‖`, yellow) with a log line (`auto-paused: quiet 34m`)
 and a notification. That usually means the agent stalled, died, or moved on
 without saying so. "Touched" is the newest change to the task's file, the
 project's log, or the transcript of a Claude session attached to the task,
@@ -342,7 +364,7 @@ Plain Markdown with TOML frontmatter (between `+++` fences) — no database,
 ```toml
 +++
 title = "Add a per-key rate limit to the gateway config in gateway/limits.yaml"
-status = "working"                  # todo | working | paused | blocked | done | skipped
+status = "working"                  # todo | working | paused | waiting | blocked | done | skipped
 created = "2026-11-12T15:30:05Z"    # RFC 3339, quoted
 updated = "2026-11-12T15:41:10Z"
 links = ["ABC-344", "backlog:TASK-12", "https://github.com/acme/widgets/pull/12"]

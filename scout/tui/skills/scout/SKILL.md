@@ -160,11 +160,18 @@ Then, as you go:
 
   Stopping mid-task? Write `## Next steps` anyway: exactly where you
   stopped and what to do first when resuming.
-- **Blocked?** `beagle scout task block <project> <task> --reason "<the question
+- **Waiting on CI, a review or a merge?** Your part is done for now and
+  nothing is needed from the user: `beagle scout task wait <project> <task>
+  --reason "PR #12: waiting on CI"`. `waiting` is silent (no notification)
+  and never auto-paused. When the wait is over, `beagle scout task start` to
+  carry on, or `beagle scout task done` if that was the last step.
+- **Blocked?** Only when the user must answer something or do something:
+  `beagle scout task block <project> <task> --reason "<the question
   the user must answer>"`. The reason is logged and sent to the user's Mac
   as a "Needs you" notification. Then ask the user with AskUserQuestion
   (concrete options, recommended first). When they answer, log the decision,
-  `beagle scout task start` again, and keep going.
+  `beagle scout task start` again, and keep going. Never block just to wait
+  on CI or a merge: that alerts the user for nothing.
 
 The user may also be watching your terminal commands live in a side pane
 (`beagle scout watch`, fed by Claude Code hooks). There, your `beagle scout task start`
@@ -179,8 +186,9 @@ quiet for a while (`[auto] pause_after`, default 30 minutes). Your next
 Log at each meaningful step so long silences really do mean "stalled".
 
 Work one task at a time. The spinner means "the agent is on this right now",
-so never leave a task `working` when you stop — close it, block it, or set it
-back with `beagle scout task status <project> <task> todo` before ending the session.
+so never leave a task `working` while you are idle or when you stop — close
+it, mark it `waiting` (CI, a review, a merge), block it (a question for the
+user), or set it back with `beagle scout task status <project> <task> todo` before ending the session.
 
 ## Replanning
 
@@ -217,7 +225,8 @@ one-line summary, and run `beagle scout status <project> done`. Abandoned instea
 | `beagle scout new <p> --title T [--link R]...` | create a project (planning) |
 | `beagle scout task add <p> <slug> --title T [--link R]...` | append a task |
 | `beagle scout task start\|done\|block\|skip <p> <t> [--reason R]` | change a task's status (`--reason` is logged; on `block` it is the notification text) |
-| `beagle scout task status <p> <t> <todo\|working\|blocked\|done\|skipped>` | same, explicit |
+| `beagle scout task wait <p> <t> [--reason R]` | waiting on CI, a review or a merge: silent, never auto-paused (`block` is only for questions the user must answer) |
+| `beagle scout task status <p> <t> <todo\|working\|paused\|waiting\|blocked\|done\|skipped>` | same, explicit |
 | `beagle scout task rm <p> <t>` | delete a task file |
 | `beagle scout task attach <p> <t>` | attach this Claude session (`start` does it) |
 | `beagle scout log <p> [--task <t>] <message>` | narrate a step |
@@ -230,5 +239,6 @@ freely; leave the frontmatter to the CLI (it rejects unknown fields, and
 times must be quoted RFC 3339 strings). Statuses: project
 `planning → active → paused → done | dropped` (starting a task moves a
 planning project to active); task `todo → working → done`, or `paused`
-(started, nobody on it; set automatically after a quiet spell), `blocked`,
-or `skipped`.
+(started, nobody on it; set automatically after a quiet spell), `waiting`
+(silent: CI, a review or a merge), `blocked` (needs the user; notifies), or
+`skipped`.

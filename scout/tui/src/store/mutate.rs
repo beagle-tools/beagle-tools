@@ -111,7 +111,9 @@ impl Store {
                 &format!("{} → {}", previous.as_str(), status.as_str()),
             ),
         )?;
-        if status == TaskStatus::Working && p.meta.status == ProjectStatus::Planning {
+        if matches!(status, TaskStatus::Working | TaskStatus::Waiting)
+            && p.meta.status == ProjectStatus::Planning
+        {
             self.set_project_status(project, ProjectStatus::Active)?;
         }
         let updated = load_task(&task.path)?.ok_or_else(|| Error::TaskNotFound {
