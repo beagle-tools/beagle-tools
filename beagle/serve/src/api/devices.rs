@@ -9,12 +9,18 @@ use super::ApiError;
 use crate::http::{Method, Request, Response};
 use crate::push::devices::{device_id, Device, DeviceStore, Registration, MAX_DEVICES};
 use crate::push::settings::{self, Settings};
+use crate::push::{send_test, SharedSender};
 
 /// Routes `rest` (the path after `/v1/`, starting at `devices`).
 ///
 /// # Errors
 /// [`ApiError`] for bad ids and bodies, unknown devices and store failures.
-pub fn route(store: &DeviceStore, rest: &[&str], req: &Request) -> Result<Response, ApiError> {
+pub fn route(
+    store: &DeviceStore,
+    push: Option<&SharedSender>,
+    rest: &[&str],
+    req: &Request,
+) -> Result<Response, ApiError> {
     let (id, tail) = match rest {
         ["devices", id, tail @ ..] => (*id, tail),
         _ => return Err(ApiError::not_found(format!("no endpoint {}", req.path))),
@@ -38,12 +44,27 @@ pub fn route(store: &DeviceStore, rest: &[&str], req: &Request) -> Result<Respon
         (["notifications"], Method::Put) => update_settings(store, &id, req),
         (["test"], Method::Post) => {
             let devices = store.load().map_err(|e| internal(&e))?;
-            devices.devices.get(&id).ok_or_else(|| unknown(&id))?;
-            Err(ApiError {
-                status: 503,
-                code: "push_not_configured",
-                message: "push isn't set up on the Mac yet: run `beagle serve push setup`".into(),
-            })
+            let device = devices.devices.get(&id).ok_or_else(|| unknown(&id))?;
+            let push = push
+                .filter(|s| s.lock().is_ok_and(|s| s.configured()))
+                .ok_or_else(|| ApiError {
+                    status: 503,
+                    code: "push_not_configured",
+                    message: "push isn't set up on the Mac yet: run `beagle serve push setup`"
+                        .into(),
+                })?;
+            let outcome = send_test(push, &id, device);
+            if outcome.delivered {
+                Ok(Response::ok(
+                    json!({ "delivered": true, "message": outcome.message }),
+                ))
+            } else {
+                Err(ApiError {
+                    status: 502,
+                    code: "push_failed",
+                    message: outcome.message,
+                })
+            }
         }
         ([], _) => Ok(not_allowed("PUT, DELETE")),
         (["notifications"], _) => Ok(not_allowed("GET, HEAD, PUT")),

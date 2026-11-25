@@ -108,6 +108,19 @@ fn the_serve_service_is_reported_and_only_a_down_one_fails() {
 }
 
 #[test]
+fn push_is_a_warning_until_set_up() {
+    assert_eq!(
+        push_line(&Ok("configured (key KEY1234567, team ABC123DEFG)".into())),
+        "✓ beagle serve push: configured (key KEY1234567, team ABC123DEFG)"
+    );
+    let line = push_line(&Err("not set up — run `beagle serve push setup`".into()));
+    assert!(
+        line.starts_with("⚠ beagle serve push: not set up"),
+        "{line}"
+    );
+}
+
+#[test]
 fn the_agentd_stack_is_retired_too() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let bin = tmp.path().join("bin");

@@ -1,10 +1,11 @@
 # Push notifications: Mac → Apple → phone (design)
 
 > **Status: approved; being built** in the order in [Build order](#build-order).
-> Step 1 (the event spool, phones and settings, the follower) is in:
-> `scout/tui/src/events.rs` and `beagle/serve/src/push/`. Until step 2
-> lands, serve logs the notifications it would send. The device endpoints
-> are also listed in [`serve-api.md`](serve-api.md).
+> Steps 1 and 2 are in: the event spool, phones and settings, the
+> follower (`scout/tui/src/events.rs`, `beagle/serve/src/push/`), and the
+> APNs sender with `push setup` / `push test` (`push/apns.rs`, `jwt.rs`,
+> `cmd.rs`). Without `[push]`, serve logs the notifications it would send.
+> The device endpoints are also listed in [`serve-api.md`](serve-api.md).
 
 `beagle scout` already shows a macOS banner when an agent changes a status
 (`scout/tui/src/notify.rs`): a task is blocked (with a sound), a project

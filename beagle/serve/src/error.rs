@@ -62,6 +62,9 @@ pub enum Error {
     /// Installing, removing or asking about the launchd agent failed.
     #[error("service: {0}")]
     Service(String),
+    /// Push notifications: not set up, no phones, or nothing delivered.
+    #[error("push: {0}")]
+    Push(String),
     /// Listening failed.
     #[error("can't listen on {addr}: {source}")]
     Bind {

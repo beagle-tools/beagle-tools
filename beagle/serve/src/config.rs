@@ -8,6 +8,11 @@
 //! # addr = "100.64.0.1"                   # default: `tailscale ip -4`
 //! # cert = "~/.config/beagle/serve/<host>.crt"
 //! # key  = "~/.config/beagle/serve/<host>.key"
+//!
+//! [push]                                  # push notifications (docs/serve-push.md);
+//! team_id = "ABC123DEFG"                  # written by `beagle serve push setup`
+//! key_id  = "KEY1234567"
+//! key     = "~/.config/beagle/serve/AuthKey_KEY1234567.p8"
 //! ```
 //!
 //! The file holds a secret, so it is written `0600`, atomically.
@@ -45,6 +50,49 @@ pub struct Config {
     /// The private key (PEM), overriding the default path.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key: Option<PathBuf>,
+    /// Push notifications through APNs; `None` means push is off.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub push: Option<PushConfig>,
+}
+
+/// `[push]`: the APNs token-auth key from the Apple developer account.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PushConfig {
+    /// The developer account's Team ID (10 characters).
+    pub team_id: String,
+    /// The APNs key's Key ID (10 characters).
+    pub key_id: String,
+    /// The `.p8` key file (`~` expanded); must be mode `0600`.
+    pub key: PathBuf,
+}
+
+impl PushConfig {
+    /// The key file's path, `~` expanded.
+    #[must_use]
+    pub fn key_path(&self) -> PathBuf {
+        beagle_utils::paths::expand_tilde(&self.key)
+    }
+
+    /// Checks the two ids: 10 uppercase letters or digits, as Apple makes
+    /// them.
+    ///
+    /// # Errors
+    /// What is wrong, naming the field.
+    pub fn validate_ids(&self) -> std::result::Result<(), String> {
+        for (name, value) in [("team_id", &self.team_id), ("key_id", &self.key_id)] {
+            let ok = value.len() == 10
+                && value
+                    .bytes()
+                    .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit());
+            if !ok {
+                return Err(format!(
+                    "{name} must be 10 uppercase letters or digits, not {value:?}"
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 impl fmt::Debug for Config {
@@ -56,6 +104,7 @@ impl fmt::Debug for Config {
             .field("addr", &self.addr)
             .field("cert", &self.cert)
             .field("key", &self.key)
+            .field("push", &self.push)
             .finish()
     }
 }
@@ -136,6 +185,22 @@ pub fn save(path: &Path, config: &Config) -> Result<()> {
         message: e.to_string(),
     })?;
     beagle_utils::fs::write_atomic_with_mode(path, text.as_bytes(), 0o600).map_err(Error::io(path))
+}
+
+/// Whether anyone but the owner may read `path` (`false` off Unix, or when
+/// it can't be read at all).
+#[must_use]
+pub fn readable_by_others(path: &Path) -> bool {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        std::fs::metadata(path).is_ok_and(|m| m.permissions().mode() & 0o077 != 0)
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = path;
+        false
+    }
 }
 
 /// A warning when `path` can be read by anyone but its owner.

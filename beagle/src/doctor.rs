@@ -89,12 +89,26 @@ fn report_serve() -> bool {
     if !cfg!(target_os = "macos") {
         return true;
     }
-    let (line, ok) = match beagle_serve::service::status() {
-        Ok(status) => serve_line(&status),
+    let status = beagle_serve::service::status();
+    let (line, ok) = match &status {
+        Ok(status) => serve_line(status),
         Err(e) => (format!("? beagle serve: could not ask launchd: {e}"), true),
     };
     println!("{line}");
+    // Push only matters once the server runs in the background.
+    if status.is_ok_and(|s| !matches!(s, beagle_serve::service::Status::NotInstalled)) {
+        println!("{}", push_line(&beagle_serve::push::status()));
+    }
     ok
+}
+
+/// The doctor's line for push notifications: a warning (never a failure)
+/// when they are not set up or the key doesn't load.
+pub fn push_line(status: &Result<String, String>) -> String {
+    match status {
+        Ok(summary) => format!("✓ beagle serve push: {summary}"),
+        Err(why) => format!("⚠ beagle serve push: {why}"),
+    }
 }
 
 /// The doctor's line for a service status, and whether it is healthy.

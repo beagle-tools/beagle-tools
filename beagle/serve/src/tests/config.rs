@@ -24,6 +24,11 @@ fn save_then_load_round_trips_with_mode_0600() {
         addr: Some("100.64.0.1".parse().unwrap()),
         cert: None,
         key: Some(PathBuf::from("/tmp/k.pem")),
+        push: Some(PushConfig {
+            team_id: "ABC123DEFG".into(),
+            key_id: "KEY1234567".into(),
+            key: PathBuf::from("~/.config/beagle/serve/AuthKey_KEY1234567.p8"),
+        }),
     };
     save(&path, &config).unwrap();
     assert_eq!(load(&path).unwrap(), config);

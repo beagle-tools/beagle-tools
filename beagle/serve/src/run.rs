@@ -6,7 +6,7 @@ use std::process::ExitCode;
 use std::sync::Arc;
 
 use crate::auth::Token;
-use crate::cli::{self, Command, PairOptions, ServeOptions};
+use crate::cli::{self, Command, PairOptions, PushCommand, ServeOptions};
 use crate::config;
 use crate::error::{Error, Result};
 use crate::push::devices::{self, DeviceStore};
@@ -33,6 +33,12 @@ pub(crate) fn main(args: Vec<OsString>) -> ExitCode {
         Command::Install => service::install().map(|done| println!("{done}")),
         Command::Uninstall => service::uninstall().map(|done| println!("{done}")),
         Command::Status => status(),
+        Command::Push(PushCommand::Setup {
+            key,
+            key_id,
+            team_id,
+        }) => push::cmd::setup(&key, &key_id, &team_id),
+        Command::Push(PushCommand::Test { device }) => push::cmd::test(device.as_deref()),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
@@ -129,6 +135,7 @@ fn status() -> Result<()> {
         |d| d.devices.len().to_string(),
     );
     println!("  phones registered for push: {phones}");
+    println!("  push:  {}", push::status().unwrap_or_else(|why| why));
     Ok(())
 }
 
@@ -175,12 +182,25 @@ fn serve(opts: &ServeOptions) -> Result<()> {
         eprintln!("beagle serve:   {line}");
     }
     let devices = Arc::new(DeviceStore::new(push::devices_path()?));
-    push::spawn(Arc::clone(&devices), Box::new(push::HeldSender))?;
+    // A broken [push] turns push off with a log line; it never stops serving.
+    let sender = push::sender_for(&config, Arc::clone(&devices)).unwrap_or_else(|why| {
+        eprintln!("beagle serve:   push: off: {why}");
+        Box::new(push::HeldSender)
+    });
     eprintln!(
-        "beagle serve:   push: phones in {}; push not configured yet, events are logged",
+        "beagle serve:   push: {}; phones in {}",
+        if sender.configured() {
+            "on (APNs)"
+        } else {
+            "not configured, events are only logged"
+        },
         devices.path().display()
     );
-    let ctx = Ctx::new(token, stores).with_devices(devices);
+    let sender: push::SharedSender = Arc::new(std::sync::Mutex::new(sender));
+    push::spawn(Arc::clone(&devices), Arc::clone(&sender))?;
+    let ctx = Ctx::new(token, stores)
+        .with_devices(devices)
+        .with_push(sender);
     server::serve(&listener, &Arc::new(ctx), tls.as_ref());
     Ok(())
 }

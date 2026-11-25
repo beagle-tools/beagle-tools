@@ -19,6 +19,11 @@ USAGE
                                   run again to restart it
   beagle serve uninstall          stop and remove the background service
   beagle serve status             whether the background service is running
+  beagle serve push setup --key <AuthKey_….p8> --key-id <id> --team-id <id>
+                                  turn on push notifications with your APNs key
+                                  (copied next to serve.toml, mode 0600)
+  beagle serve push test [--device <id>]
+                                  send a test push to every registered phone
 
 SERVER OPTIONS
   --addr <ip>      address to bind (default: `addr` in serve.toml, else
@@ -61,6 +66,19 @@ pub(crate) struct PairOptions {
     pub port: Option<u16>,
 }
 
+/// `beagle serve push …`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum PushCommand {
+    Setup {
+        key: PathBuf,
+        key_id: String,
+        team_id: String,
+    },
+    Test {
+        device: Option<String>,
+    },
+}
+
 /// One `beagle serve` invocation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Command {
@@ -70,6 +88,7 @@ pub(crate) enum Command {
     Install,
     Uninstall,
     Status,
+    Push(PushCommand),
 }
 
 fn port(raw: &str) -> Result<u16, String> {
@@ -114,6 +133,10 @@ pub(crate) fn parse(args: Vec<OsString>) -> Result<Command, String> {
             it.next();
             bare(Command::Status, &mut it)
         }
+        Some("push") => {
+            it.next();
+            parse_push(&mut it)
+        }
         _ => parse_serve(&mut it),
     }
 }
@@ -130,6 +153,37 @@ fn parse_pair(it: &mut dyn Iterator<Item = String>) -> Result<Command, String> {
         }
     }
     Ok(Command::Pair(opts))
+}
+
+fn parse_push(it: &mut dyn Iterator<Item = String>) -> Result<Command, String> {
+    let sub = it.next();
+    let mut key = None;
+    let mut key_id = None;
+    let mut team_id = None;
+    let mut device = None;
+    while let Some(arg) = it.next() {
+        let mut value = |name: &str| it.next().ok_or_else(|| format!("{name} needs a value"));
+        match (sub.as_deref(), arg.as_str()) {
+            (Some("setup"), "--key") => key = Some(PathBuf::from(value("--key")?)),
+            (Some("setup"), "--key-id") => key_id = Some(value("--key-id")?),
+            (Some("setup"), "--team-id") => team_id = Some(value("--team-id")?),
+            (Some("test"), "--device") => device = Some(value("--device")?),
+            (_, other) => return Err(format!("unknown argument: {other}")),
+        }
+    }
+    match sub.as_deref() {
+        Some("setup") => match (key, key_id, team_id) {
+            (Some(key), Some(key_id), Some(team_id)) => Ok(Command::Push(PushCommand::Setup {
+                key,
+                key_id,
+                team_id,
+            })),
+            _ => Err("push setup needs --key, --key-id and --team-id".into()),
+        },
+        Some("test") => Ok(Command::Push(PushCommand::Test { device })),
+        Some(other) => Err(format!("unknown push command: {other} (setup, test)")),
+        None => Err("push needs a command: setup or test".into()),
+    }
 }
 
 fn parse_serve(it: &mut dyn Iterator<Item = String>) -> Result<Command, String> {
