@@ -32,6 +32,13 @@ notifications and keep their settings on the Mac. Push is specified in
   address is loopback (`127.0.0.1`, `::1`).
 - `tailscale cert` certificates last 90 days; re-run it and restart
   `beagle serve` to renew.
+- **One request per connection, bounded.** At most 32 connections are open
+  at once, and each must finish within 30 seconds (no read or write may
+  wait more than 15), so idle, half-open or trickling clients free their
+  slot on their own. A connection the server closes without an answer
+  (busy, client left mid-handshake, out of time) is logged with the reason,
+  at most one line every 10 seconds. `GET /v1/health` reports how many
+  connections are open.
 
 ### Configuration
 
@@ -159,8 +166,11 @@ Every non-2xx response has this body:
 No token. For liveness checks (`curl`, launchd, the app before pairing).
 
 ```json
-{ "ok": true }
+{ "ok": true, "connections": { "active": 1, "max": 32 } }
 ```
+
+`connections.active` counts this request too. If it sits at `max`, every
+other client is being turned away; the server log says why.
 
 ### `GET /v1/version`
 

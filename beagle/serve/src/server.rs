@@ -1,13 +1,14 @@
 //! The listener: accept, hand each connection to a short-lived thread,
 //! answer one request, close.
 //!
-//! Connections are bounded ([`MAX_CONNECTIONS`] at once; extras are
-//! dropped) and every socket has read and write timeouts, so a slow or
-//! stuck client can never pile up threads or wedge the server.
+//! Connections are bounded ([`Limits::max`] at once; extras are dropped)
+//! and each one must finish within [`Limits::deadline`], so a slow, idle or
+//! half-open client can never pile up threads or wedge the server. Every
+//! connection closed without an answer is logged with its reason
+//! (rate-limited, [`Drops`]).
 
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -15,19 +16,45 @@ use rustls::{ServerConfig, ServerConnection, StreamOwned};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
+use crate::conn::{Connections, Deadline, Drops, Limits};
 use crate::http::{self, Method, ReadError, Request, Response};
 use crate::router::{self, Ctx};
 
-/// Connections served at once; more are closed straight away.
-pub const MAX_CONNECTIONS: usize = 32;
+/// What every connection thread shares besides its socket.
+struct Shared {
+    ctx: Arc<Ctx>,
+    tls: Option<Arc<ServerConfig>>,
+    limits: Limits,
+    conns: Connections,
+    drops: Drops,
+}
 
-/// How long a socket may sit idle in a read or a write.
-pub const IO_TIMEOUT: Duration = Duration::from_secs(15);
+impl Shared {
+    /// Logs a connection closed without an answer (rate-limited).
+    fn dropped(&self, peer: &str, reason: &str) {
+        if let Some(line) = self.drops.record(Instant::now(), peer, reason, &self.conns) {
+            eprintln!("{} {line}", now());
+        }
+    }
+}
 
 /// Accepts connections forever. `tls` is `None` only for loopback testing
-/// (`--no-tls`); the caller enforces that.
-pub fn serve(listener: &TcpListener, ctx: &Arc<Ctx>, tls: Option<&Arc<ServerConfig>>) {
-    let active = Arc::new(AtomicUsize::new(0));
+/// (`--no-tls`); the caller enforces that. `conns` counts the open
+/// connections and caps them (give the same one to `/v1/health`).
+pub fn serve(
+    listener: &TcpListener,
+    ctx: &Arc<Ctx>,
+    tls: Option<&Arc<ServerConfig>>,
+    conns: &Connections,
+    limits: Limits,
+) {
+    let shared = Arc::new(Shared {
+        ctx: Arc::clone(ctx),
+        tls: tls.map(Arc::clone),
+        limits,
+        conns: conns.clone(),
+        drops: Drops::default(),
+    });
     for stream in listener.incoming() {
         let stream = match stream {
             Ok(stream) => stream,
@@ -36,65 +63,71 @@ pub fn serve(listener: &TcpListener, ctx: &Arc<Ctx>, tls: Option<&Arc<ServerConf
                 continue;
             }
         };
-        if active.fetch_add(1, Ordering::SeqCst) >= MAX_CONNECTIONS {
-            active.fetch_sub(1, Ordering::SeqCst);
+        let peer = peer_of(&stream);
+        let Some(slot) = shared.conns.acquire() else {
             // Dropping the stream closes it: too busy to answer politely.
+            shared.dropped(&peer, "busy, every connection slot is taken");
             continue;
-        }
-        let slot = Slot(Arc::clone(&active));
-        let ctx = Arc::clone(ctx);
-        let tls = tls.map(Arc::clone);
+        };
+        let worker = Arc::clone(&shared);
+        let worker_peer = peer.clone();
         let spawned = std::thread::Builder::new()
             .name("serve-conn".into())
             .spawn(move || {
                 let _slot = slot;
-                connection(stream, &ctx, tls);
+                connection(stream, &worker_peer, &worker);
             });
         if let Err(e) = spawned {
-            eprintln!("{} could not start a connection thread: {e}", now());
+            shared.dropped(&peer, &format!("could not start a thread: {e}"));
         }
     }
 }
 
-/// Releases a connection slot when the connection's thread ends, however
-/// it ends.
-struct Slot(Arc<AtomicUsize>);
-
-impl Drop for Slot {
-    fn drop(&mut self) {
-        self.0.fetch_sub(1, Ordering::SeqCst);
-    }
+/// The client's IP, for logs.
+fn peer_of(stream: &TcpStream) -> String {
+    stream
+        .peer_addr()
+        .map_or_else(|_| "?".to_owned(), |a: SocketAddr| a.ip().to_string())
 }
 
-fn connection(stream: TcpStream, ctx: &Ctx, tls: Option<Arc<ServerConfig>>) {
-    let peer = stream
-        .peer_addr()
-        .map_or_else(|_| "?".to_owned(), |a: SocketAddr| a.ip().to_string());
-    // Without timeouts a client that never sends would hold its thread
-    // forever; failing to set them is not worth serving without them.
-    if stream.set_read_timeout(Some(IO_TIMEOUT)).is_err()
-        || stream.set_write_timeout(Some(IO_TIMEOUT)).is_err()
-    {
-        return;
-    }
-    let Some(config) = tls else {
-        let mut plain = stream;
-        if let Some(line) = exchange(&mut plain, ctx, &peer) {
-            eprintln!("{line}");
+fn connection(stream: TcpStream, peer: &str, shared: &Shared) {
+    let mut stream = Deadline::new(stream, shared.limits);
+    let Some(config) = shared.tls.clone() else {
+        match exchange(&mut stream, &shared.ctx, peer) {
+            Some(line) => eprintln!("{line}"),
+            None => shared.dropped(peer, closed_reason(&stream, false)),
         }
         return;
     };
-    let Ok(conn) = ServerConnection::new(config) else {
-        return;
+    let conn = match ServerConnection::new(config) {
+        Ok(conn) => conn,
+        Err(e) => {
+            shared.dropped(peer, &format!("TLS setup failed: {e}"));
+            return;
+        }
     };
     let mut tls_stream = StreamOwned::new(conn, stream);
-    if let Some(line) = exchange(&mut tls_stream, ctx, &peer) {
-        eprintln!("{line}");
+    match exchange(&mut tls_stream, &shared.ctx, peer) {
+        Some(line) => eprintln!("{line}"),
+        None => shared.dropped(
+            peer,
+            closed_reason(&tls_stream.sock, tls_stream.conn.is_handshaking()),
+        ),
     }
     tls_stream.conn.send_close_notify();
     // The response is already written; a failed close_notify only means the
     // client hung up first.
     let _ = tls_stream.flush();
+}
+
+/// Why a connection ended before a whole request arrived.
+fn closed_reason<S>(stream: &Deadline<S>, handshaking: bool) -> &'static str {
+    match (stream.expired(), handshaking) {
+        (true, true) => "TLS handshake did not finish in time",
+        (true, false) => "no complete request in time",
+        (false, true) => "client left during the TLS handshake",
+        (false, false) => "client left before sending a request",
+    }
 }
 
 /// Reads one request from `stream`, answers it, and returns the log line
@@ -156,3 +189,7 @@ fn now() -> String {
 #[cfg(test)]
 #[path = "tests/server.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tests/loopback.rs"]
+mod loopback;

@@ -132,10 +132,14 @@ pub const DEFAULT_LINES: usize = 200;
 /// Longest log tail served.
 pub const MAX_LINES: usize = 2000;
 
-/// `GET /v1/health`.
+/// `GET /v1/health`: `ok`, plus the open-connection count when the
+/// server counts them (`conns`).
 #[must_use]
-pub fn health() -> Value {
-    json!({ "ok": true })
+pub fn health(conns: Option<&crate::conn::Connections>) -> Value {
+    match conns {
+        Some(c) => json!({ "ok": true, "connections": { "active": c.active(), "max": c.max() } }),
+        None => json!({ "ok": true }),
+    }
 }
 
 /// `GET /v1/version`.
