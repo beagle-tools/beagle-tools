@@ -11,7 +11,7 @@ get there. The agent keeps that picture current through the `beagle scout` CLI (
 live, which task it is on, what it just did, and how far along the goal is.
 
 ```text
-╭ ‹ One noisy client can't take the API… ╮  1 Task  ·  2 Project  ·  3 Log
+╭ ‹ One noisy client can't take the API… ╮  1 Task · 2 Outcome · 3 Session · 4 Project · 5 Log
 │✔ 01 Map the request path from the int…  │╭ 02-add-rate-limit · Add a per-key rate limit to the gateway…╮
 │     done · 3/3 ☑                        ││⠧ working · task 2 of 3 · checklist 1/4 · active 2m ago        │
 │⠧ 02 Add a per-key rate limit to the …   ││                                                               │
@@ -19,17 +19,29 @@ live, which task it is on, what it just did, and how far along the goal is.
 │○ 03 Roll the gateway config out to pr…  ││All traffic enters through the API gateway, which forwards…    │
 │     todo · 0/3 ☑                        ││                                                               │
 ╰─────────────────────────────────────────╯╰───────────────────────────────────────────────────────────────╯
-j/k select · enter read · tab/1-4 tabs · b back · F follow · E edit · ? help · q quit
+j/k select · enter read · tab/1-5 tabs · b back · F follow · E edit · w resize · ? help · q quit
 ```
 
 ## Install
 
-Scout ships inside the `beagle` binary. From a checkout of this repo:
+Scout ships inside the `beagle` binary:
 
 ```sh
-cargo install --path beagle   # puts `beagle` on your PATH
-beagle scout skill install               # the /scout and /scout-build skills for Claude Code (+ Codex)
+brew install beagle-tools/tap/beagle   # or `cargo install --locked --path beagle` from a checkout
+beagle setup                           # the steps below, asking before each
 ```
+
+`beagle setup` runs scout's three one-time steps; you can also run them
+yourself:
+
+```sh
+beagle scout skill install       # /scout and /scout-build for Claude Code (~/.claude/skills/)
+                                 # and Codex (~/.codex/prompts/); on macOS also builds Scout.app
+beagle scout hook install        # session hooks in ~/.claude/settings.json (see "Watch")
+beagle scout init ~/.scout       # the default store (see "Where projects live")
+```
+
+Start a new Claude Code session afterwards so it picks up the skills.
 
 ## The two skills
 
@@ -108,12 +120,14 @@ into.
  └─────────────────────────────────────┴─────────────────────────────────────┘
 ```
 
-Set it up once:
+Set it up once (`beagle setup` does this too):
 
 ```sh
-cargo install --path beagle   # the hooks call this binary by its absolute path
-beagle scout hook install                # adds scout's hooks to ~/.claude/settings.json (backup kept)
+beagle scout hook install   # adds scout's hooks to ~/.claude/settings.json (backup kept)
 ```
+
+The hooks call `beagle` by its absolute path, so install `beagle` first; if
+you move it, run `beagle scout hook install` again.
 
 Then, next to any Claude Code session started after that, open a pane and run:
 
@@ -141,7 +155,7 @@ Type to filter, then press Enter:
 Without fzf you get a numbered list instead.
 
 How it works: Claude Code's `PreToolUse`, `PostToolUse` and
-`PostToolUseFailure` hooks run `<path>/beagle scout hook` around every Bash command it
+`PostToolUseFailure` hooks (plus `Stop`, for session logs) run `<path>/beagle scout hook` around every Bash command it
 runs (subagents' too, tagged like `[Explore]`). `beagle scout hook` appends one JSON
 line per event to `~/.scout/.sessions/<session-id>.jsonl` and always exits 0,
 so it can never slow down or break Claude. `beagle scout watch` replays the last 20
@@ -252,7 +266,9 @@ a broken file warns and the defaults apply). Every key is optional, and these
 are the defaults:
 
 ```toml
+# root = "~/src/my-scout-projects"   # the default store (see "Where projects live")
 notify = true
+sound = "Glass"   # for `blocked`; "" for silent
 
 [notify_events]
 blocked = true
@@ -261,8 +277,6 @@ project_done = true
 task_done = false
 task_started = false
 task_paused = true   # a working task went quiet and was auto-paused
-
-sound = "Glass"   # for `blocked`; "" for silent
 
 [auto]
 pause_after = "30m"  # quiet this long → a working task becomes `paused`

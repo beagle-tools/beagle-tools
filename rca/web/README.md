@@ -1,4 +1,4 @@
-# beagle web
+# Beagle RCA web: the postmortem site
 
 The public postmortem site: a static Astro build that turns **published**
 RCA workspaces into a sleek, client-facing incident history. Read-only —
@@ -9,7 +9,8 @@ the TUI and desktop app do the investigating; this presents the result.
 `astro build` reads the `rcas/` workspaces at build time (see
 `src/lib/rcas.ts`), keeps only incidents flagged `published = true` in
 their `rca.toml`, and renders their **client-safe** sections — Summary,
-Timeline, Root Cause, Impact, Resolution, and Diagrams. Notes, Log, and
+Timeline, Root Cause (as "What happened"), Impact, Fix (as "Resolution"), and
+Diagrams. Notes, Log, and
 Final Review are internal and never published. Output is a self-contained
 static site in `dist/` you can deploy anywhere.
 
@@ -25,8 +26,10 @@ beagle rca unpublish <slug>   # makes it private again
 ```sh
 cd rca/web
 corepack pnpm install
-corepack pnpm dev    # reads ../rcas by default
+corepack pnpm dev    # reads ../examples/rcas by default
 ```
+
+Or `make web` from `rca/`.
 
 Point it at a different store with `BEAGLE_RCAS_DIR`:
 

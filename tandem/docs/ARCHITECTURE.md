@@ -10,6 +10,8 @@ lib/core     domain types + unified-diff parser (no I/O)
 lib/github   GitHub REST client (reads + user-only writes), pluggable auth
 lib/cache    SQLite: GitHub cache + local review store
 lib/agents   headless agent runners + JSONL run logs
+lib/queue    the terminal review queue (`tandem-tui`, linked by tui/)
+tui          tandem-cli: JSON CLI + review TUI (`beagle tandem`, app sidecar)
 desktop/src-tauri            Tauri shell: commands, events, settings, state
 desktop/src/                 React UI (differ, comments, agent panel, settings)
 ```
@@ -42,15 +44,25 @@ SHA changes. Local comments/agent runs are indexed by (repo, number).
 ## Agent review flow
 
 1. User configures an `AgentSpec` (runner, auth, model, prompt, tool
-   allowlist, network allowlist, timeout). Stored in SQLite.
+   allowlist, env, network allowlist, timeout, summary on/off). Stored in
+   SQLite; `env` values go to `agent-env.json` (0600) beside it instead.
 2. `start_agent_review` builds a prompt: Tandem context block (identity,
    the tandem_comment contract, "never post to GitHub") + user
    instructions + PR description + raw diff. Fed via stdin to:
-   - claude: `claude -p --output-format stream-json --verbose [...]`
-   - codex: `codex exec --json --skip-git-repo-check -`
-   - grok: `grok --output-format streaming-json -p <prompt>` (Grok Build
-     takes the prompt as an argument; it has no stdin mode)
-   - custom: `sh -c <command>`
+   - claude: `claude -p --output-format stream-json --verbose [--model …]
+     [--allowedTools …] --disallowedTools <gh, git push, security>
+     [--append-system-prompt …]`
+   - codex: `codex exec --json --skip-git-repo-check --sandbox
+     workspace-write [-m …] --add-dir <run dir> -`
+   - grok: `grok --output-format streaming-json --no-auto-update
+     --always-approve [-m …] -p <prompt>` (Grok Build takes the prompt as
+     an argument; it has no stdin mode)
+   - custom: `/bin/sh -c <command>`
+
+   The process runs in a managed checkout of the PR when one can be made
+   (`gh repo clone`, best-effort; otherwise the run dir), with
+   `$TANDEM_RUN_ID` and `$TANDEM_COMMENTS_FILE` set and GitHub write
+   access stripped (`beagle_utils::agent_env::deny_github`).
 3. Runner streams events; `{"type":"tandem_comment"}` lines (stdout or the
    `$TANDEM_COMMENTS_FILE` drop-box) become `LocalComment`s tied to the
    run id and head SHA.
@@ -76,3 +88,7 @@ SHA changes. Local comments/agent runs are indexed by (repo, number).
   per line, so a hunk never needs the whole file.
 - One SQLite connection behind a mutex — fine at current scale.
 - PAT lives in the settings file (0600), not the keychain yet (roadmap).
+
+The terminal review queue (`lib/queue`, `beagle tandem`) is a separate,
+synchronous ratatui app on its own store; see [CLI.md](CLI.md#the-review-tui)
+and the concurrency notes in [`../AGENTS.md`](../AGENTS.md).

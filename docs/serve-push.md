@@ -349,7 +349,7 @@ Likely first ones:
 The app needs no list change: the catalog drives the settings screen, and
 the tool's module handles its `link`.
 
-## What Matt does once
+## One-time Apple setup (each developer)
 
 1. **Create the key.** Go to developer.apple.com → Certificates, IDs &
    Profiles → Keys → **+**, tick **Apple Push Notifications service
@@ -383,7 +383,7 @@ Each step is one PR that leaves everything working:
 3. **The app:** entitlements, permission, registration, the settings
    section in BeagleUI, tap routing, Unpair → `DELETE`. UI tests against the
    in-app demo server, which gains the device routes.
-4. **The key** (Matt, above), then an end-to-end check on the phone.
+4. **The key** (one-time Apple setup, above), then an end-to-end check on the phone.
 
 ## Out of scope for v1
 

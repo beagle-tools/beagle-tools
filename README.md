@@ -4,8 +4,8 @@
 
 # Beagle
 
-Open-source developer tools for working alongside your AI agents — local-first, on your machine,
-with you in control.
+**A pack of open-source dev tools for working alongside your AI agents.**<br>
+Local-first, nose to the ground, and you always hold the leash.
 
 <a href="https://github.com/beagle-tools/beagle-tools/actions/workflows/ci.yml"><img src="https://github.com/beagle-tools/beagle-tools/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI status"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
@@ -14,121 +14,105 @@ with you in control.
 <a href="https://github.com/beagle-tools/beagle-tools/releases?q=beagle-rca-v"><img src="https://img.shields.io/github/v/release/beagle-tools/beagle-tools?filter=beagle-rca-v*&label=rca" alt="Latest Beagle RCA release"></a>
 <a href="https://github.com/beagle-tools/beagle-tools/releases?q=beagle-workflows-v"><img src="https://img.shields.io/github/v/release/beagle-tools/beagle-tools?filter=beagle-workflows-v*&label=agentd" alt="Latest agentd release"></a>
 
+[Get started](docs/GETTING_STARTED.md) · [The tools](#meet-the-pack) · [Install](#install-in-one-minute) · [Contribute](CONTRIBUTING.md)
+
 </div>
 
-## The tools
+---
 
-|                                                              | Product            | What it does                                                                                                               | Runs on                                              | Directory                           |
-| ------------------------------------------------------------ | ------------------ | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------- |
-| <img src="docs/assets/tandem-logo.svg" alt="" width="32">    | Tandem             | Review GitHub PRs with Claude/Codex riding along; agent comments stay local until you post                                 | macOS, Linux, Windows desktop                        | [`tandem/`](tandem/README.md)       |
-| <img src="docs/assets/beagle-logo.png" alt="" width="32">    | Beagle (RCA)       | An agent investigates an incident and writes the RCA; a TUI/desktop app renders it live; a daemon can ship the fix as a PR | CLI/TUI (macOS, Linux), desktop, daemon, static site | [`rca/`](rca/README.md)             |
-| <img src="docs/assets/agentdesk-logo.svg" alt="" width="32"> | agentd + Agentdesk | Schedule coding agents from YAML manifests; each run in its own tmux session, recorded in SQLite                           | macOS                                                | [`agent/`](agent/README.md) |
-|                                                              | scout              | Watch agent work live as projects of small, ordered tasks (`beagle scout`)                                                 | CLI/TUI (macOS, Linux)                               | [`scout/`](scout/README.md)         |
-|                                                              | recap              | PR recaps: the diff plus a plain-language write-up of what it fixes and why (`beagle recap`)                               | CLI/TUI (macOS, Linux)                               | [`recap/`](recap/README.md)         |
-|                                                              | standup            | Standup reports: one overview, then a short write-up per ticket (`beagle standup`)                                         | CLI/TUI (macOS, Linux)                               | [`standup/`](standup/README.md)         |
+Coding agents are great at fetching. They are less great at telling you
+what they found, why it matters and what they're about to chew on next.
+Beagle is a set of small, sharp tools that keep you in the loop. You watch
+the work live, read it in plain language and decide what reaches the
+outside world. Your data stays on your machine.
 
-Underneath them, [`utils/`](utils/README.md) (`beagle-utils`) holds the Rust helpers two or more
-apps share.
+```text
+   __      _
+o'')}____//     beagle setup     # skills, hooks and stores, all in one go
+ `_/      )     beagle scout     # watch your agent work, task by task
+ (_(_/-(_/      beagle doctor    # sniff out anything missing
+```
 
-Every terminal tool and daemon ships as **one binary, `beagle`** ([`beagle/`](beagle/README.md)):
-`beagle agent` (agentd: CLI, TUI and daemon), `beagle rca` (and its daemon, `beagle rca agentd`),
-`beagle recap`, `beagle scout`, `beagle standup` and `beagle tandem` (Tandem's data from a
-script). Only the desktop apps install separately. Where each tool and part lives:
-the [repo map](#repo-map).
+## Meet the pack
 
-## Install
+| | Tool | What it does | Runs on |
+|---|---|---|---|
+| <img src="docs/assets/beagle-logo.png" alt="" width="28"> | **[scout](scout/README.md)** | Your agent plans a goal as small, ordered tasks, and you watch it work through them live | CLI/TUI, iPhone |
+| <img src="docs/assets/beagle-logo.png" alt="" width="28"> | **[rca](rca/README.md)** | An agent investigates an incident and writes the root-cause analysis while you watch. Hand it off and a daemon opens the fix PR | CLI/TUI, desktop, daemon, static site |
+| <img src="docs/assets/tandem-logo.svg" alt="" width="28"> | **[tandem](tandem/README.md)** | Review GitHub PRs with Claude or Codex riding along. Agent comments stay local until you post them | Desktop (macOS, Linux, Windows), TUI |
+| <img src="docs/assets/agentdesk-logo.svg" alt="" width="28"> | **[agent](agent/README.md)** (agentd) | Schedule coding agents from YAML. Each run gets its own tmux session and is recorded in SQLite | CLI/TUI, daemon, macOS desktop |
+| <img src="docs/assets/beagle-logo.png" alt="" width="28"> | **[recap](recap/README.md)** | A PR's diff next to a plain-language write-up of what it fixes and why | CLI/TUI |
+| <img src="docs/assets/beagle-logo.png" alt="" width="28"> | **[standup](standup/README.md)** | Your standup, written for you: one overview, then a short write-up per ticket | CLI/TUI |
+| <img src="docs/assets/beagle-logo.png" alt="" width="28"> | **[Beagle for iPhone](ios/README.md)** | Every tool in your pocket, read-only, served from your Mac by `beagle serve` | iOS |
 
-<details open>
-<summary><b>beagle</b> — the one CLI: agent, rca, recap, scout, standup, tandem</summary>
+Every terminal tool and daemon lives in **one binary, `beagle`**
+([`beagle/`](beagle/README.md)). Only the desktop apps and the iPhone app
+install separately.
+
+## Install in one minute
 
 ```sh
 brew install beagle-tools/tap/beagle
-beagle setup                  # every tool's one-time steps: agent skills, scout hooks + store
-beagle doctor                 # checks gh, agent services, tmux, skills and hooks
-beagle agent daemon install   # (macOS) run the agentd scheduler under launchd
-beagle help                   # every tool it holds
-beagle update                 # later: update every tool at once (and refresh the skills)
+beagle setup     # agent skills, scout hooks and store (asks before each step)
+beagle doctor    # checks gh, tmux, agent services, skills and hooks
 ```
 
-Tarballs and `cargo install`: [`beagle/README.md`](beagle/README.md). Coming from the standalone rca
-CLI (`brew install beagle-tools/tap/beagle-rca`)? Both install a `beagle`, so switch with
-`brew uninstall beagle-rca && brew install beagle-tools/tap/beagle`; every old `beagle <cmd>` is
-now `beagle rca <cmd>`. From the standalone agentd CLIs: `agentctl …` is `beagle agent …`,
-`agenttop` is `beagle agent`, and `agentd` is `beagle agent daemon run` — re-run
-`beagle agent daemon install` so launchd starts the new binary (and `beagle rca agent install`
-for rca's daemon, now `beagle rca agentd run`). The old names keep working for one release. `beagle doctor` lists old
-standalone binaries still on your `PATH`.
+Then pick up whatever you need:
 
-</details>
+```sh
+beagle agent daemon install                              # macOS: the agentd scheduler under launchd
+beagle rca agent install                                 # the daemon that turns RCAs into fix PRs
+brew install --cask beagle-tools/tap/beagle-tandem       # Tandem desktop
+brew install --cask beagle-tools/tap/beagle-rca-desktop  # Beagle RCA desktop
+brew install --cask beagle-tools/tap/beagle-agentdesk    # Agentdesk, agentd's desktop dashboard
+```
+
+**[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)** covers the full
+setup: prerequisites, every tool's first run, the phone app, building from
+source, and notes for coding agents setting up a machine. It also covers
+tarballs, cargo, Linux and Windows.
 
 <details>
-<summary><b>Tandem</b> — desktop app</summary>
+<summary><b>Coming from the standalone tools?</b></summary>
+
+`beagle` replaces them. Every old command now lives under its tool's name:
+
+| Before | Now |
+|---|---|
+| `beagle list`, `beagle new …` (the old `beagle-rca` formula) | `beagle rca list`, `beagle rca new …` |
+| `scout`, `recap`, `standup` | `beagle scout`, `beagle recap`, `beagle standup` |
+| `tandem-cli …` | `beagle tandem …` |
+| `agentctl …`, `agenttop`, `agentd` | `beagle agent …`, `beagle agent`, `beagle agent daemon run` |
+| `beagle-agentd` | `beagle rca agentd run` |
 
 ```sh
-brew install --cask beagle-tools/tap/beagle-tandem
+brew uninstall beagle-rca beagle-workflows && brew install beagle-tools/tap/beagle
+beagle setup && beagle agent daemon install && beagle rca agent install
+beagle doctor    # lists old binaries still on your PATH
 ```
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/beagle-tools/beagle-tools/main/tandem/scripts/install.sh | sh
-```
-
-```powershell
-powershell -c "irm https://raw.githubusercontent.com/beagle-tools/beagle-tools/main/tandem/scripts/install.ps1 | iex"
-```
-
-Direct downloads for every platform: [`tandem/README.md`](tandem/README.md#install).
+Full notes: [`beagle/README.md`](beagle/README.md#switching-from-the-standalone-tools).
 
 </details>
 
-<details>
-<summary><b>Beagle RCA</b> — desktop app and agent daemon (the CLI/TUI is <code>beagle rca</code>)</summary>
+## Thirty-second tour
 
 ```sh
-brew install --cask beagle-tools/tap/beagle-rca-desktop   # the desktop app (macOS)
-```
+# scout: in Claude Code, type `/scout make the login page remember the last email`,
+# then watch it run from another terminal
+beagle scout
 
-The agent daemon is `beagle rca agentd`, installed as a login service with
-`beagle rca agent install`; other routes: [`rca/README.md`](rca/README.md#install--run).
+# rca: scaffold an incident and watch the write-up appear
+beagle rca new checkout-timeouts --title "Checkout times out under load"
+beagle rca
 
-</details>
+# recap: pull a PR, ask your agent to "write the recap", then read it
+beagle recap new https://github.com/acme/widgets/pull/42
+beagle recap
 
-<details>
-<summary><b>Agentdesk</b> — desktop app for agentd (macOS; the CLI, TUI and daemon are <code>beagle agent</code>)</summary>
-
-```sh
-brew install --cask beagle-tools/tap/beagle-agentdesk   # the Agentdesk app (optional)
-beagle agent daemon install                             # the scheduler, under launchd
-```
-
-Direct downloads and the tmux/notifier setup: [`agent/README.md`](agent/README.md#install).
-
-</details>
-
-**How updates work:** the desktop apps update themselves in-app; `beagle update` updates the
-`beagle` CLI (running `brew upgrade` when Homebrew installed it); the other CLIs update with
-`brew upgrade`.
-
-## Quick start
-
-**Tandem:** open the app → sign in with `gh` → paste a PR URL.
-
-**Beagle** — scaffold an RCA (`--title` is required), then watch it render live:
-
-```sh
-beagle rca new <slug> --title "..."
-beagle rca                # open the TUI against ./rcas
-```
-
-**agentd** — copy the [demo manifests](agent/examples/demo/) into place (their scripts are
-referenced from there), then run the free, script-only `writeup` job:
-
-```sh
-mkdir -p ~/.config/agentd/manifests
-cp -R agent/examples/demo ~/.config/agentd/manifests/
-beagle agent apply
-beagle agent get agents
-beagle agent -j writeup
-beagle agent              # the live dashboard
+# agent: run the free demo job from a checkout of this repo
+mkdir -p ~/.config/agentd/manifests && cp -R agent/examples/demo ~/.config/agentd/manifests/
+beagle agent apply && beagle agent -j writeup && beagle agent
 ```
 
 ## How they fit together
@@ -136,41 +120,46 @@ beagle agent              # the live dashboard
 ```mermaid
 flowchart LR
     agentd["beagle agent (agentd)<br/>scheduled agent runs"]
-    agent["Agent<br/>claude · codex + /beagle skill"]
+    agent["Agent<br/>claude · codex + skills"]
+    scout["beagle scout<br/>live task board"]
     rca[("Beagle RCA workspace<br/>plain files on disk")]
     viewer["beagle rca TUI · Beagle desktop<br/>live render"]
     bagentd["beagle rca agentd<br/>implements remediation.md"]
     pr["Pull request"]
-    tandem["Tandem<br/>review with agents"]
+    tandem["Tandem · recap<br/>review with agents"]
     gh["GitHub"]
+    phone["Beagle for iPhone<br/>via beagle serve"]
 
     agentd -- "runs on a schedule or on demand" --> agent
+    agent -- "plans and reports progress" --> scout
     agent -- "investigates, writes the RCA" --> rca
     rca -- "watched live" --> viewer
     rca -- "you set status = agent" --> bagentd
     bagentd -- "opens" --> pr
     pr -- "you open it in" --> tandem
     tandem -- "explicit click: post / approve" --> gh
+    scout -. "read-only" .-> phone
 ```
 
-Each tool stands on its own; together they cover an incident end to end. An agent — started by
-you or by agentd — writes its investigation into a Beagle workspace that you watch live. When you
-hand the RCA off, `beagle rca agentd` implements the fix and opens a PR, which you review in Tandem
-before anything reaches GitHub.
+Each tool stands on its own. Together they cover the loop: agentd starts the
+work, scout shows you what's happening, rca writes up what broke, a daemon
+proposes the fix, and you review it in Tandem before anything reaches GitHub.
 
-## Principles
+## House rules
 
-- **Local-first:** SQLite and plain files on your disk; no hosted service in the loop.
-- **You stay in control:** agents never post, approve or merge on their own — you click.
-- **Bring any agent:** Claude, Codex, or a custom command.
-- **One strict standard:** Rust with no `unsafe`, zero-warning builds, 400-line files, one CI
-  `gate`.
+- **Local-first.** SQLite and plain files on your disk. There is no hosted
+  service in the loop.
+- **You hold the leash.** Agents never post, approve or merge on their own.
+  You click.
+- **Bring any agent.** Claude, Codex or a custom command.
+- **One strict standard.** Rust with no `unsafe`, zero-warning builds,
+  400-line files and one CI `gate`.
 
 ## Repo map
 
 Every tool is one top-level folder named like its `beagle` subcommand, with
-one folder per part you can run ([`docs/LAYOUT.md`](docs/LAYOUT.md);
-`make standards` enforces it).
+one folder per part you can run ([`docs/LAYOUT.md`](docs/LAYOUT.md)).
+`make standards` enforces it.
 
 | Command | Folder | Parts |
 | --- | --- | --- |
@@ -187,41 +176,44 @@ Shared by every tool:
 | Folder | What's in it |
 | --- | --- |
 | [`ios/`](ios/README.md) | The Beagle iPhone app: a home screen of every tool (Scout first), read-only through `beagle serve` |
-| [`ios/`](ios/README.md) | The Beagle iPhone app: a home screen of every tool (Scout first), read-only through `beagle serve` |
-| [`utils/`](utils/README.md) | `beagle-utils` and `beagle-tui`, Rust helpers shared by two or more tools |
+| [`utils/`](utils/README.md) | `beagle-utils` and `beagle-tui`, the Rust helpers two or more tools share. Also `swift/` BeagleKit, the Swift package the iPhone app builds on |
 | [`skills/`](skills/README.md) | Agent skills: `/beagle`, `/beagle-review`, `/beagle-create-issue`, `/beagle-complete-issue` |
-| [`standards/`](standards/) | Shared lint and compiler config every tool uses unchanged |
+| [`standards/`](standards/) | Shared lint and compiler config that every tool uses unchanged |
 | [`scripts/`](scripts/) | CI gate, dev, release and GitHub scripts |
 | [`packaging/`](packaging/) | Homebrew formula templates and casks for `beagle-tools/tap` |
-| [`docs/`](docs/) | Monorepo docs: layout, development, testing, standards, SDLC, releasing |
+| [`docs/`](docs/) | Monorepo docs: getting started, layout, development, testing, standards, SDLC, releasing, the serve API |
 
 ## Develop
 
 ```sh
-make bootstrap            # install toolchains (Rust, Node via nvm, pnpm, gh, tmux)
-make dev APP=tandem       # run any app — `scripts/dev/run.sh --list` for targets
+git clone https://github.com/beagle-tools/beagle-tools.git && cd beagle-tools
+make bootstrap            # Rust, Node via nvm, pnpm, gh, tmux (macOS; safe to re-run)
+make dev APP=tandem       # run any app (scripts/dev/run.sh --list for targets)
 make check                # exactly what CI runs (or make check-<app>)
 ```
 
-| Doc                                                    | What's in it                                                   |
-| ------------------------------------------------------ | -------------------------------------------------------------- |
-| [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)           | Machine setup, starting each app, browser mode with mocked IPC |
-| [`docs/TESTING.md`](docs/TESTING.md)                   | What tests a change needs, and how CI selects them             |
-| [`docs/CODING_STANDARDS.md`](docs/CODING_STANDARDS.md) | The one set of rules every app follows                         |
-| [`docs/SDLC.md`](docs/SDLC.md)                         | Issue → PR → `gate` → merge → release                          |
-| [`docs/RELEASING.md`](docs/RELEASING.md)               | Per-app versions, tags, in-app updates and Homebrew            |
-| [`docs/serve-api.md`](docs/serve-api.md)               | `beagle serve`'s read-only HTTPS API for the phone app         |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md)                   | How to send a change                                           |
+| Doc | What's in it |
+| --- | --- |
+| [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) | Zero to running: install or build every tool, first runs, notes for agents |
+| [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | Machine setup, starting each app, browser mode with mocked IPC |
+| [`docs/TESTING.md`](docs/TESTING.md) | What tests a change needs, and how CI selects them |
+| [`docs/CODING_STANDARDS.md`](docs/CODING_STANDARDS.md) | The one set of rules every app follows |
+| [`docs/SDLC.md`](docs/SDLC.md) | Issue → PR → `gate` → merge → release |
+| [`docs/RELEASING.md`](docs/RELEASING.md) | Per-app versions, tags, in-app updates and Homebrew |
+| [`docs/serve-api.md`](docs/serve-api.md), [`docs/serve-push.md`](docs/serve-push.md) | `beagle serve`: the read-only HTTPS API and push notifications for the phone app |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | How to send a change |
 
 ## Working with agents
 
-Coding agents start at [`AGENTS.md`](AGENTS.md). Work flows issue → PR → `gate` → squash-merge →
-release ([`docs/SDLC.md`](docs/SDLC.md)), and two skills drive it: `/beagle-create-issue` specs the
-work and `/beagle-complete-issue` takes an issue to a merged release ([`skills/README.md`](skills/README.md)).
+Coding agents start at [`AGENTS.md`](AGENTS.md). Work flows issue → PR →
+`gate` → squash-merge → release ([`docs/SDLC.md`](docs/SDLC.md)), and two
+skills drive it. `/beagle-create-issue` specs the work, and
+`/beagle-complete-issue` takes an issue all the way to a merged release
+([`skills/README.md`](skills/README.md)).
 
 ## Support the project
 
-If Beagle saves you time, help keep it going:
+If Beagle saves you time, throw it a treat:
 
 - **[Sponsor](https://github.com/sponsors/matthewmyrick)**
 - **[Star the repo](https://github.com/beagle-tools/beagle-tools)**
@@ -230,4 +222,4 @@ If Beagle saves you time, help keep it going:
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE).
+Apache-2.0. See [LICENSE](LICENSE).

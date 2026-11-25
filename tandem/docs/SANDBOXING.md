@@ -2,22 +2,30 @@
 
 ## v1 (current): local processes, trusted like your own shell
 
-Agents run as local child processes (`claude -p`, `codex exec`, custom
-commands). That means they run with your user's permissions and your
-network. This matches how `agentd` (this monorepo's `agent/`) runs
-today and is fine
-for a single-user local tool, but the isolation is **trust-based, not
-enforced**:
+Agents run as local child processes (`claude -p`, `codex exec`,
+`grok -p`, custom commands). That means they run with your user's
+permissions and your network. This matches how `agentd` (this monorepo's
+`agent/`) runs today and is fine for a single-user local tool, but the
+isolation is mostly **trust-based, not enforced**:
 
-- The run context tells the agent it must not post to GitHub — nothing
-  _prevents_ a malicious/buggy agent from doing so.
+- **GitHub writes are blocked, best-effort.** Every run goes through
+  `beagle_utils::agent_env::deny_github`: `GH_TOKEN` is overridden with a
+  dummy (so every `gh` call gets 401, keychain login included),
+  `GH_CONFIG_DIR` points at an empty dir, and git's credentials are
+  cleared. Claude runs also get `--disallowedTools` for `gh`, `git push`
+  and `security`. A process running as you can still read the keychain
+  directly; only v2 closes that.
 - `AgentSpec.network_allowlist` is collected in the UI **but not
   enforced** in v1. It exists so specs are already sandbox-shaped. New
   agents are pre-seeded with their runner's provider endpoints (claude →
   `api.anthropic.com` + `claude.ai`; codex → `api.openai.com` +
-  `chatgpt.com` + `auth.openai.com`) so most users never edit it.
-- Mitigations available today: claude's `--allowedTools` allowlist,
-  per-run working directories, and hard timeouts.
+  `chatgpt.com` + `auth.openai.com`; grok → `api.x.ai` +
+  `accounts.x.ai` + `x.ai`) so most users never edit it.
+- Other mitigations today: claude's `--allowedTools` allowlist, codex's
+  own `--sandbox workspace-write` (writes only in the checkout and the
+  run dir), per-run working directories, and hard timeouts. Grok runs
+  with `--always-approve` (headless has no approval UI), so for grok the
+  v2 sandbox is the real boundary.
 
 ## v2 (required): Docker + squid egress proxy
 

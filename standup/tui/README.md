@@ -26,8 +26,14 @@ couple of minutes.
 
 ```sh
 beagle standup                 # open the TUI on the newest report (live-reloads)
+beagle standup --date 2026-10-27   # or a given day's report
 beagle standup guide           # the agent guide: CLI, on-disk format, workflow
 ```
+
+It ships inside the `beagle` binary (`brew install beagle-tools/tap/beagle`;
+quick start in [`../README.md`](../README.md)). No `beagle setup` step, and
+standup itself calls no service: the agent gathers tickets and PRs with its
+own tools (usually `gh` and your tracker's CLI or MCP).
 
 Ask an agent to write today's standup: it follows the guide
 ([`docs/AGENT_GUIDE.md`](docs/AGENT_GUIDE.md), printed by
@@ -36,8 +42,9 @@ your tickets and PRs since then, and writes the report while you watch.
 
 ```sh
 beagle standup new [DATE] [--since DATE] [--title TEXT]
-beagle standup ticket ABC-123 --title "…" --url … --state "In Review" \
+beagle standup ticket ABC-123 --title "…" [--date DATE] --url … --state "In Review" \
   [--system api-gateway]... [--pr URL]... [--update]
+                               # --update rewrites ticket.toml (pass every field); keeps summary.md
 beagle standup list [--json]   # reports, newest first
 beagle standup show [DATE]     # the whole report as one markdown document
 beagle standup last            # newest report date

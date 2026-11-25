@@ -26,17 +26,29 @@ beagle recap                                                  # open the TUI
 beagle recap guide                                            # the agent guide
 ```
 
+It ships inside the `beagle` binary (`brew install beagle-tools/tap/beagle`;
+quick start in [`../README.md`](../README.md)). It needs the GitHub CLI,
+signed in (`gh auth login`), and uses [`delta`](https://github.com/dandavison/delta)
+for the Diff tab when it's on your `PATH`. No `beagle setup` step.
+
 Then ask an agent to "write the recap for <PR>"; it follows
 [`docs/AGENT_GUIDE.md`](docs/AGENT_GUIDE.md), printed by `beagle recap guide`.
 
 ## Commands
 
-- `beagle recap new <PR>` / `beagle recap refresh <ID|PR>`
+- `beagle recap [ID|PR]`: the TUI, on that recap (default: the newest PR)
+- `beagle recap new <PR> [--ticket ID] [--ticket-url URL]` /
+  `beagle recap refresh <ID|PR> [--ticket-url URL]` (re-pulls metadata and
+  diff, keeps the write-up)
 - `beagle recap list [--json] [--archived]` / `beagle recap sync`
 - `beagle recap show <ID|PR> [--diff]` / `beagle recap path [ID|PR]`
-- `beagle recap comments <ID|PR>` / `comments sync` / `comments pending` /
-  `comments review <ID> <THREAD> <FILE>`
-- `beagle recap archive <ID>` / `unarchive <ID>` / `merge-check <ID|PR>`
+- `beagle recap comments <ID|PR>` / `comments sync` /
+  `comments pending [--json]` / `comments review <ID> <THREAD> <FILE>`
+- `beagle recap archive <ID|PR>` / `unarchive <ID|PR>` /
+  `merge-check <ID|PR>` (read-only: never merges)
+- `beagle recap guide`: the agent guide
+
+`beagle recap --help` is the authoritative list.
 
 A PR is a URL or `owner/repo#n`; an ID is the recap's folder name,
 `<repo>-<n>` (e.g. `widgets-42`).

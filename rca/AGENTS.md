@@ -95,7 +95,8 @@ truncation) come from `beagle-utils` (`../utils`) — don't re-add local copies.
 Everything under `rcas/` is read by the TUI, desktop, web, the daemon, the
 skills and humans with a text editor. A change to it is a **breaking change**:
 it needs a migration note in the PR and updates to
-`../skills/beagle/SKILL.md` and the `README.md` "Data format" section.
+`../skills/beagle/SKILL.md` and the "Data format" section of
+[`docs/reference.md`](docs/reference.md#data-format).
 
 ```text
 rcas/<slug>/          slug: [a-z0-9-], 1..=64 chars (RcaId)

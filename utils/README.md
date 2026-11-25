@@ -1,9 +1,15 @@
 # beagle-utils
 
 Small, dependency-free helpers shared by the apps in this monorepo
-(`beagle/`, `scout/`, `recap/`, `standup/`, `tandem/`, `rca/`, `agent/`). Members of the repo-root Cargo workspace, MSRV
-1.79: `beagle-utils` (this directory, std-only) and
-`beagle-tui` (`tui/`, terminal-UI pieces).
+(`beagle/`, `scout/`, `recap/`, `standup/`, `tandem/`, `rca/`, `agent/`):
+the bones every beagle in the pack would otherwise bury separately. Members
+of the repo-root Cargo workspace, MSRV 1.79: `beagle-utils` (this
+directory, std-only) and `beagle-tui` (`tui/`, terminal-UI pieces). Plus
+BeagleKit (`swift/`), the Swift package for the iPhone app.
+
+These are libraries, not tools: nothing here installs on its own. Use them
+from a crate in this workspace (`beagle-utils = { workspace = true }`, with
+`features = ["gh"]` and so on as needed).
 
 ## Modules
 
@@ -16,6 +22,7 @@ Small, dependency-free helpers shared by the apps in this monorepo
 | `duration` | Compact human durations (`1h2m`) and single-unit ages (`3m`)               |
 | `fs`       | Atomic writes (temp sibling + fsync + rename), optional reads              |
 | `notify`   | AppleScript string escaping                                                |
+| `agent_env` | Keeps GitHub write access away from coding agents a tool runs as child processes (`deny_github`: dummy `GH_TOKEN`, empty `gh` config, no git credentials or SSH) |
 | `gh`       | The GitHub CLI: `run`/`output` on the augmented `PATH` under a timeout, actionable errors, `PrState` + `pr_state` — only with the `gh` feature |
 | `log`      | `tracing` subscriber init — only with the `tracing` feature                |
 | `update`   | Self-update from GitHub releases: a `Channel` (repo, tag prefix, tarball), version parsing, release listing via `curl`, download + sha256 verify + atomic swap — only with the `update` feature |
@@ -72,7 +79,8 @@ the pane when it is hidden), and while `pane.is_active()` hand every key to
 
 The Swift package the beagle iPhone apps share, the way the Rust tools share
 the crates above. iOS 17+, Swift 6, no third-party dependencies. An app's
-Xcode project references it as a local package (`../../utils/swift`).
+Xcode project references it as a local package (`../utils/swift` from
+`ios/`).
 
 | Library | What it holds |
 |---|---|
