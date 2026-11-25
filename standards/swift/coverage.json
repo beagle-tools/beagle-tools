@@ -2,6 +2,7 @@
   "utils/swift": {
     "BeagleAPI": 80,
     "BeaglePairing": 60,
+    "BeaglePush": 70,
     "BeagleUI": 15
   }
 }

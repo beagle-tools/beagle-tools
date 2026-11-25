@@ -19,13 +19,20 @@ a tool folder: it is the app for every tool (`docs/LAYOUT.md`, rule 9).
 Beagle.xcodeproj/   plain Xcode project; synchronized folders, so files need no project edits;
                     links BeagleKit (../utils/swift) as a local package
   xcshareddata/xcschemes/Beagle.xcscheme   the shared scheme CI tests (unit + UI)
+Beagle.entitlements Push Notifications (aps-environment development); no team ID
 Beagle-Info.plist   merged into the generated Info.plist: only the beagle:// URL scheme
 Beagle/             the app target
-  BeagleApp.swift   @main entry; makes the Pairing (Keychain service dev.beagletools.beagle);
+  BeagleApp.swift   @main entry; hands AppDelegate's Pairing, Push and OpenedLinks to RootView
+  AppDelegate.swift makes the Pairing (Keychain service dev.beagletools.beagle) and Push
+                    (docs/serve-push.md); takes the APNs token, shows foreground banners, and
+                    turns a tapped notification's `beagle.link` into a link RootView opens;
                     `-ui-testing` swaps in a throwaway Keychain + defaults
-  RootView.swift    the one NavigationStack (home → a tool's screens, or Settings);
-                    opens beagle://pair links in PairView
-  SettingsView.swift  BeagleUI's ServerSection + the app version
+  RootView.swift    the one NavigationStack (home → a tool's screens, or Settings); a tool's
+                    link (beagle://scout/projects/<id>/tasks/<task>) opens through
+                    Tools.path, which asks the tool's `routes`; other beagle:// links
+                    (pairing) open PairView
+  SettingsView.swift  BeagleUI's ServerSection, Notifications (BeagleUI's
+                    NotificationSettingsSection) and the app version
   Home/             Tool (one tool on the home screen) and HomeView (the list + Settings)
   Tools/Tools.swift every tool the home screen lists, in order
   Tools/Scout/      scout: ScoutTool (its home-screen entry and ScoutRoot, which declares
@@ -33,6 +40,7 @@ Beagle/             the app target
                     screens ProjectListView → ProjectView (Tasks · Project · Log) →
                     TaskView (Task · Outcome), StatusViews (the TUI's glyphs and colours)
   Demo/DemoServer.swift   Debug only: an in-app fake beagle serve (`-demo-server`)
+  Demo/DemoPush.swift     its /v1/devices routes, and a fake push permission + APNs token
   Assets.xcassets/  AppIcon: the desktop app's beagle, full-bleed (source and how to redo it:
                     README.md "App icon")
 BeagleTests/        unit tests (Swift Testing), hosted by the app; BeagleTestSupport's

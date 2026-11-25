@@ -20,6 +20,7 @@ let package = Package(
   products: [
     .library(name: "BeagleAPI", targets: ["BeagleAPI"]),
     .library(name: "BeaglePairing", targets: ["BeaglePairing"]),
+    .library(name: "BeaglePush", targets: ["BeaglePush"]),
     .library(name: "BeagleUI", targets: ["BeagleUI"]),
     .library(name: "BeagleTestSupport", targets: ["BeagleTestSupport"]),
   ],
@@ -28,9 +29,15 @@ let package = Package(
     .target(name: "BeagleAPI", swiftSettings: strict),
     // Pairing with a Mac: beagle://pair links, the Keychain, verification.
     .target(name: "BeaglePairing", dependencies: ["BeagleAPI"], swiftSettings: strict),
-    // SwiftUI pieces: pair screen, QR scanner, server settings, load state,
-    // the TUIs' spinner, Markdown.
-    .target(name: "BeagleUI", dependencies: ["BeagleAPI", "BeaglePairing"], swiftSettings: strict),
+    // Push notifications: permission, the APNs token, registering with the
+    // Mac and the per-tool settings there (docs/serve-push.md).
+    .target(
+      name: "BeaglePush", dependencies: ["BeagleAPI", "BeaglePairing"], swiftSettings: strict),
+    // SwiftUI pieces: pair screen, QR scanner, server and notification
+    // settings, load state, the TUIs' spinner, Markdown.
+    .target(
+      name: "BeagleUI", dependencies: ["BeagleAPI", "BeaglePairing", "BeaglePush"],
+      swiftSettings: strict),
     // For tests only: a fake `beagle serve` behind URLProtocol.
     .target(name: "BeagleTestSupport", dependencies: ["BeagleAPI"], swiftSettings: strict),
 
@@ -40,6 +47,11 @@ let package = Package(
     .testTarget(
       name: "BeaglePairingTests", dependencies: ["BeaglePairing", "BeagleTestSupport"],
       resources: [.copy("Fixtures")], swiftSettings: strict),
-    .testTarget(name: "BeagleUITests", dependencies: ["BeagleUI"], swiftSettings: strict),
+    .testTarget(
+      name: "BeaglePushTests", dependencies: ["BeaglePush", "BeagleTestSupport"],
+      swiftSettings: strict),
+    .testTarget(
+      name: "BeagleUITests", dependencies: ["BeagleUI", "BeagleTestSupport"],
+      swiftSettings: strict),
   ]
 )

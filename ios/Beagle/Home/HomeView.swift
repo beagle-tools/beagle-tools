@@ -1,10 +1,11 @@
 import BeaglePairing
 import SwiftUI
 
-/// Where the home screen navigates: a tool's screens, or Settings.
+/// Where the home screen navigates: a tool's screens, or Settings (and its Notifications screen).
 enum HomeRoute: Hashable {
   case tool(String)
   case settings
+  case notifications
 }
 
 /// The home screen: every beagle tool, each opening its own screens, and Settings.

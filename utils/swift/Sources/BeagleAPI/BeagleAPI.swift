@@ -1,6 +1,7 @@
 import Foundation
 
-/// A read-only client for `beagle serve` (docs/serve-api.md, API v1).
+/// A client for `beagle serve` (docs/serve-api.md, API v1): reads, plus the device writes push
+/// notifications need.
 ///
 /// The server-wide endpoints live here; each app adds its tool's endpoints
 /// in an extension built on ``get(_:query:authorized:)``.
@@ -55,13 +56,47 @@ public struct BeagleAPI: Sendable {
   public func get<T: Decodable>(
     _ segments: [String], query: [URLQueryItem] = [], authorized: Bool = true
   ) async throws -> T {
-    var request = URLRequest(url: url(segments, query: query))
+    let request = makeRequest("GET", url(segments, query: query), authorized: authorized)
+    return try decode(try await perform(request), with: Self.decoder)
+  }
+
+  /// Sends a request with a JSON body and decodes the JSON answer.
+  ///
+  /// `body` is `nil` for no body; `decoder` defaults to ``decoder``. Failures are ``APIError``s.
+  /// Only the push endpoints write (docs/serve-push.md).
+  public func send<T: Decodable>(
+    _ method: String, _ segments: [String], body: Data? = nil,
+    decoder: JSONDecoder = BeagleAPI.decoder
+  ) async throws -> T {
+    try decode(try await send(method, segments, body: body), with: decoder)
+  }
+
+  /// Sends a request with a JSON body and returns the raw answer.
+  ///
+  /// For answers with no body, such as `204`.
+  @discardableResult
+  public func send(_ method: String, _ segments: [String], body: Data? = nil) async throws -> Data {
+    var request = makeRequest(method, url(segments), authorized: true)
+    if let body {
+      request.httpBody = body
+      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    }
+    return try await perform(request)
+  }
+
+  private func makeRequest(_ method: String, _ url: URL, authorized: Bool) -> URLRequest {
+    var request = URLRequest(url: url)
+    request.httpMethod = method
     request.timeoutInterval = 15
     request.setValue("application/json", forHTTPHeaderField: "Accept")
     if authorized, let token {
       request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
     }
+    return request
+  }
 
+  /// Runs `request`; a non-2xx answer or a transport failure is an ``APIError``.
+  private func perform(_ request: URLRequest) async throws -> Data {
     let data: Data
     let response: URLResponse
     do {
@@ -73,8 +108,12 @@ public struct BeagleAPI: Sendable {
     guard (200..<300).contains(http.statusCode) else {
       throw APIError.from(status: http.statusCode, body: data)
     }
+    return data
+  }
+
+  private func decode<T: Decodable>(_ data: Data, with decoder: JSONDecoder) throws -> T {
     do {
-      return try Self.decoder.decode(T.self, from: data)
+      return try decoder.decode(T.self, from: data)
     } catch {
       throw APIError.decoding(Self.describe(error))
     }
