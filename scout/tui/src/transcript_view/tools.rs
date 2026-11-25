@@ -196,6 +196,7 @@ impl Renderer<'_> {
                     TaskStatus::Working => (format!("▶ task {title}"), ORANGE),
                     TaskStatus::Paused => (format!("‖ task paused · {title}"), Color::Yellow),
                     TaskStatus::Done => (format!("✔ task done · {title}"), Color::Green),
+                    TaskStatus::Waiting => (format!("◷ task waiting · {title}"), Color::LightBlue),
                     TaskStatus::Blocked => (format!("■ task blocked · {title}"), Color::LightRed),
                     TaskStatus::Skipped => (format!("– task skipped · {title}"), Color::DarkGray),
                     TaskStatus::Todo => (format!("○ task back to todo · {title}"), Color::DarkGray),

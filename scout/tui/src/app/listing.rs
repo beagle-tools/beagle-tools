@@ -56,13 +56,11 @@ pub(super) fn list(store: &Store, json: bool) -> Result<()> {
         .max()
         .unwrap_or(0);
     for p in &listing.projects {
-        let now = p
-            .working()
-            .map(|t| t.id.as_str())
-            .collect::<Vec<_>>()
-            .join(", ");
+        let ids = |tasks: Vec<&str>| tasks.join(", ");
+        let now = ids(p.working().map(|t| t.id.as_str()).collect());
+        let waiting = ids(p.waiting().map(|t| t.id.as_str()).collect());
         println!(
-            "{:<width$}  {:<8}  {:>2}/{:<2}  {}{}",
+            "{:<width$}  {:<8}  {:>2}/{:<2}  {}{}{}",
             p.id.as_str(),
             p.meta.status.as_str(),
             p.closed_count(),
@@ -72,6 +70,11 @@ pub(super) fn list(store: &Store, json: bool) -> Result<()> {
                 String::new()
             } else {
                 format!("  [working: {now}]")
+            },
+            if waiting.is_empty() {
+                String::new()
+            } else {
+                format!("  [waiting: {waiting}]")
             },
         );
     }
@@ -118,6 +121,7 @@ fn print_project(p: &Project) {
             TaskStatus::Todo => "[ ]",
             TaskStatus::Working => "[>]",
             TaskStatus::Paused => "[~]",
+            TaskStatus::Waiting => "[w]",
             TaskStatus::Blocked => "[!]",
             TaskStatus::Done => "[x]",
             TaskStatus::Skipped => "[-]",

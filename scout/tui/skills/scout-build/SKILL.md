@@ -64,8 +64,8 @@ Then read, before touching anything:
 - `project.md` (`beagle scout path <project>`) — the goal, the stack tour, the
   plan, and `## Done when`. This is what every task is for.
 - The tail of `log.md` in the same directory — what happened last time.
-- The task you will work: the first `working` task, else the first `blocked`
-  one, else the first `todo`.
+- The task you will work: the first `working` task, else the first
+  `waiting` or `blocked` one, else the first `todo`.
 
 Resolve leftovers from a previous session first:
 
@@ -75,6 +75,10 @@ Resolve leftovers from a previous session first:
 - A task already `working` was interrupted. Read its checklist and the log
   to see how far it got, run `beagle scout task attach <project> <task>` (so this
   session appears on its Session tab), then continue it.
+- A `waiting` task: read what it waits on (its `--reason` in the log, e.g.
+  `PR #12: waiting on CI`) and check it (`gh pr checks`, `gh pr view`). If
+  the wait is over, `beagle scout task start` it and carry on (or close it). If
+  not, leave it `waiting` and say so.
 - A `blocked` task: read why (its log lines). If the blocker is gone, carry
   on. If not, ask (AskUserQuestion) with options such as: *it's resolved,
   continue* · *here is the input you need* · *skip ahead to the next
@@ -135,6 +139,18 @@ beagle scout log <project> --task <task> "done: <one-line result>"
 beagle scout task done <project> <task>
 ```
 
+**Waiting on CI, a review or a merge** (e.g. the PR is open and checks are
+running, or it is green and waits for the user to merge): nothing is needed
+from the user, so do not block. Mark it waiting (silent, never
+auto-paused) and say what it waits on:
+
+```sh
+beagle scout task wait <project> <task> --reason "PR #12: waiting on CI"
+```
+
+When the wait ends, `beagle scout task start` it again to continue, or close it.
+Never leave a task `working` while you are idle.
+
 **g. Checkpoint with the user** in a few lines: what was done, how it was
 verified, what's next. Then move to the next task. Go straight on by default.
 If the user asked to pause after each task, or what comes next changes
@@ -144,7 +160,9 @@ direction, ask instead (AskUserQuestion): `Continue to 05 · <title>
 ## 4. When to stop and ask
 
 Set the task to `blocked` with the reason logged, ask with AskUserQuestion,
-and continue once answered, when:
+and continue once answered, when the user must answer or do something
+(`blocked` sends a "Needs you" alert; waiting on CI, a review or a merge
+is `wait`, not `block`, see step 3):
 
 - **The next action is outward-facing or hard to undo**: pushing,
   opening or merging a PR, deploying, changing shared or production
@@ -207,8 +225,9 @@ plan true rather than following a stale one:
 - **Stopping early** (user says stop, session ending, out of time): never
   leave a task `working`. Write the task's `## Next steps`: exactly where you
   stopped, what is half-done, and what to do first when resuming. Log a
-  line, then set it back to `todo` (`beagle scout task status <project> <task> todo`), or
-  `blocked` if it is waiting on something. Tell the user how to resume:
+  line, then set it back to `todo` (`beagle scout task status <project> <task> todo`),
+  `waiting` if it waits on CI, a review or a merge (`beagle scout task wait`), or
+  `blocked` if it needs the user. Tell the user how to resume:
   `/scout-build <project>`.
 
 ## Rules
@@ -219,5 +238,7 @@ plan true rather than following a stale one:
   Edit task bodies (ticks, outcome) directly; leave frontmatter to the CLI.
 - Work in task order. Only skip ahead past a `blocked` task with the user's
   OK.
+- `wait` for CI, reviews and merges; `block` only for questions the user
+  must answer. Blocking to wait alerts the user for nothing.
 - Prefer one clear command per step over long chained one-liners, and give
   each command a meaningful description. The user may be watching them live.

@@ -35,6 +35,9 @@ impl Paint {
     pub(super) fn yellow(&self, t: &str) -> String {
         self.wrap("33", t)
     }
+    pub(super) fn blue(&self, t: &str) -> String {
+        self.wrap("94", t)
+    }
     pub(super) fn cyan(&self, t: &str) -> String {
         self.wrap("36", t)
     }
@@ -307,6 +310,7 @@ impl<'a> Renderer<'a> {
                     TaskStatus::Working => p.orange(&format!("▶ task {id}{title}")),
                     TaskStatus::Paused => p.yellow(&format!("‖ task {id} paused{title}")),
                     TaskStatus::Done => p.green(&format!("✔ task {id} done{title}")),
+                    TaskStatus::Waiting => p.blue(&format!("◷ task {id} waiting{title}")),
                     TaskStatus::Blocked => p.red(&format!("■ task {id} blocked{title}")),
                     TaskStatus::Skipped => p.dim(&format!("– task {id} skipped{title}")),
                     TaskStatus::Todo => p.dim(&format!("○ task {id} back to todo{title}")),

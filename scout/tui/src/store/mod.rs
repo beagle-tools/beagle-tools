@@ -207,6 +207,13 @@ impl Project {
             .filter(|t| t.meta.status == TaskStatus::Working)
     }
 
+    /// Tasks whose agent is waiting on CI, a review or a merge.
+    pub fn waiting(&self) -> impl Iterator<Item = &Task> {
+        self.tasks
+            .iter()
+            .filter(|t| t.meta.status == TaskStatus::Waiting)
+    }
+
     /// The first task not yet started.
     #[must_use]
     pub fn next_todo(&self) -> Option<&Task> {
@@ -269,6 +276,7 @@ impl Project {
             "tasks_closed": self.closed_count(),
             "tasks_total": self.tasks.len(),
             "working": self.working().map(|t| t.id.as_str()).collect::<Vec<_>>(),
+            "waiting": self.waiting().map(|t| t.id.as_str()).collect::<Vec<_>>(),
             "links": self.meta.links,
             "dir": self.dir,
         })

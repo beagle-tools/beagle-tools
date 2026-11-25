@@ -203,6 +203,7 @@ then most recently active), plus `goal` and `last_activity`.
       "tasks_closed": 1,
       "tasks_total": 4,
       "working": ["02-add-allowlist"],
+      "waiting": [],
       "links": ["ABC-123"],
       "created": "2026-11-12T09:00:00Z",
       "updated": "2026-11-12T10:30:00Z",
@@ -214,6 +215,8 @@ then most recently active), plus `goal` and `last_activity`.
 ```
 
 `status`: `planning` | `active` | `paused` | `done` | `dropped`.
+`working` and `waiting`: ids of the tasks in that status (`waiting` means
+the agent waits on CI, a review or a merge; nothing is needed from you).
 `warnings`: files that failed to load (never fatal).
 
 ### `GET /v1/scout/projects/{id}`
@@ -273,7 +276,8 @@ The project, its `project.md` body, its tasks in order, and the handoff
 }
 ```
 
-`status`: `todo` | `working` | `paused` | `blocked` | `done` | `skipped`.
+`status`: `todo` | `working` | `paused` | `waiting` | `blocked` | `done` | `skipped`.
+`waiting` is silent: it emits no event, so it never sends a push (see "Devices (push notifications)" below).
 `markdown` is the whole body (frontmatter removed). Attached agent sessions
 are deliberately not served: they hold raw command output.
 

@@ -22,6 +22,9 @@ use super::{App, Focus, Screen, Tab, WrapLayout};
 const QUIET_AFTER: Duration = Duration::from_mins(10);
 
 const WORKING: Color = Color::Indexed(208); // orange; the 16-colour palette has none
+/// Calm blue for a task waiting on CI, a review or a merge (nothing needed
+/// from the user, unlike red `blocked`).
+const WAITING: Color = Color::LightBlue;
 
 fn dim() -> Style {
     Style::default().fg(Color::DarkGray)
@@ -59,6 +62,7 @@ fn task_glyph(status: TaskStatus, tick: usize) -> (&'static str, Style) {
             Style::default().fg(WORKING).add_modifier(Modifier::BOLD),
         ),
         TaskStatus::Paused => ("‖", Style::default().fg(Color::Yellow)),
+        TaskStatus::Waiting => ("◷", Style::default().fg(WAITING)),
         TaskStatus::Blocked => ("■", Style::default().fg(Color::LightRed)),
         TaskStatus::Done => ("✔", Style::default().fg(Color::Green)),
         TaskStatus::Skipped => ("–", dim()),
@@ -70,6 +74,9 @@ fn task_glyph(status: TaskStatus, tick: usize) -> (&'static str, Style) {
 fn project_glyph(project: &Project, tick: usize) -> (&'static str, Style) {
     if project.working().next().is_some() {
         return task_glyph(TaskStatus::Working, tick);
+    }
+    if project.waiting().next().is_some() {
+        return task_glyph(TaskStatus::Waiting, tick);
     }
     match project.meta.status {
         ProjectStatus::Planning => ("◇", Style::default().fg(Color::LightBlue)),
@@ -85,6 +92,7 @@ fn task_color(status: TaskStatus) -> Color {
         TaskStatus::Todo => Color::Gray,
         TaskStatus::Working => WORKING,
         TaskStatus::Paused => Color::Yellow,
+        TaskStatus::Waiting => WAITING,
         TaskStatus::Blocked => Color::LightRed,
         TaskStatus::Done => Color::Green,
         TaskStatus::Skipped => Color::DarkGray,

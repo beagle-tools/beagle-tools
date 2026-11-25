@@ -114,7 +114,11 @@ pub enum TaskStatus {
     /// Started, but nobody is on it right now (set by hand, or automatically
     /// after `[auto] pause_after` of quiet).
     Paused,
-    /// Cannot proceed until something outside the task changes.
+    /// The agent's part is done for now and it is waiting on something that
+    /// will happen without the user answering (CI, a review, a merge). Silent:
+    /// no notification, and auto-pause leaves it alone.
+    Waiting,
+    /// Cannot proceed until the user answers or does something.
     Blocked,
     /// Finished; its objective was met.
     Done,
@@ -124,10 +128,11 @@ pub enum TaskStatus {
 
 impl TaskStatus {
     /// Every status, in lifecycle order.
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::Todo,
         Self::Working,
         Self::Paused,
+        Self::Waiting,
         Self::Blocked,
         Self::Done,
         Self::Skipped,
@@ -140,6 +145,7 @@ impl TaskStatus {
             Self::Todo => "todo",
             Self::Working => "working",
             Self::Paused => "paused",
+            Self::Waiting => "waiting",
             Self::Blocked => "blocked",
             Self::Done => "done",
             Self::Skipped => "skipped",
@@ -243,6 +249,7 @@ mod tests {
         assert!(TaskStatus::Done.is_closed());
         assert!(TaskStatus::Skipped.is_closed());
         assert!(!TaskStatus::Blocked.is_closed());
+        assert!(!TaskStatus::Waiting.is_closed());
         assert!(ProjectStatus::Paused.is_open());
         assert!(!ProjectStatus::Done.is_open());
     }

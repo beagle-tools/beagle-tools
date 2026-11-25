@@ -156,6 +156,14 @@ fn parses_scout_calls() {
             status: TaskStatus::Blocked
         })
     );
+    assert_eq!(
+        scout_call("scout task wait p 4 --reason \"PR #1: CI\""),
+        Some(ScoutCall::Task {
+            project: "p".into(),
+            task: "4".into(),
+            status: TaskStatus::Waiting
+        })
+    );
     assert_eq!(scout_call("scout task add p x --title T"), None);
     assert_eq!(
         scout_call("P=my-proj; scout log $P --task 1 \"hi\"; scout task start ${P} 3 >/dev/null"),

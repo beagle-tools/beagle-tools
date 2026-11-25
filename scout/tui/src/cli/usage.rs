@@ -20,9 +20,12 @@ USAGE
 
   beagle scout task add <project> <slug> --title <t> [--link <ref>]...
                                                   append a task (numbered in order)
-  beagle scout task start|done|block|skip|pause <project> <task> [--reason <text>]
+  beagle scout task start|wait|done|block|skip|pause <project> <task> [--reason <text>]
+                                                  wait: silent, for CI/review/merge;
+                                                  block: notifies, for a question
   beagle scout task status <project> <task> <status>
-                                                  todo|working|paused|blocked|done|skipped
+                                                  todo|working|paused|waiting|blocked|
+                                                  done|skipped
   beagle scout task attach <project> <task> [--session <id>]
                                                   attach this Claude session (default:
                                                   $CLAUDE_CODE_SESSION_ID) to the task;

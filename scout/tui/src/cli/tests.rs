@@ -52,6 +52,7 @@ fn new_collects_links() {
 fn task_shortcuts_map_to_statuses() {
     for (word, status) in [
         ("start", TaskStatus::Working),
+        ("wait", TaskStatus::Waiting),
         ("done", TaskStatus::Done),
         ("block", TaskStatus::Blocked),
         ("skip", TaskStatus::Skipped),
@@ -73,6 +74,24 @@ fn task_shortcuts_map_to_statuses() {
             task: "03-x".into(),
             status: TaskStatus::Blocked,
             reason: None
+        }
+    );
+    assert_eq!(
+        command("task wait p 3 --reason ci"),
+        Command::TaskStatus {
+            project: "p".into(),
+            task: "3".into(),
+            status: TaskStatus::Waiting,
+            reason: Some("ci".into()),
+        }
+    );
+    assert_eq!(
+        command("task status p 3 waiting"),
+        Command::TaskStatus {
+            project: "p".into(),
+            task: "3".into(),
+            status: TaskStatus::Waiting,
+            reason: None,
         }
     );
     assert!(parse("task status p 3 in-progress").is_err());

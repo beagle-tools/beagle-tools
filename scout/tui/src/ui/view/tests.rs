@@ -24,6 +24,37 @@ fn render(app: &mut App) -> String {
 }
 
 #[test]
+fn a_waiting_task_shows_its_glyph_everywhere() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Store::new(dir.path());
+    store
+        .create_project(&Slug::parse("p").unwrap(), "Ship it", vec![])
+        .unwrap();
+    store
+        .add_task("p", &Slug::parse("pr").unwrap(), "Open the PR", vec![])
+        .unwrap();
+    store
+        .set_task_status("p", "1", TaskStatus::Waiting)
+        .unwrap();
+    assert_eq!(task_glyph(TaskStatus::Waiting, 0).0, "◷");
+    assert_eq!(task_color(TaskStatus::Waiting), WAITING);
+    let mut app = App::new(store).unwrap();
+    let projects = render(&mut app);
+    assert!(projects.contains("◷ Ship it"), "project glyph");
+    assert!(
+        projects.contains("◷ waiting 01-pr Open the PR"),
+        "{projects}"
+    );
+    app.open_project();
+    assert!(render(&mut app).contains("◷"), "task list glyph");
+    app.help = true;
+    assert!(
+        render(&mut app).contains("waiting (CI/review/merge)"),
+        "legend"
+    );
+}
+
+#[test]
 fn empty_store_renders_a_hint() {
     let dir = tempfile::tempdir().unwrap();
     let mut app = App::new(Store::new(dir.path())).unwrap();

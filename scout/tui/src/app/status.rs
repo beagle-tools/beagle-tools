@@ -52,18 +52,32 @@ pub(super) fn set_task(
             eprintln!("note: also working: {}", others.join(", "));
         }
     }
+    if let Some(event) = status_event(&p, &task, status, was_planning, reason) {
+        notify_event(&p, Some(&task), &event);
+    }
+    Ok(())
+}
+
+/// The notification a task status change triggers, if any.
+fn status_event(
+    p: &Project,
+    task: &Task,
+    status: TaskStatus,
+    was_planning: bool,
+    reason: Option<&str>,
+) -> Option<notify::Event> {
     let label = |t: &Task| format!("{} · {}", t.id, t.meta.title);
-    let event = match status {
+    match status {
         TaskStatus::Working if was_planning => Some(notify::Event::ProjectStarted {
-            first_task: label(&task),
+            first_task: label(task),
         }),
-        TaskStatus::Working => Some(notify::Event::TaskStarted { task: label(&task) }),
+        TaskStatus::Working => Some(notify::Event::TaskStarted { task: label(task) }),
         TaskStatus::Blocked => Some(notify::Event::Blocked {
-            task: label(&task),
+            task: label(task),
             reason: reason.map(str::to_owned),
         }),
         TaskStatus::Done => Some(notify::Event::TaskDone {
-            task: label(&task),
+            task: label(task),
             progress: (p.closed_count(), p.tasks.len()),
             next: p
                 .tasks
@@ -71,12 +85,10 @@ pub(super) fn set_task(
                 .find(|t| !t.meta.status.is_closed())
                 .map(label),
         }),
-        TaskStatus::Todo | TaskStatus::Paused | TaskStatus::Skipped => None,
-    };
-    if let Some(event) = event {
-        notify_event(&p, Some(&task), &event);
+        // Waiting is deliberately silent: no notification and no event, since
+        // nothing is needed from the user (CI, a review or a merge will move it).
+        TaskStatus::Todo | TaskStatus::Paused | TaskStatus::Waiting | TaskStatus::Skipped => None,
     }
-    Ok(())
 }
 
 /// `beagle scout status <project> <status>`, plus the notification it
@@ -166,5 +178,34 @@ pub(super) fn notify_test() {
     if let Some(n) = notify::build(&config, "example", "Example project", &event) {
         notify::send(&n, &notify::Origin::from_env());
         println!("sent a sample notification (click it to focus this Herdr pane)");
+    }
+}
+
+#[cfg(test)]
+// Tests fail loudly on setup errors; unwrap/expect/panic is the clearest way.
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+mod tests {
+    use super::*;
+    use crate::model::Slug;
+
+    #[test]
+    fn waiting_is_silent_and_blocked_alerts() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = Store::new(dir.path());
+        store
+            .create_project(&Slug::parse("p").unwrap(), "P", vec![])
+            .unwrap();
+        store
+            .add_task("p", &Slug::parse("a").unwrap(), "A", vec![])
+            .unwrap();
+        let p = store.project("p").unwrap();
+        let t = &p.tasks[0];
+        let reason = Some("PR #1: waiting on CI");
+        assert!(status_event(&p, t, TaskStatus::Waiting, false, reason).is_none());
+        assert!(status_event(&p, t, TaskStatus::Waiting, true, reason).is_none());
+        assert!(matches!(
+            status_event(&p, t, TaskStatus::Blocked, false, reason),
+            Some(notify::Event::Blocked { .. })
+        ));
     }
 }
