@@ -33,6 +33,8 @@ Beagle/             the app target
                     screens ProjectListView → ProjectView (Tasks · Project · Log) →
                     TaskView (Task · Outcome), StatusViews (the TUI's glyphs and colours)
   Demo/DemoServer.swift   Debug only: an in-app fake beagle serve (`-demo-server`)
+  Assets.xcassets/  AppIcon: the desktop app's beagle, full-bleed (source and how to redo it:
+                    README.md "App icon")
 BeagleTests/        unit tests (Swift Testing), hosted by the app; BeagleTestSupport's
                     StubServer; KeychainTests (the real Keychain needs a host app)
   Fixtures/*.json   real `beagle serve` answers for a neutral example store
