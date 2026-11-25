@@ -319,6 +319,8 @@ impl Store {
                     project_id: project.id.to_string(),
                     project_title: project.meta.title.clone(),
                     task: format!("{} · {}", task.id, task.meta.title),
+                    task_id: task.id.clone(),
+                    task_title: task.meta.title.clone(),
                     quiet: label,
                 });
             }
@@ -336,6 +338,10 @@ pub struct AutoPaused {
     pub project_title: String,
     /// `NN-slug · title`.
     pub task: String,
+    /// The task id (`NN-slug`).
+    pub task_id: String,
+    /// The task title.
+    pub task_title: String,
     /// How long it had been quiet, e.g. `34m`.
     pub quiet: String,
 }

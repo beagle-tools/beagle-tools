@@ -9,9 +9,10 @@ use crate::auth::Token;
 use crate::cli::{self, Command, PairOptions, ServeOptions};
 use crate::config;
 use crate::error::{Error, Result};
+use crate::push::devices::{self, DeviceStore};
 use crate::router::Ctx;
 use crate::stores::Stores;
-use crate::{pair, server, service, tailscale, tls};
+use crate::{pair, push, server, service, tailscale, tls};
 
 /// Entry point behind [`crate::run`].
 pub(crate) fn main(args: Vec<OsString>) -> ExitCode {
@@ -79,6 +80,8 @@ fn pair_command(opts: &PairOptions) -> Result<()> {
     println!("  token:  {}", token.as_str());
     if new {
         println!("\nNew token saved to {} (mode 0600).", path.display());
+        // A new token logs every phone out, so none should get pushes.
+        devices::clear(&push::devices_path()?)?;
         restart_after_rotation();
     }
     let (cert, key) = config.cert_paths(&config::cert_dir()?, &host);
@@ -121,6 +124,11 @@ fn status() -> Result<()> {
             "none — run `beagle serve pair`"
         }
     );
+    let phones = DeviceStore::new(push::devices_path()?).load().map_or_else(
+        |e| format!("unreadable ({e})"),
+        |d| d.devices.len().to_string(),
+    );
+    println!("  phones registered for push: {phones}");
     Ok(())
 }
 
@@ -166,7 +174,14 @@ fn serve(opts: &ServeOptions) -> Result<()> {
     for line in stores.describe() {
         eprintln!("beagle serve:   {line}");
     }
-    server::serve(&listener, &Arc::new(Ctx::new(token, stores)), tls.as_ref());
+    let devices = Arc::new(DeviceStore::new(push::devices_path()?));
+    push::spawn(Arc::clone(&devices), Box::new(push::HeldSender))?;
+    eprintln!(
+        "beagle serve:   push: phones in {}; push not configured yet, events are logged",
+        devices.path().display()
+    );
+    let ctx = Ctx::new(token, stores).with_devices(devices);
+    server::serve(&listener, &Arc::new(ctx), tls.as_ref());
     Ok(())
 }
 

@@ -5,9 +5,11 @@ the beagle TUIs show: scout projects, RCAs, PR recaps, standups and Tandem
 reviews. It reads each store through that tool's own crate, the same way
 `beagle <tool>` does, so the phone sees exactly what the terminal sees.
 
-Nothing here writes. Posting comments, approving PRs and changing statuses
-stay on the Mac in v1. Push notifications, and the device endpoints they
-need, are designed in [`serve-push.md`](serve-push.md).
+Nothing here writes to a tool's store. Posting comments, approving PRs and
+changing statuses stay on the Mac in v1. The one exception is the
+[device API](#devices-push-notifications): phones register for push
+notifications and keep their settings on the Mac. Push is specified in
+[`serve-push.md`](serve-push.md).
 
 ## Transport
 
@@ -108,7 +110,11 @@ store each tool resolved to.
 
 ## Conventions
 
-- Only `GET` (and `HEAD`) exist. Anything else is `405`.
+- Only `GET` (and `HEAD`) exist, except under `/v1/devices/` (`PUT`,
+  `DELETE`, `POST`). Anything else is `405`, with `Allow`.
+- Request bodies (device API only) are JSON (`Content-Type:
+  application/json`) with `Content-Length`, at most 16 KiB; chunked bodies
+  are refused.
 - Responses are `application/json; charset=utf-8`, UTF-8, never chunked;
   every response closes the connection.
 - Timestamps are RFC 3339 strings. Missing values are `null`; empty lists
@@ -138,9 +144,12 @@ Every non-2xx response has this body:
 | 400 | `bad_request` | Malformed request or invalid id |
 | 401 | `unauthorized` | Missing or wrong bearer token |
 | 404 | `not_found` | Unknown path or item |
-| 405 | `method_not_allowed` | Not `GET`/`HEAD` |
-| 413 | `too_large` | Request head over 16 KiB |
+| 405 | `method_not_allowed` | A method the endpoint doesn't take |
+| 409 | `too_many_devices` | Registering an 11th phone |
+| 413 | `too_large` | Request head or body over 16 KiB |
+| 415 | `unsupported_media_type` | A device API body that isn't JSON |
 | 500 | `internal` | A store failed to read; `message` says which file |
+| 503 | `push_not_configured` | A test push while `[push]` isn't set up |
 
 ## Server
 
@@ -590,3 +599,49 @@ nested), as the TUI's Summary and Comments tabs show them.
 `info` | `suggestion` | `issue` | `blocker`. `status`: `open` | `accepted` |
 `rejected` | `resolved` | `archived`. Replies have the same keys (their own
 `replies` is always `[]`). A PR with no store yet is `404`.
+
+## Devices (push notifications)
+
+The phone registers for push and keeps its notification settings here.
+The full design (event spool, APNs, the app side) is
+[`serve-push.md`](serve-push.md). `{device}` is a UUID the app makes once.
+
+| Method + path | Answer |
+|---|---|
+| `PUT /v1/devices/{device}` | `201` the first time, else `200`, with the settings document |
+| `DELETE /v1/devices/{device}` | `204`, also when it was already gone |
+| `GET /v1/devices/{device}/notifications` | `200`, the settings document |
+| `PUT /v1/devices/{device}/notifications` | `200`, the settings document as saved |
+| `POST /v1/devices/{device}/test` | A test push (`503 push_not_configured` until `[push]` is set up) |
+
+`PUT /v1/devices/{device}` takes:
+
+```json
+{ "apns_token": "a1b2…64-200 hex…", "environment": "development",
+  "topic": "dev.beagletools.beagle", "name": "iPhone" }
+```
+
+- `environment` is `development` (Xcode installs) or `production`.
+- `topic` is the app's bundle ID.
+- `name` is 1–64 printable characters.
+- Unknown fields are `400`; at most 10 phones (`409`).
+
+The settings document:
+
+```json
+{
+  "settings": { "scout": { "enabled": true, "events": { "blocked": true, "project_done": true,
+                "project_started": true, "task_done": false, "task_paused": true, "task_started": false } } },
+  "catalog": [ { "tool": "scout", "name": "Scout", "events": [
+    { "kind": "blocked", "label": "A task is blocked (needs you)", "default": true, "sound": true } ] } ]
+}
+```
+
+(`catalog` lists every kind; one shown.) `PUT …/notifications` takes the
+`settings` object alone. A missing tool or kind gets its default; an unknown
+one, or a non-boolean, is `400`. A new phone starts with each tool's own
+defaults (scout's: `blocked`, `project_started`, `project_done` and
+`task_paused` on).
+
+Phones live in `~/.local/state/beagle/serve/devices.json` (mode `0600`).
+`beagle serve pair --rotate` forgets them all.

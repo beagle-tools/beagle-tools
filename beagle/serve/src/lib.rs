@@ -16,7 +16,11 @@
 //!         ├──▶ http   (request head parsing, responses)
 //!         └──▶ tls    (rustls from the tailscale cert)
 //! config, tailscale, pair (token + QR), service (launchd): used by run
+//! push: phones + settings (written by api::devices), the event-spool
+//!       follower and matcher, on its own background thread
 //! ```
+//!
+//! Push notifications are specified in `docs/serve-push.md`.
 //!
 //! The crate follows the `beagle` tool contract: [`ABOUT`] and [`run`].
 //! It is synchronous on purpose: one user, a handful of requests a minute,
@@ -29,6 +33,7 @@ pub mod config;
 pub mod error;
 pub mod http;
 pub mod pair;
+pub mod push;
 pub mod router;
 mod run;
 pub mod server;

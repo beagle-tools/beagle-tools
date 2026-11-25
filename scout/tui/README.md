@@ -284,6 +284,13 @@ touches it.
 `beagle scout notify test` sends a sample and prints the settings in effect.
 `SCOUT_NOTIFY=0` turns notifications off for one command or shell.
 
+Every one of these events is also appended, whatever the settings above,
+to `~/.local/state/beagle/events/scout.jsonl` (one JSON line each, rotated
+at 1 MiB). `beagle serve` follows that file to push notifications to the
+Beagle iPhone app, which has its own per-event settings
+([`docs/serve-push.md`](../../docs/serve-push.md)). `BEAGLE_EVENTS=0` turns
+the file off.
+
 ## Roadmap
 
 - **Command policy (V2):** the `PreToolUse` hook can refuse a command, so

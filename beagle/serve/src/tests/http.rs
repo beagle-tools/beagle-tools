@@ -31,8 +31,55 @@ fn head_and_other_methods_are_recognised() {
     );
     assert_eq!(
         read("POST /v1/x HTTP/1.1\r\n\r\n").unwrap().method,
-        Method::Other("POST".into())
+        Method::Post
     );
+    assert_eq!(
+        read("PATCH /v1/x HTTP/1.1\r\n\r\n").unwrap().method,
+        Method::Other("PATCH".into())
+    );
+}
+
+#[test]
+fn reads_a_json_body_by_content_length() {
+    let body = r#"{"name":"iPhone"}"#;
+    let raw = format!(
+        "PUT /v1/devices/x HTTP/1.1\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: {}\r\n\r\n{body}",
+        body.len()
+    );
+    let req = read(&raw).unwrap();
+    assert_eq!(req.method, Method::Put);
+    assert_eq!(req.body, body.as_bytes());
+    assert!(req.is_json());
+    // A body cut short is a closed connection, not a request.
+    let short = raw.replace(&format!("{}\r\n", body.len()), "99\r\n");
+    assert!(matches!(read(&short), Err(ReadError::Closed)));
+}
+
+#[test]
+fn big_and_chunked_bodies_are_refused() {
+    let big = format!(
+        "PUT / HTTP/1.1\r\nContent-Length: {}\r\n\r\n",
+        MAX_BODY_BYTES + 1
+    );
+    assert!(matches!(read(&big), Err(ReadError::TooLarge)));
+    assert!(matches!(
+        read("PUT / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n"),
+        Err(ReadError::Malformed(_))
+    ));
+    assert!(matches!(
+        read("PUT / HTTP/1.1\r\nContent-Length: x\r\n\r\n"),
+        Err(ReadError::Malformed(_))
+    ));
+}
+
+#[test]
+fn no_content_has_no_body_or_length() {
+    let mut out = Vec::new();
+    Response::no_content().write_to(&mut out, false).unwrap();
+    let text = String::from_utf8(out).unwrap();
+    assert!(text.starts_with("HTTP/1.1 204 No Content\r\n"), "{text}");
+    assert!(!text.contains("Content-Length"));
+    assert!(text.ends_with("\r\n\r\n"));
 }
 
 #[test]

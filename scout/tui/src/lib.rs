@@ -15,6 +15,7 @@ pub mod autopause;
 pub mod config;
 pub mod editor;
 pub mod error;
+pub mod events;
 pub mod frontmatter;
 pub mod gitignore;
 pub mod hooks;

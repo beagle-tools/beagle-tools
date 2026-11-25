@@ -115,9 +115,19 @@ pub fn build(
             Event::TaskStarted { .. } => on.task_started,
             Event::TaskPaused { .. } => on.task_paused,
         };
-    if !enabled {
-        return None;
-    }
+    enabled.then(|| render(config, project_id, project_title, event))
+}
+
+/// The notification for `event` whatever the config switches say: the
+/// banner's wording, also written to the event spool for the phone
+/// ([`crate::events`]). Only the sound comes from `config`.
+#[must_use]
+pub fn render(
+    config: &Config,
+    project_id: &str,
+    project_title: &str,
+    event: &Event,
+) -> Notification {
     let (subtitle, message, sound) = match event {
         Event::ProjectStarted { first_task } => (
             format!("▶ Started: {project_title}"),
@@ -157,13 +167,13 @@ pub fn build(
             (format!("▶ Working: {task}"), project_title.to_owned(), None)
         }
     };
-    Some(Notification {
+    Notification {
         title: format!("Scout · {project_id}"),
         subtitle,
         message,
         sound,
         group: format!("scout-{project_id}"),
-    })
+    }
 }
 
 /// The command that shows `n` on this machine, or `None` where there is no
