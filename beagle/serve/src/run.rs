@@ -6,7 +6,7 @@ use std::process::ExitCode;
 use std::sync::Arc;
 
 use crate::auth::Token;
-use crate::cli::{self, Command, PairOptions, PushCommand, ServeOptions};
+use crate::cli::{self, Command, PairOptions, PushCommand, SecretsCommand, ServeOptions};
 use crate::config;
 use crate::conn::{Connections, Limits};
 use crate::error::{Error, Result};
@@ -40,6 +40,11 @@ pub(crate) fn main(args: Vec<OsString>) -> ExitCode {
             team_id,
         }) => push::cmd::setup(&key, &key_id, &team_id),
         Command::Push(PushCommand::Test { device }) => push::cmd::test(device.as_deref()),
+        Command::Secrets(SecretsCommand::Sync { from }) => {
+            crate::secrets::sync_command(from.as_deref())
+        }
+        Command::Secrets(SecretsCommand::Status) => crate::secrets::status_command(),
+        Command::Secrets(SecretsCommand::Clear) => crate::secrets::clear_command(),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
@@ -183,17 +188,24 @@ fn serve(opts: &ServeOptions) -> Result<()> {
         eprintln!("beagle serve:   {line}");
     }
     let devices = Arc::new(DeviceStore::new(push::devices_path()?));
-    // A broken [push] turns push off with a log line; it never stops serving.
-    let sender = push::sender_for(&config, Arc::clone(&devices)).unwrap_or_else(|why| {
+    // A failed sync keeps the Keychain's values; it never stops serving.
+    crate::secrets::sync_at_startup(&config);
+    // A broken push config turns push off with a log line; it never stops
+    // serving. The line names the source and ids, never the key.
+    let loaded = push::load(&config).unwrap_or_else(|why| {
+        eprintln!("beagle serve:   push: off: {why}");
+        None
+    });
+    let summary = loaded.as_ref().map(push::source::Loaded::summary);
+    let sender = push::sender_from(loaded, Arc::clone(&devices)).unwrap_or_else(|why| {
         eprintln!("beagle serve:   push: off: {why}");
         Box::new(push::HeldSender)
     });
     eprintln!(
         "beagle serve:   push: {}; phones in {}",
-        if sender.configured() {
-            "on (APNs)"
-        } else {
-            "not configured, events are only logged"
+        match (&summary, sender.configured()) {
+            (Some(summary), true) => format!("on (APNs), {summary}"),
+            _ => "not configured, events are only logged".to_owned(),
         },
         devices.path().display()
     );

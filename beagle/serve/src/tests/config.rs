@@ -29,6 +29,9 @@ fn save_then_load_round_trips_with_mode_0600() {
             key_id: "KEY1234567".into(),
             key: PathBuf::from("~/.config/beagle/serve/AuthKey_KEY1234567.p8"),
         }),
+        secrets: Some(SecretsConfig {
+            command: "vault export --format json --project \"example\"".into(),
+        }),
     };
     save(&path, &config).unwrap();
     assert_eq!(load(&path).unwrap(), config);

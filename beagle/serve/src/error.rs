@@ -65,6 +65,9 @@ pub enum Error {
     /// Push notifications: not set up, no phones, or nothing delivered.
     #[error("push: {0}")]
     Push(String),
+    /// `beagle serve secrets`: the command or the Keychain failed.
+    #[error("secrets: {0}")]
+    Secrets(String),
     /// Listening failed.
     #[error("can't listen on {addr}: {source}")]
     Bind {

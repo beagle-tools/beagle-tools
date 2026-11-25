@@ -13,6 +13,9 @@
 //! team_id = "ABC123DEFG"                  # written by `beagle serve push setup`
 //! key_id  = "KEY1234567"
 //! key     = "~/.config/beagle/serve/AuthKey_KEY1234567.p8"
+//!
+//! [secrets]                               # or the key from a secret manager, kept
+//! command = "my-vault export --json"      # in the Keychain: `beagle serve secrets sync`
 //! ```
 //!
 //! The file holds a secret, so it is written `0600`, atomically.
@@ -53,6 +56,18 @@ pub struct Config {
     /// Push notifications through APNs; `None` means push is off.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub push: Option<PushConfig>,
+    /// The secret-manager command `beagle serve secrets sync` runs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secrets: Option<SecretsConfig>,
+}
+
+/// `[secrets]`: where `beagle serve secrets sync` gets the push key
+/// (`docs/serve-push.md`, "Keeping the key in a secret manager").
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SecretsConfig {
+    /// Run with `sh -c`; prints JSON or dotenv holding `BEAGLE_APNS_*`.
+    pub command: String,
 }
 
 /// `[push]`: the APNs token-auth key from the Apple developer account.
@@ -105,6 +120,7 @@ impl fmt::Debug for Config {
             .field("cert", &self.cert)
             .field("key", &self.key)
             .field("push", &self.push)
+            .field("secrets", &self.secrets)
             .finish()
     }
 }

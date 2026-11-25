@@ -24,6 +24,17 @@ USAGE
                                   (copied next to serve.toml, mode 0600)
   beagle serve push test [--device <id>]
                                   send a test push to every registered phone
+  beagle serve secrets sync [--from \"<command>\"]
+                                  or keep the key in a secret manager: run the
+                                  command (JSON or KEY=VALUE on stdout), store
+                                  BEAGLE_APNS_KEY, BEAGLE_APNS_KEY_ID and
+                                  BEAGLE_APNS_TEAM_ID in the Keychain; the
+                                  command is saved and rerun at startup
+  beagle serve secrets status     which of them the Keychain holds (never values)
+  beagle serve secrets clear      remove them from the Keychain
+
+  Push key, first found wins: BEAGLE_APNS_* in the environment, the
+  Keychain, [push] in serve.toml.
 
 SERVER OPTIONS
   --addr <ip>      address to bind (default: `addr` in serve.toml, else
@@ -79,6 +90,14 @@ pub(crate) enum PushCommand {
     },
 }
 
+/// `beagle serve secrets …`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum SecretsCommand {
+    Sync { from: Option<String> },
+    Status,
+    Clear,
+}
+
 /// One `beagle serve` invocation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Command {
@@ -89,6 +108,7 @@ pub(crate) enum Command {
     Uninstall,
     Status,
     Push(PushCommand),
+    Secrets(SecretsCommand),
 }
 
 fn port(raw: &str) -> Result<u16, String> {
@@ -137,8 +157,41 @@ pub(crate) fn parse(args: Vec<OsString>) -> Result<Command, String> {
             it.next();
             parse_push(&mut it)
         }
+        Some("secrets") => {
+            it.next();
+            parse_secrets(&mut it)
+        }
         _ => parse_serve(&mut it),
     }
+}
+
+fn parse_secrets(it: &mut dyn Iterator<Item = String>) -> Result<Command, String> {
+    let sub = it.next();
+    let mut from = None;
+    while let Some(arg) = it.next() {
+        match (sub.as_deref(), arg.as_str()) {
+            (Some("sync"), "--from") => {
+                let command = it.next().ok_or("--from needs a command")?;
+                if command.trim().is_empty() {
+                    return Err("--from needs a command".into());
+                }
+                from = Some(command);
+            }
+            (_, other) => return Err(format!("unknown argument: {other}")),
+        }
+    }
+    let command = match sub.as_deref() {
+        Some("sync") => SecretsCommand::Sync { from },
+        Some("status") => SecretsCommand::Status,
+        Some("clear") => SecretsCommand::Clear,
+        Some(other) => {
+            return Err(format!(
+                "unknown secrets command: {other} (sync, status, clear)"
+            ))
+        }
+        None => return Err("secrets needs a command: sync, status or clear".into()),
+    };
+    Ok(Command::Secrets(command))
 }
 
 fn parse_pair(it: &mut dyn Iterator<Item = String>) -> Result<Command, String> {

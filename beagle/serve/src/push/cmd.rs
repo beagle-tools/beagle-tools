@@ -83,7 +83,8 @@ pub fn test(device: Option<&str>) -> Result<()> {
     let sender = sender_for(&config, Arc::clone(&store)).map_err(Error::Push)?;
     if !sender.configured() {
         return Err(Error::Push(
-            "push isn't set up: run `beagle serve push setup` first".into(),
+            "push isn't set up: run `beagle serve secrets sync` or `beagle serve push setup` first"
+                .into(),
         ));
     }
     let shared: SharedSender = Arc::new(Mutex::new(sender));
