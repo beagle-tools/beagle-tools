@@ -19,6 +19,8 @@ export const APPS = {
 
 /** Paths compiled into every app: a change here releases all of them. */
 const SHARED_PREFIXES = ["utils/"];
+/** Under a shared prefix but compiled into no released app (BeagleKit, Swift). */
+const NOT_RELEASED_PREFIXES = ["utils/swift/"];
 // The root Cargo workspace builds every app (or the crates its desktop shell
 // path-depends on), so its manifest and lockfile release them all.
 const SHARED_FILES = new Set(["rust-toolchain.toml", "Cargo.toml", "Cargo.lock"]);
@@ -101,6 +103,7 @@ export function isUnknownBefore(before) {
  * an app embeds (EMBEDDED_PREFIXES).
  */
 export function isReleaseRelevant(app, path) {
+  if (NOT_RELEASED_PREFIXES.some((p) => path.startsWith(p))) return false;
   if (PACKAGING_FILES[app]?.has(path)) return true;
   if ((EMBEDDED_PREFIXES[app] ?? []).some((p) => path.startsWith(p))) return true;
   if (path.endsWith(".md")) return false;

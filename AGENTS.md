@@ -21,7 +21,7 @@ with one folder per runnable part (`tui/`, `daemon/`, `desktop/`, `web/`,
 
 | Shared | What it is | Guide |
 |---|---|---|
-| `utils/` | `beagle-utils` and `beagle-tui`: Rust helpers shared by two or more tools | `utils/README.md` |
+| `utils/` | `beagle-utils` and `beagle-tui`: Rust helpers shared by two or more tools; `swift/` BeagleKit, the Swift package the iPhone apps share | `utils/README.md` |
 | `standards/`, `scripts/`, root configs | Shared lint, format, compiler and CI configuration | `docs/CODING_STANDARDS.md` |
 | `skills/` | Agent skills: `beagle-create-issue`, `beagle-complete-issue`, and rca's `beagle` / `beagle-review` (embedded into `beagle`, served by `beagle rca skill install`). `.claude/skills/*` symlink here | `skills/README.md` |
 | `packaging/`, `scripts/release/` | Homebrew formulas and casks, plus the per-app release pipeline | `docs/RELEASING.md` |
@@ -106,10 +106,11 @@ The scripts behind these:
   - `rca/desktop`
   - `rca/web`
   - `agent/desktop`
-- **iPhone apps** (Xcode, macOS only): `scout/ios`, gated by
-  `scripts/ci/ios.sh` (`make check-ios`, CI job `scout-ios` on a macOS runner).
+- **iPhone apps and Swift packages** (Xcode, macOS only): `scout/ios` and the
+  shared package `utils/swift` (BeagleKit), each gated by `scripts/ci/ios.sh`
+  (`make check-ios`, CI job `scout-ios` on a macOS runner).
 
 To add a workspace or frontend, add it to `scripts/check-standards.mjs`,
 `.github/workflows/ci.yml` and the root `Makefile` in the same PR. An iPhone
-app goes in `IOS_APPS` (`scripts/ci/ios-standards.mjs`) instead of
-`check-standards.mjs`.
+app goes in `IOS_APPS` and a Swift package in `SWIFT_PACKAGES`
+(`scripts/ci/ios-standards.mjs`) instead of `check-standards.mjs`.

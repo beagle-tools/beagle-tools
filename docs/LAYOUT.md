@@ -35,7 +35,8 @@ agent/           beagle agent (today's workflows/)
   daemon/        agentd, the scheduler daemon
   desktop/       Agentdesk (Tauri)
   lib/core/  lib/top/
-utils/           code shared by two or more tools (beagle-utils, beagle-tui)
+utils/           code shared by two or more tools: Rust beagle-utils (src/) and
+                 beagle-tui (tui/); Swift BeagleKit (swift/) for the iPhone apps
 docs/  scripts/  standards/  packaging/  skills/  .github/   repo-wide
 ```
 

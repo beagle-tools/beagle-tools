@@ -1,3 +1,4 @@
+import BeagleAPI
 import Foundation
 import SwiftUI
 
@@ -6,12 +7,19 @@ import SwiftUI
 ///
 /// A value type kept in `@State`: a generic `@Observable` class here crashed
 /// the Swift 6.3 optimizer (Release builds, Xcode 26.6).
-struct Remote<Value> {
-  private(set) var value: Value?
-  private(set) var error: String?
+public struct Remote<Value> {
+  /// The last good value.
+  public private(set) var value: Value?
+  /// The last error, cleared by the next success.
+  public private(set) var error: String?
+
+  /// Nothing loaded yet.
+  public init() {}
 
   /// Runs `fetch`; cancellations (a screen closing, a refresh restarting) are `nil`.
-  static func fetch(_ fetch: () async throws -> Value) async -> Result<Value, Error>? {
+  @MainActor public static func fetch(_ fetch: () async throws -> Value) async -> Result<
+    Value, Error
+  >? {
     do {
       return .success(try await fetch())
     } catch APIError.transport(let e) where e.code == .cancelled {
@@ -24,7 +32,7 @@ struct Remote<Value> {
   }
 
   /// Records a fetch's outcome; a failure keeps the last value.
-  mutating func apply(_ result: Result<Value, Error>?) {
+  public mutating func apply(_ result: Result<Value, Error>?) {
     switch result {
     case .success(let new):
       value = new
@@ -39,12 +47,22 @@ struct Remote<Value> {
 
 /// Shows a Remote: a spinner until the first answer, the error with a retry
 /// when there's nothing to show, else the content (with any newer error on top).
-struct RemoteContent<Value, Content: View>: View {
+public struct RemoteContent<Value, Content: View>: View {
   let remote: Remote<Value>
   let retry: () async -> Void
-  @ViewBuilder let content: (Value) -> Content
+  let content: (Value) -> Content
 
-  var body: some View {
+  /// Shows `remote`, retrying with `retry`, its value with `content`.
+  public init(
+    remote: Remote<Value>, retry: @escaping () async -> Void,
+    @ViewBuilder content: @escaping (Value) -> Content
+  ) {
+    self.remote = remote
+    self.retry = retry
+    self.content = content
+  }
+
+  public var body: some View {
     if let value = remote.value {
       VStack(spacing: 0) {
         if let error = remote.error {
@@ -74,12 +92,12 @@ struct RemoteContent<Value, Content: View>: View {
 
 /// Pull to refresh, plus a refresh every `interval` while the screen is shown
 /// and the app is in the foreground.
-struct AutoRefresh: ViewModifier {
+public struct AutoRefresh: ViewModifier {
   let interval: Duration
   let action: () async -> Void
   @Environment(\.scenePhase) private var phase
 
-  func body(content: Content) -> some View {
+  public func body(content: Content) -> some View {
     content
       .refreshable { await action() }
       .task(id: phase) {
@@ -93,21 +111,12 @@ struct AutoRefresh: ViewModifier {
 }
 
 extension View {
-  func autoRefresh(every interval: Duration = .seconds(10), _ action: @escaping () async -> Void)
+  /// Pull to refresh, plus `action` every `interval` while shown and active.
+  public func autoRefresh(
+    every interval: Duration = .seconds(10), _ action: @escaping () async -> Void
+  )
     -> some View
   {
     modifier(AutoRefresh(interval: interval, action: action))
   }
-}
-
-/// Where the Scout tab can navigate.
-struct ProjectRoute: Hashable {
-  let id: String
-  let title: String
-}
-
-struct TaskRoute: Hashable {
-  let project: String
-  let task: String
-  let title: String
 }

@@ -10,6 +10,12 @@
 export const IOS_APPS = ["scout/ios"];
 
 /**
+ * The Swift packages the apps share (like the Rust `utils/` crates), each a
+ * folder with a Package.swift, gated by the same script on a simulator.
+ */
+export const SWIFT_PACKAGES = ["utils/swift"];
+
+/**
  * Checks the iPhone apps. `read(path)` returns a repo file's text, `files`
  * lists every repo file (repo-relative). Returns the violations.
  */
@@ -22,6 +28,9 @@ export function checkIos(read, files) {
     const base = f.split("/").pop();
     if ([".swift-format", ".swiftformat", ".swiftlint.yml"].includes(base) && f !== ".swift-format") {
       errors.push(`${f}: per-app Swift config is not allowed; edit the root .swift-format`);
+    }
+    if (base === "Package.swift" && !SWIFT_PACKAGES.includes(f.slice(0, -"/Package.swift".length))) {
+      errors.push(`${f}: Swift package outside SWIFT_PACKAGES (scripts/ci/ios-standards.mjs) — shared Swift code goes in utils/swift`);
     }
     const project = f.match(/^(.*)\/([^/]+)\.xcodeproj\/project\.pbxproj$/);
     if (project && !IOS_APPS.includes(project[1])) {
@@ -54,6 +63,13 @@ export function checkIos(read, files) {
     const gate = `scripts/ci/ios.sh ${app}`;
     if (!ci.includes(gate)) errors.push(`.github/workflows/ci.yml: no job runs \`${gate}\``);
     if (!ci.includes(`"${app}/**"`)) errors.push(`.github/workflows/ci.yml: no path filter "${app}/**"`);
+    if (!makefile.includes(gate)) errors.push(`Makefile: no target runs \`${gate}\``);
+  }
+  for (const pkg of SWIFT_PACKAGES) {
+    if (!files.includes(`${pkg}/Package.swift`)) errors.push(`${pkg}/Package.swift: missing (listed in SWIFT_PACKAGES)`);
+    const gate = `scripts/ci/ios.sh ${pkg}`;
+    if (!ci.includes(gate)) errors.push(`.github/workflows/ci.yml: no job runs \`${gate}\``);
+    if (!ci.includes(`"${pkg}/**"`)) errors.push(`.github/workflows/ci.yml: no path filter "${pkg}/**"`);
     if (!makefile.includes(gate)) errors.push(`Makefile: no target runs \`${gate}\``);
   }
   return errors;

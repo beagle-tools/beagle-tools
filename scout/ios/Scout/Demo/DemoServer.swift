@@ -1,4 +1,5 @@
 #if DEBUG
+  import BeaglePairing
   import Foundation
 
   /// A fake `beagle serve` inside the app, for UI tests and previews (Debug

@@ -3,8 +3,9 @@ import Foundation
 /// A small Markdown block parser for scout's files: enough for headings,
 /// paragraphs, checkbox and bullet lists, numbered lists, quotes and code
 /// fences. Inline styling (bold, code, links) is left to AttributedString.
-nonisolated enum Markdown {
-  enum Block: Equatable, Sendable {
+public enum Markdown {
+  /// One block of a document.
+  public enum Block: Equatable, Sendable {
     case heading(level: Int, text: String)
     case paragraph(String)
     /// `checked` is nil for a plain bullet, true/false for `- [x]` / `- [ ]`.
@@ -14,14 +15,16 @@ nonisolated enum Markdown {
   }
 
   /// A `## Title` section of a scout file and the Markdown under it.
-  struct Section: Equatable, Sendable {
-    let title: String?
-    let body: String
+  public struct Section: Equatable, Sendable {
+    /// The heading text, or nil for text before the first heading.
+    public let title: String?
+    /// The Markdown under the heading, trimmed.
+    public let body: String
   }
 
   /// Splits a document at its `## ` headings. Text before the first one is a
   /// section with no title. Headings inside code fences don't split.
-  static func sections(_ text: String) -> [Section] {
+  public static func sections(_ text: String) -> [Section] {
     var sections: [Section] = []
     var title: String?
     var lines: [Substring] = []
@@ -45,12 +48,13 @@ nonisolated enum Markdown {
   }
 
   /// True for scout's unfilled template text, e.g. `<Filled in when …>`.
-  static func isPlaceholder(_ text: String) -> Bool {
+  public static func isPlaceholder(_ text: String) -> Bool {
     let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
     return t.hasPrefix("<") && t.hasSuffix(">") && !t.contains("](")
   }
 
-  static func blocks(_ text: String) -> [Block] {
+  /// The blocks of `text`, in order.
+  public static func blocks(_ text: String) -> [Block] {
     var blocks: [Block] = []
     var paragraph: [String] = []
     var code: (language: String, lines: [String])?

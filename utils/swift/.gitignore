@@ -1,0 +1,5 @@
+# xcodebuild output (scripts/ci/ios.sh --derivedDataPath) and SwiftPM state
+/build/
+/build.log
+/.build/
+/.swiftpm/

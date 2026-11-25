@@ -21,7 +21,7 @@ help:
 	@echo "make check-rca        - root workspace + rca's desktop shell + frontends (desktop, web)"
 	@echo "make check-agent  - root workspace + Agentdesk's shell + frontend"
 	@echo "make check-utils / check-beagle - same as check-rust (their crates live in it)"
-	@echo "make check-ios        - the scout iPhone app: swift-format, unit + UI tests on a simulator (macOS + Xcode)"
+	@echo "make check-ios        - BeagleKit (utils/swift) + the scout iPhone app: swift-format, tests on a simulator (macOS + Xcode)"
 	@echo ""
 	@echo "make test-affected [BASE=origin/main] - cargo tests for packages changed since BASE (+ dependents)"
 	@echo "make test-scripts     - unit tests for the CI and release scripts"
@@ -66,6 +66,7 @@ check-agent: check-rust
 # (CI runs it on a macOS runner).
 check-ios:
 	@if [ "$$(uname)" != Darwin ]; then echo "check-ios: skipped (needs macOS + Xcode)"; exit 0; fi; \
+	./scripts/ci/ios.sh utils/swift; \
 	./scripts/ci/ios.sh scout/ios;
 
 # ---- tests ----------------------------------------------------------------

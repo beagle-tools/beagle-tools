@@ -1,3 +1,5 @@
+import BeagleAPI
+import BeagleUI
 import SwiftUI
 
 /// One project: its tasks (with the handoff), its project.md, and its log —

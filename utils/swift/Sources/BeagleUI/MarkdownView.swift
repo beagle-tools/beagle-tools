@@ -2,10 +2,14 @@ import SwiftUI
 
 /// Renders scout Markdown natively: blocks from `Markdown.blocks`, inline
 /// styling through AttributedString. Template placeholders are dimmed, as in the TUI.
-struct MarkdownView: View {
-  let text: String
+public struct MarkdownView: View {
+  /// The Markdown to show.
+  public let text: String
 
-  var body: some View {
+  /// Shows `text`.
+  public init(text: String) { self.text = text }
+
+  public var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       ForEach(Array(Markdown.blocks(text).enumerated()), id: \.offset) { _, block in
         BlockView(block: block)
@@ -17,7 +21,7 @@ struct MarkdownView: View {
 }
 
 /// Inline Markdown (bold, italics, `code`, links) as styled text.
-func inline(_ text: String) -> Text {
+public func inline(_ text: String) -> Text {
   if Markdown.isPlaceholder(text) {
     return Text(text).italic().foregroundStyle(.secondary)
   }

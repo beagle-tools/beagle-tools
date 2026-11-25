@@ -1,52 +1,39 @@
 import Foundation
 
 /// A read-only client for `beagle serve` (docs/serve-api.md, API v1).
-nonisolated struct BeagleAPI: Sendable {
+///
+/// The server-wide endpoints live here; each app adds its tool's endpoints
+/// in an extension built on ``get(_:query:authorized:)``.
+public struct BeagleAPI: Sendable {
   /// The server's origin, e.g. `https://mac.example.ts.net:8787`.
-  let server: URL
+  public let server: URL
   /// The bearer token from pairing; `nil` only for unauthenticated probes.
-  let token: String?
-  let session: URLSession
+  public let token: String?
+  /// The session requests go through (a stub in tests).
+  public let session: URLSession
 
-  /// The API version this app speaks (`api` in `/v1/version`).
-  static let apiVersion = 1
+  /// The API version this client speaks (`api` in `/v1/version`).
+  public static let apiVersion = 1
 
-  init(server: URL, token: String?, session: URLSession = .shared) {
+  /// A client for `server`, sending `token` on every request but `/v1/health`.
+  public init(server: URL, token: String?, session: URLSession = .shared) {
     self.server = server
     self.token = token
     self.session = session
   }
 
-  func health() async throws -> Health {
+  /// `GET /v1/health`, without the token: is the server up?
+  public func health() async throws -> Health {
     try await get(["v1", "health"], authorized: false)
   }
 
-  func version() async throws -> ServerVersion {
+  /// `GET /v1/version`: the beagle version, API version and served tools.
+  public func version() async throws -> ServerVersion {
     try await get(["v1", "version"])
   }
 
-  func projects() async throws -> ProjectList {
-    try await get(["v1", "scout", "projects"])
-  }
-
-  func project(_ id: String) async throws -> ProjectDetail {
-    try await get(["v1", "scout", "projects", id])
-  }
-
-  /// `task` is a number (`2`), a full id (`02-add-allowlist`) or a slug.
-  func task(project: String, task: String) async throws -> TaskDetail {
-    try await get(["v1", "scout", "projects", project, "tasks", task])
-  }
-
-  /// The last `lines` lines of the project's log (the server caps it at 2000).
-  func log(project: String, lines: Int = 200) async throws -> LogTail {
-    try await get(
-      ["v1", "scout", "projects", project, "log"],
-      query: [URLQueryItem(name: "lines", value: String(lines))])
-  }
-
   /// The URL for a path under the server, each segment percent-encoded.
-  func url(_ segments: [String], query: [URLQueryItem] = []) -> URL {
+  public func url(_ segments: [String], query: [URLQueryItem] = []) -> URL {
     var url = server
     for segment in segments {
       url.append(path: segment, directoryHint: .notDirectory)
@@ -57,13 +44,15 @@ nonisolated struct BeagleAPI: Sendable {
     return url
   }
 
-  private static let decoder: JSONDecoder = {
+  /// The decoder for every answer: snake_case keys to camelCase properties.
+  public static let decoder: JSONDecoder = {
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
     return decoder
   }()
 
-  private func get<T: Decodable>(
+  /// `GET`s a path and decodes the JSON answer; failures are ``APIError``s.
+  public func get<T: Decodable>(
     _ segments: [String], query: [URLQueryItem] = [], authorized: Bool = true
   ) async throws -> T {
     var request = URLRequest(url: url(segments, query: query))

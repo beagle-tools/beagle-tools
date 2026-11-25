@@ -26,6 +26,8 @@ test("app paths release only their app", () => {
   assert.deepEqual(changedApps(["scout/tui/src/lib.rs"]), ["cli"]);
   // The iPhone app isn't linked into beagle and has no release of its own.
   assert.deepEqual(changedApps(["scout/ios/Scout/ScoutApp.swift", "scout/ios/Scout.xcodeproj/project.pbxproj"]), []);
+  // Nor is BeagleKit, the Swift package under utils/.
+  assert.deepEqual(changedApps(["utils/swift/Package.swift", "utils/swift/Sources/BeagleAPI/BeagleAPI.swift"]), []);
   // The cli app lives in beagle/ (APPS.cli.dir).
   assert.deepEqual(changedApps(["beagle/Cargo.toml"]), ["cli"]);
   assert.deepEqual(changedApps(["beagle/src/main.rs", "beagle/serve/src/lib.rs"]), ["cli"]);

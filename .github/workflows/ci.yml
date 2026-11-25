@@ -56,7 +56,11 @@ jobs:
               - "Cargo.lock"
               - ".nvmrc"
               - ".prettierrc.json"
-              - "utils/**"
+              # The Rust utils crates; utils/swift (BeagleKit) is Swift and
+              # gated by scout-ios only.
+              - "utils/Cargo.toml"
+              - "utils/src/**"
+              - "utils/tui/**"
             utils:
               - *shared
             tandem:
@@ -101,6 +105,7 @@ jobs:
             # its own files and its gate's script and format config select it.
             scout-ios:
               - "scout/ios/**"
+              - "utils/swift/**"
               - "scripts/ci/ios.sh"
               - ".swift-format"
 
@@ -229,7 +234,7 @@ jobs:
   # builds with Xcode 26.6 while local machines may be newer. The code must
   # build on both. Bump DEVELOPER_DIR deliberately, together with the image.
   scout-ios:
-    name: scout ios (simulator build + test)
+    name: scout ios (BeagleKit + app, simulator build + test)
     needs: changes
     if: needs.changes.outputs.scout-ios == 'true'
     runs-on: macos-26
@@ -238,6 +243,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - run: ./scripts/ci/ios.sh utils/swift
       - run: ./scripts/ci/ios.sh scout/ios
 
   gate:

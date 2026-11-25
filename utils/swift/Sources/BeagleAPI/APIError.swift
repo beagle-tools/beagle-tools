@@ -1,7 +1,7 @@
 import Foundation
 
 /// Why a request to `beagle serve` failed, worded for the person holding the phone.
-nonisolated enum APIError: Error, Equatable, Sendable, LocalizedError {
+public enum APIError: Error, Equatable, Sendable, LocalizedError {
   /// 401: the token is missing, wrong or rotated away.
   case unauthorized
   /// Any other non-2xx answer, with the server's `{ "error": … }` when it sent one.
@@ -14,7 +14,7 @@ nonisolated enum APIError: Error, Equatable, Sendable, LocalizedError {
   case badResponse
 
   /// Builds the error for a non-2xx `status` from its body.
-  static func from(status: Int, body: Data) -> APIError {
+  public static func from(status: Int, body: Data) -> APIError {
     if status == 401 { return .unauthorized }
     if let parsed = try? JSONDecoder().decode(ErrorBody.self, from: body) {
       return .server(status: status, code: parsed.error.code, message: parsed.error.message)
@@ -24,7 +24,7 @@ nonisolated enum APIError: Error, Equatable, Sendable, LocalizedError {
     return .server(status: status, code: nil, message: message)
   }
 
-  var errorDescription: String? {
+  public var errorDescription: String? {
     switch self {
     case .unauthorized:
       return "Your Mac rejected this phone's token. Pair again: run `beagle serve pair` on the Mac."

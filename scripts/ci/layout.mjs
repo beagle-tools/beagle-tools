@@ -19,6 +19,12 @@ export const REPO_DIRS = new Set([
   ".claude",
 ]);
 
+/**
+ * What utils/ holds: the Rust crates (beagle-utils at the root of utils/,
+ * beagle-tui in tui/) and the Swift package BeagleKit in swift/.
+ */
+export const UTILS_ENTRIES = new Set(["Cargo.toml", "src", "tui", "swift", "README.md", ".gitignore"]);
+
 /** A tool's runnable parts (rule 2). */
 export const PARTS = new Set(["tui", "daemon", "desktop", "web", "ios"]);
 /** What else a tool's top level may hold (rule 6). */
@@ -89,6 +95,14 @@ export function checkLayout(read, files) {
         );
       }
       continue;
+    }
+
+    // 3a. utils/ holds the shared Rust crates and the shared Swift package.
+    if (top === "utils" && !UTILS_ENTRIES.has(parts[1]) && !seenToolEntry.has(`utils/${parts[1]}`)) {
+      seenToolEntry.add(`utils/${parts[1]}`);
+      errors.push(
+        `utils/${parts[1]}: not allowed in utils/ — Rust goes in src/ (beagle-utils) or tui/ (beagle-tui), Swift in swift/ (BeagleKit) (docs/LAYOUT.md)`,
+      );
     }
 
     // 3. A tool's top level holds only its parts and the allowed extras.
