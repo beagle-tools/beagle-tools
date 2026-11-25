@@ -3,12 +3,18 @@ import Security
 
 /// Small wrapper over the iOS Keychain for string secrets (generic passwords).
 /// Items stay on this device and are readable after its first unlock.
-nonisolated struct Keychain: Sendable {
-  let service: String
+public struct Keychain: SecretStore {
+  /// The Keychain service the items are filed under.
+  public let service: String
 
-  struct Failure: Error, Equatable, LocalizedError {
-    let status: OSStatus
-    var errorDescription: String? {
+  /// A Keychain for `service`, e.g. the app's bundle ID.
+  public init(service: String) { self.service = service }
+
+  /// A Keychain call failed with `status`.
+  public struct Failure: Error, Equatable, LocalizedError {
+    /// The Security framework status code.
+    public let status: OSStatus
+    public var errorDescription: String? {
       let reason = SecCopyErrorMessageString(status, nil) as String? ?? "status \(status)"
       return "Keychain error: \(reason)"
     }
@@ -22,7 +28,8 @@ nonisolated struct Keychain: Sendable {
     ]
   }
 
-  func read(_ account: String) throws -> String? {
+  /// The value stored for `account`, or nil.
+  public func read(_ account: String) throws -> String? {
     var q = query(account)
     q[kSecReturnData as String] = true
     q[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -33,7 +40,8 @@ nonisolated struct Keychain: Sendable {
     return String(data: data, encoding: .utf8)
   }
 
-  func write(_ value: String, for account: String) throws {
+  /// Stores `value` for `account`, replacing any old value.
+  public func write(_ value: String, for account: String) throws {
     let data = Data(value.utf8)
     let update: [String: Any] = [kSecValueData as String: data]
     let status = SecItemUpdate(query(account) as CFDictionary, update as CFDictionary)
@@ -46,7 +54,8 @@ nonisolated struct Keychain: Sendable {
     guard added == errSecSuccess else { throw Failure(status: added) }
   }
 
-  func delete(_ account: String) throws {
+  /// Removes `account`'s value; missing is fine.
+  public func delete(_ account: String) throws {
     let status = SecItemDelete(query(account) as CFDictionary)
     guard status == errSecSuccess || status == errSecItemNotFound else {
       throw Failure(status: status)

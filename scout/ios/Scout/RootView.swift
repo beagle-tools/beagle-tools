@@ -1,3 +1,5 @@
+import BeaglePairing
+import BeagleUI
 import SwiftUI
 
 /// The app's tabs: Scout (projects and tasks) and Settings (pairing).
@@ -72,6 +74,9 @@ enum AppInfo {
   }
 }
 
-#Preview {
-  RootView().environment(Pairing())
-}
+#if DEBUG
+  #Preview {
+    RootView().environment(
+      Pairing(tool: "scout", preview: DemoServer.link, session: DemoServer.session))
+  }
+#endif

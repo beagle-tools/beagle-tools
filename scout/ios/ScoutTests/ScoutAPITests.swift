@@ -1,13 +1,17 @@
+import BeagleAPI
+import BeagleTestSupport
 import Foundation
 import Testing
 
 @testable import Scout
 
-struct BeagleAPITests {
+/// The scout endpoints (Scout/API/ScoutAPI.swift) against JSON captured from a
+/// real `beagle serve`. Transport, auth and errors are tested in BeagleKit.
+struct ScoutAPITests {
   let stub = StubServer()
 
   @Test func decodesTheProjectList() async throws {
-    stub.serve(["/v1/scout/projects": "projects"])
+    stub.serve(["/v1/scout/projects": Fixture.data("projects")])
     let list = try await stub.api().projects()
 
     #expect(list.warnings.isEmpty)
@@ -26,7 +30,7 @@ struct BeagleAPITests {
   }
 
   @Test func decodesAProjectWithTasksAndHandoff() async throws {
-    stub.serve(["/v1/scout/projects/rate-limit-the-api": "project"])
+    stub.serve(["/v1/scout/projects/rate-limit-the-api": Fixture.data("project")])
     let project = try await stub.api().project("rate-limit-the-api")
 
     #expect(project.title == "Rate-limit the public API")
@@ -40,8 +44,8 @@ struct BeagleAPITests {
 
   @Test func decodesTasks() async throws {
     stub.serve([
-      "/v1/scout/projects/rate-limit-the-api/tasks/1": "task-done",
-      "/v1/scout/projects/rate-limit-the-api/tasks/2": "task-working",
+      "/v1/scout/projects/rate-limit-the-api/tasks/1": Fixture.data("task-done"),
+      "/v1/scout/projects/rate-limit-the-api/tasks/2": Fixture.data("task-working"),
     ])
     let done = try await stub.api().task(project: "rate-limit-the-api", task: "1")
     #expect(done.id == "01-map-request-path")
@@ -64,48 +68,6 @@ struct BeagleAPITests {
     #expect(log.truncated)
   }
 
-  @Test func healthNeedsNoTokenAndEverythingElseSendsIt() async throws {
-    stub.route { request in
-      let auth = request.value(forHTTPHeaderField: "Authorization")
-      switch request.url?.path() {
-      case "/v1/health":
-        #expect(auth == nil)
-        return .init(status: 200, body: Fixture.data("health"))
-      default:
-        #expect(auth == "Bearer \(Fixture.token)")
-        return .init(status: 200, body: Fixture.data("version"))
-      }
-    }
-    let api = stub.api()
-    #expect(try await api.health() == Health(ok: true))
-    let version = try await api.version()
-    #expect(version.api == 1)
-    #expect(version.tools.contains("scout"))
-  }
-
-  @Test func a401AsksToPairAgain() async {
-    stub.route { _ in .init(status: 401, body: Fixture.data("error-unauthorized")) }
-    await #expect(throws: APIError.unauthorized) { try await stub.api().projects() }
-    #expect(APIError.unauthorized.localizedDescription.contains("beagle serve pair"))
-  }
-
-  @Test func a404CarriesTheServersMessage() async throws {
-    stub.serve(["/v1/scout/projects/no-such-project": "error-not-found"], status: 404)
-    let error = await #expect(throws: APIError.self) {
-      try await stub.api().project("no-such-project")
-    }
-    guard case .server(404, "not_found", let message) = error else {
-      Issue.record("unexpected \(String(describing: error))")
-      return
-    }
-    #expect(message.contains("no-such-project"))
-  }
-
-  @Test func aNonJSONErrorStillReads() {
-    let error = APIError.from(status: 502, body: Data("Bad Gateway".utf8))
-    #expect(error == .server(status: 502, code: nil, message: "Bad Gateway"))
-  }
-
   @Test func unexpectedJSONIsADecodingError() async {
     stub.route { _ in .init(status: 200, body: Data(#"{"projects": 3}"#.utf8)) }
     let error = await #expect(throws: APIError.self) { try await stub.api().projects() }
@@ -121,22 +83,4 @@ struct BeagleAPITests {
     #expect(try JSONDecoder().decode([ProjectStatus].self, from: json) == [.active, .unknown])
   }
 
-  @Test func transportErrorsAreReadable() async {
-    let api = BeagleAPI(
-      server: URL(string: "https://unrouted.example.ts.net:8787")!, token: Fixture.token,
-      session: stub.session)
-    let error = await #expect(throws: APIError.self) { try await api.projects() }
-    guard case .transport(let urlError) = error else {
-      Issue.record("unexpected \(String(describing: error))")
-      return
-    }
-    #expect(urlError.code == .cannotFindHost)
-    #expect(error?.localizedDescription.contains("Tailscale") == true)
-  }
-
-  @Test func pathSegmentsArePercentEncoded() {
-    let url = stub.api().url(
-      ["v1", "scout", "projects", "a b"], query: [.init(name: "lines", value: "5")])
-    #expect(url.absoluteString == "https://\(stub.host):8787/v1/scout/projects/a%20b?lines=5")
-  }
 }

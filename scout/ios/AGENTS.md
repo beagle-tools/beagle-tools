@@ -14,29 +14,31 @@ dependencies.
 ## Layout
 
 ```text
-Scout.xcodeproj/    plain Xcode project; synchronized folders, so files need no project edits
+Scout.xcodeproj/    plain Xcode project; synchronized folders, so files need no project edits;
+                    links BeagleKit (../../utils/swift) as a local package
   xcshareddata/xcschemes/Scout.xcscheme   the shared scheme CI tests (unit + UI)
 Scout-Info.plist    merged into the generated Info.plist: only the beagle:// URL scheme
 Scout/              the app target
-  ScoutApp.swift    @main entry; `-ui-testing` swaps in a throwaway Keychain + defaults
+  ScoutApp.swift    @main entry; makes the Pairing (Keychain service dev.beagletools.scout);
+                    `-ui-testing` swaps in a throwaway Keychain + defaults
   RootView.swift    the tabs: Scout, Settings; opens beagle://pair links in PairView
-  SettingsView.swift  paired Mac, connection status, Pair again / Unpair
-  API/              BeagleAPI (async URLSession, bearer token), Codable models, APIError
-  Pairing/          PairingLink (parse beagle://pair?url=…&token=…), Keychain,
-                    Pairing (health → version → save), PairView, QRScanner (VisionKit)
+  SettingsView.swift  BeagleUI's ServerSection + the app version
+  API/              the scout models and endpoints (`extension BeagleAPI`)
   Scout/            the screens: ProjectListView → ProjectView (Tasks · Project · Log)
-                    → TaskView (Task · Outcome); StatusViews (the TUI's glyphs,
-                    colours and braille spinner); Remote (load state, pull to
-                    refresh + 10 s auto-refresh while visible and active)
-  Markdown/         Markdown (block parser, `## ` sections) and MarkdownView
+                    → TaskView (Task · Outcome); StatusViews (the TUI's glyphs and
+                    colours); Routes
   Demo/DemoServer.swift   Debug only: an in-app fake beagle serve (`-demo-server`)
-ScoutTests/         unit tests (Swift Testing), hosted by the app
-  Support/StubServer.swift   URLProtocol stub, one host per test (safe in parallel)
+ScoutTests/         unit tests (Swift Testing), hosted by the app; BeagleTestSupport's
+                    StubServer; KeychainTests (the real Keychain needs a host app)
   Fixtures/*.json   real `beagle serve` answers for a neutral example store
 ScoutUITests/       XCUITest: launch/pairing smoke tests, the scout screens against
                     the demo server (screenshots kept in the .xcresult), and an
                     opt-in end-to-end test against a real local beagle serve
 ```
+
+Anything another beagle phone app would need (the client, pairing, Keychain,
+pair screen, server settings, load state, spinner, Markdown) lives in
+BeagleKit (`utils/swift`, see `utils/README.md`), not here.
 
 The app target is main-actor by default: anything a unit test calls
 synchronously (models, parsers, pure helpers such as `TaskView.sections`)

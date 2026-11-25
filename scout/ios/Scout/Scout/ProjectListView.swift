@@ -1,3 +1,5 @@
+import BeagleAPI
+import BeagleUI
 import SwiftUI
 
 /// Every scout project, open ones first, like the TUI's project list.

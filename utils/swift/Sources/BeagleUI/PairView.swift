@@ -1,13 +1,17 @@
+import BeaglePairing
 import SwiftUI
 
 /// Pairs the app with `beagle serve`: scan the QR code `beagle serve pair`
 /// prints, or paste its link, or type the server and token.
-struct PairView: View {
+public struct PairView: View {
   @Environment(Pairing.self) private var pairing
   @Environment(\.dismiss) private var dismiss
 
   /// A link that opened the app (`beagle://pair?…`), shown for confirmation.
-  var initialLink: String = ""
+  var initialLink: String
+
+  /// The pair screen, pre-filled with `initialLink` when a link opened the app.
+  public init(initialLink: String = "") { self.initialLink = initialLink }
 
   @State private var link = ""
   @State private var server = ""
@@ -16,7 +20,7 @@ struct PairView: View {
   @State private var working = false
   @State private var problem: String?
 
-  var body: some View {
+  public var body: some View {
     NavigationStack {
       Form {
         Section {

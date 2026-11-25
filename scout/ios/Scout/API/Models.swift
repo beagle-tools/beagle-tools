@@ -1,20 +1,10 @@
+import BeagleAPI
 import Foundation
 
-// The JSON `beagle serve` answers (docs/serve-api.md). Keys arrive in
+// The scout JSON `beagle serve` answers (docs/serve-api.md, "Scout"); the
+// server-wide models are in BeagleKit's BeagleAPI. Keys arrive in
 // snake_case and are decoded with `.convertFromSnakeCase`. Timestamps stay
 // RFC 3339 strings; `Timestamp` turns them into dates for display.
-
-/// `GET /v1/health`: answered without a token.
-nonisolated struct Health: Decodable, Equatable, Sendable {
-  let ok: Bool
-}
-
-/// `GET /v1/version`.
-nonisolated struct ServerVersion: Decodable, Equatable, Sendable {
-  let beagle: String
-  let api: Int
-  let tools: [String]
-}
 
 /// A project's status. Unknown values (a newer server) decode as `.unknown`
 /// instead of failing the whole response.
@@ -122,21 +112,4 @@ nonisolated struct LogTail: Decodable, Equatable, Sendable {
   let project: String
   let lines: [String]
   let truncated: Bool
-}
-
-/// Every non-2xx body: `{ "error": { "code", "message" } }`.
-nonisolated struct ErrorBody: Decodable, Equatable, Sendable {
-  struct Detail: Decodable, Equatable, Sendable {
-    let code: String
-    let message: String
-  }
-  let error: Detail
-}
-
-/// RFC 3339 timestamps from the server.
-nonisolated enum Timestamp {
-  static func date(_ text: String?) -> Date? {
-    guard let text else { return nil }
-    return try? Date(text, strategy: .iso8601)
-  }
 }

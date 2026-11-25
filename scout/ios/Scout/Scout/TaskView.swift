@@ -1,3 +1,5 @@
+import BeagleAPI
+import BeagleUI
 import SwiftUI
 
 /// One task: its plan (Task tab) and its handoff (Outcome tab), like the TUI.

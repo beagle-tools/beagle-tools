@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import Scout
+@testable import BeagleUI
 
 struct MarkdownTests {
   @Test func splitsAtLevelTwoHeadingsButNotInsideCode() {
@@ -67,16 +67,5 @@ struct MarkdownTests {
     #expect(Markdown.isPlaceholder("<Filled in when the task closes.>"))
     #expect(Markdown.isPlaceholder("<What changes\nand where.>"))
     #expect(!Markdown.isPlaceholder("Uses `<T>` generics"))
-  }
-
-  @Test func taskTabsSplitPlanFromOutcome() throws {
-    let data = Fixture.data("task-done")
-    let decoder = JSONDecoder()
-    decoder.keyDecodingStrategy = .convertFromSnakeCase
-    let task = try decoder.decode(TaskDetail.self, from: data)
-    let plan = TaskView.sections(of: task, for: .task).compactMap(\.title)
-    let outcome = TaskView.sections(of: task, for: .outcome).compactMap(\.title)
-    #expect(plan == ["Context", "Objective", "Steps", "Done when"])
-    #expect(outcome == ["Outcome", "Next steps"])
   }
 }

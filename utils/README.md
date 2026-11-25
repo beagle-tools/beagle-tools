@@ -68,6 +68,26 @@ the pane when it is hidden), and while `pane.is_active()` hand every key to
 - agenttop (`agent/`) has no resizable side pane, so it has no resize
   mode: its `w` reads a step's write-up.
 
+## BeagleKit (`swift/`)
+
+The Swift package the beagle iPhone apps share, the way the Rust tools share
+the crates above. iOS 17+, Swift 6, no third-party dependencies. An app's
+Xcode project references it as a local package (`../../utils/swift`).
+
+| Library | What it holds |
+|---|---|
+| `BeagleAPI` | The `beagle serve` client: `BeagleAPI` (bearer token, `get` for each tool's endpoints, health, version), `APIError` (readable messages), `Health`, `ServerVersion`, `ErrorBody`, `Timestamp` |
+| `BeaglePairing` | `PairingLink` (`beagle://pair?url=…&token=…`), `Pairing` (verify, then save; refuses a server without the app's tool), `SecretStore` with `Keychain` and `MemorySecretStore` |
+| `BeagleUI` | `PairView` (scan, paste or type), `QRScanner` (VisionKit), `ServerSection` (Settings: paired Mac, status, pair/unpair), `Remote` + `RemoteContent` + `.autoRefresh`, `Spinner` (the TUIs' braille spinner), `Markdown` + `MarkdownView` |
+| `BeagleTestSupport` | Tests only: `StubServer`, a fake `beagle serve` behind URLProtocol |
+
+Tool-specific models, endpoints (an `extension BeagleAPI` in the app) and
+screens stay in the app. Gate: `scripts/ci/ios.sh utils/swift` (in
+`make check-ios` and CI's `scout-ios` job): swift-format, the package tests
+on an iPhone simulator, an unsigned Release build. Package tests have no
+Keychain access in the simulator, so `Keychain` itself is tested by the app
+(`scout/ios/ScoutTests/KeychainTests.swift`).
+
 ## Rules
 
 - Only code used by **two or more** apps goes here.

@@ -2,12 +2,14 @@ import Foundation
 
 /// The server and token `beagle serve pair` hands the phone, as the QR code's
 /// `beagle://pair?url=<percent-encoded origin>&token=<64 hex>` link or typed by hand.
-nonisolated struct PairingLink: Equatable, Sendable {
+public struct PairingLink: Equatable, Sendable {
   /// The server's origin, e.g. `https://mac.example.ts.net:8787` (no path).
-  let server: URL
-  let token: String
+  public let server: URL
+  /// The 64-hex bearer token, lowercased.
+  public let token: String
 
-  enum Problem: Error, Equatable, Sendable, LocalizedError {
+  /// Why a link or typed entry was rejected.
+  public enum Problem: Error, Equatable, Sendable, LocalizedError {
     case notAPairingLink
     case missingServer
     case badServer(String)
@@ -15,7 +17,7 @@ nonisolated struct PairingLink: Equatable, Sendable {
     case missingToken
     case badToken
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
       switch self {
       case .notAPairingLink:
         return "That isn't a pairing link. It starts with beagle://pair (from `beagle serve pair`)."
@@ -30,7 +32,7 @@ nonisolated struct PairingLink: Equatable, Sendable {
   }
 
   /// Parses a scanned or pasted `beagle://pair?…` link. Query values are percent-decoded.
-  static func parse(_ text: String) throws(Problem) -> PairingLink {
+  public static func parse(_ text: String) throws(Problem) -> PairingLink {
     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
     guard let parts = URLComponents(string: trimmed),
       parts.scheme?.lowercased() == "beagle", parts.host?.lowercased() == "pair"
@@ -42,7 +44,7 @@ nonisolated struct PairingLink: Equatable, Sendable {
   }
 
   /// Validates a server address and token entered by hand.
-  init(server text: String, token rawToken: String) throws(Problem) {
+  public init(server text: String, token rawToken: String) throws(Problem) {
     var serverText = text.trimmingCharacters(in: .whitespacesAndNewlines)
     while serverText.hasSuffix("/") { serverText.removeLast() }
     guard !serverText.isEmpty else { throw .missingServer }
@@ -66,7 +68,7 @@ nonisolated struct PairingLink: Equatable, Sendable {
   }
 
   /// The host shown in Settings, e.g. `mac.example.ts.net:8787`.
-  var displayName: String {
+  public var displayName: String {
     guard let host = server.host() else { return server.absoluteString }
     return server.port.map { "\(host):\($0)" } ?? host
   }

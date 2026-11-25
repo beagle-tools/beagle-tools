@@ -6,6 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		5C0000000000000000000075 /* BeagleAPI in Frameworks */ = {isa = PBXBuildFile; productRef = 5C0000000000000000000071 /* BeagleAPI */; };
+		5C0000000000000000000076 /* BeaglePairing in Frameworks */ = {isa = PBXBuildFile; productRef = 5C0000000000000000000072 /* BeaglePairing */; };
+		5C0000000000000000000077 /* BeagleUI in Frameworks */ = {isa = PBXBuildFile; productRef = 5C0000000000000000000073 /* BeagleUI */; };
+		5C0000000000000000000078 /* BeagleTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 5C0000000000000000000074 /* BeagleTestSupport */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		5C0000000000000000000050 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +59,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5C0000000000000000000075 /* BeagleAPI in Frameworks */,
+				5C0000000000000000000076 /* BeaglePairing in Frameworks */,
+				5C0000000000000000000077 /* BeagleUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -59,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5C0000000000000000000078 /* BeagleTestSupport in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +123,9 @@
 			);
 			name = Scout;
 			packageProductDependencies = (
+				5C0000000000000000000071 /* BeagleAPI */,
+				5C0000000000000000000072 /* BeaglePairing */,
+				5C0000000000000000000073 /* BeagleUI */,
 			);
 			productName = Scout;
 			productReference = 5C0000000000000000000010 /* Scout.app */;
@@ -135,6 +149,7 @@
 			);
 			name = ScoutTests;
 			packageProductDependencies = (
+				5C0000000000000000000074 /* BeagleTestSupport */,
 			);
 			productName = ScoutTests;
 			productReference = 5C0000000000000000000011 /* ScoutTests.xctest */;
@@ -195,6 +210,9 @@
 			);
 			mainGroup = 5C0000000000000000000002;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				5C0000000000000000000070 /* XCLocalSwiftPackageReference "../../utils/swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5C0000000000000000000003 /* Products */;
 			projectDirPath = "";
@@ -466,6 +484,36 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		5C0000000000000000000070 /* XCLocalSwiftPackageReference "../../utils/swift" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../utils/swift;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5C0000000000000000000071 /* BeagleAPI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5C0000000000000000000070 /* XCLocalSwiftPackageReference "../../utils/swift" */;
+			productName = BeagleAPI;
+		};
+		5C0000000000000000000072 /* BeaglePairing */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5C0000000000000000000070 /* XCLocalSwiftPackageReference "../../utils/swift" */;
+			productName = BeaglePairing;
+		};
+		5C0000000000000000000073 /* BeagleUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5C0000000000000000000070 /* XCLocalSwiftPackageReference "../../utils/swift" */;
+			productName = BeagleUI;
+		};
+		5C0000000000000000000074 /* BeagleTestSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5C0000000000000000000070 /* XCLocalSwiftPackageReference "../../utils/swift" */;
+			productName = BeagleTestSupport;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5C0000000000000000000001 /* Project object */;
 }

@@ -1,0 +1,1 @@
+{"error":{"code":"unauthorized","message":"missing or wrong bearer token: pair again with `beagle serve pair`"}}

@@ -1,10 +1,12 @@
+import BeagleAPI
+import BeagleTestSupport
 import Foundation
 import Testing
 
-@testable import Scout
+@testable import BeaglePairing
 
 struct PairingLinkTests {
-  let token = Fixture.token
+  let token = StubServer.token
 
   @Test func parsesTheLinkBeagleServePairPrints() throws {
     let link = try PairingLink.parse(
@@ -31,11 +33,11 @@ struct PairingLinkTests {
     ("https://example.com", PairingLink.Problem.notAPairingLink),
     ("beagle://other?url=x&token=y", .notAPairingLink),
     ("not a link", .notAPairingLink),
-    ("beagle://pair?token=\(Fixture.token)", .missingServer),
+    ("beagle://pair?token=\(StubServer.token)", .missingServer),
     ("beagle://pair?url=https%3A%2F%2Fmac.example.ts.net%3A8787", .missingToken),
     ("beagle://pair?url=https%3A%2F%2Fmac.example.ts.net%3A8787&token=abc", .badToken),
     (
-      "beagle://pair?url=http%3A%2F%2Fmac.example.ts.net%3A8787&token=\(Fixture.token)",
+      "beagle://pair?url=http%3A%2F%2Fmac.example.ts.net%3A8787&token=\(StubServer.token)",
       .insecureServer
     ),
   ])
