@@ -171,16 +171,32 @@ fn token_from(gh: &Path, login: &str, timeout: Duration) -> Result<String, Error
     Ok(token)
 }
 
+/// How many times a launch that hit [`text_file_busy`] is retried.
+const BUSY_RETRIES: u32 = 5;
+
 fn output_from(gh: &Path, args: &[&str], timeout: Duration) -> Result<Output, Error> {
     let mut cmd = process::command(gh);
     cmd.args(args);
-    process::output_with_timeout(&mut cmd, timeout).map_err(|e| {
-        if e.kind() == io::ErrorKind::TimedOut {
-            Error::TimedOut(e)
-        } else {
-            Error::Launch(e)
+    let mut retries = 0;
+    loop {
+        match process::output_with_timeout(&mut cmd, timeout) {
+            Err(e) if text_file_busy(&e) && retries < BUSY_RETRIES => {
+                retries += 1;
+                std::thread::sleep(Duration::from_millis(10 * u64::from(retries)));
+            }
+            Err(e) if e.kind() == io::ErrorKind::TimedOut => return Err(Error::TimedOut(e)),
+            result => return result.map_err(Error::Launch),
         }
-    })
+    }
+}
+
+/// `ETXTBSY`: the executable is still open for writing somewhere — on Linux,
+/// often a write fd a concurrently forked child inherited from whoever just
+/// wrote it (an install, or a test's fake `gh`). It clears in milliseconds,
+/// so the launch is retried. Matched by errno (26 on Linux, macOS and the
+/// BSDs) because `io::ErrorKind::ExecutableFileBusy` is newer than our MSRV.
+fn text_file_busy(e: &io::Error) -> bool {
+    cfg!(unix) && e.raw_os_error() == Some(26)
 }
 
 fn run_from(gh: &Path, args: &[&str], timeout: Duration) -> Result<String, Error> {
