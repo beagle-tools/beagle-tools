@@ -49,6 +49,16 @@ fn state_order_words_and_serde_agree() {
 }
 
 #[test]
+fn only_etxtbsy_counts_as_text_file_busy() {
+    assert_eq!(
+        text_file_busy(&io::Error::from_raw_os_error(26)),
+        cfg!(unix)
+    );
+    assert!(!text_file_busy(&io::Error::from(io::ErrorKind::NotFound)));
+    assert!(!text_file_busy(&io::Error::from_raw_os_error(2)));
+}
+
+#[test]
 fn missing_gh_says_how_to_install_it() {
     let missing = Path::new("/nonexistent/beagle-test/gh");
     let err = run_from(missing, &["--version"], Duration::from_secs(5)).unwrap_err();

@@ -198,7 +198,12 @@ Two levels, both automatic:
 
 1. **Apps:** CI's `changes` job skips every gate of an app the diff doesn't
    touch (`.github/workflows/ci.yml`). Shared paths (`utils/`, `scripts/`,
-   `standards/`, toolchain, CI files) run every app.
+   `standards/`, toolchain, CI files) run every app. A docs-only change
+   (READMEs, `AGENTS.md`, `CHANGELOG.md`, `docs/` folders) runs no app gate
+   at all, only `standards` and `gate`. Markdown that a binary embeds
+   (`skills/`, `scout/tui/skills/`, `{recap,standup}/tui/docs/`) or that a
+   frontend's prettier checks (`*/desktop/`, `rca/web/`) still counts as
+   code (`scripts/ci/docs-only.mjs`).
 2. **Cargo packages:** inside a Rust gate, a pull request runs
    `cargo test -p <affected>…` instead of the whole workspace.
    `scripts/ci/affected.mjs` computes it:
