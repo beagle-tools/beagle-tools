@@ -158,8 +158,12 @@ fn on_status_log_off_round_trip() {
     assert_eq!(state.read("file"), Some(file.display().to_string()));
 
     let status = rig.run(&["status"]).unwrap();
+    // 2h less the time since `on`: 2h00m within the same second, else 1h59m.
     assert!(
-        status.starts_with("server mode: on (for 0h00m)\n  ends in 1h59m"),
+        ["1h59m", "2h00m"]
+            .iter()
+            .any(|left| status
+                .starts_with(&format!("server mode: on (for 0h00m)\n  ends in {left} ("))),
         "{status}"
     );
     assert!(status.contains(&format!(
