@@ -38,8 +38,21 @@ jobs:
       ios: ${{ steps.filter.outputs.ios }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      # A docs-only change (READMEs, AGENTS.md, docs/ folders; never
+      # embedded or prettier-checked markdown) runs no app gate: the filter
+      # below is skipped, so every output is empty. `standards` and `gate`
+      # still run. Rules and tests: scripts/ci/docs-only.mjs.
+      - name: docs only?
+        id: docs
+        if: github.event_name == 'pull_request' || !startsWith(github.event.before, '0000000')
+        run: node scripts/ci/docs-only.mjs --base "$BASE"
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
       - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
         id: filter
+        if: steps.docs.outputs.only != 'true'
         with:
           # Shared tooling and the shared crate re-run every app's gates.
           filters: |
