@@ -8,6 +8,7 @@ use std::sync::Arc;
 use crate::auth::Token;
 use crate::cli::{self, Command, PairOptions, PushCommand, ServeOptions};
 use crate::config;
+use crate::conn::{Connections, Limits};
 use crate::error::{Error, Result};
 use crate::push::devices::{self, DeviceStore};
 use crate::router::Ctx;
@@ -198,10 +199,13 @@ fn serve(opts: &ServeOptions) -> Result<()> {
     );
     let sender: push::SharedSender = Arc::new(std::sync::Mutex::new(sender));
     push::spawn(Arc::clone(&devices), Arc::clone(&sender))?;
+    let limits = Limits::default();
+    let conns = Connections::new(limits.max);
     let ctx = Ctx::new(token, stores)
         .with_devices(devices)
-        .with_push(sender);
-    server::serve(&listener, &Arc::new(ctx), tls.as_ref());
+        .with_push(sender)
+        .with_connections(conns.clone());
+    server::serve(&listener, &Arc::new(ctx), tls.as_ref(), &conns, limits);
     Ok(())
 }
 

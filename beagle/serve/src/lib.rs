@@ -30,6 +30,7 @@ pub mod api;
 pub mod auth;
 mod cli;
 pub mod config;
+pub mod conn;
 pub mod error;
 pub mod http;
 pub mod pair;

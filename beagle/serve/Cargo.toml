@@ -42,6 +42,9 @@ toml.workspace = true
 bytes = "1"
 h2 = "0.4"
 http = "1"
+# A throwaway self-signed certificate for the loopback TLS test (same ring
+# provider as the server).
+rcgen = { version = "0.13", default-features = false, features = ["ring", "pem"] }
 # Decodes the drawn pairing QR code in tests, as a phone camera would.
 rqrr = { version = "0.11", default-features = false }
 tandem-cache.workspace = true

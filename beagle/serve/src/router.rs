@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use crate::api;
 use crate::auth::Token;
+use crate::conn::Connections;
 use crate::http::{Method, Request, Response};
 use crate::push::devices::DeviceStore;
 use crate::push::SharedSender;
@@ -20,6 +21,7 @@ pub struct Ctx {
     stores: Stores,
     devices: Option<Arc<DeviceStore>>,
     push: Option<SharedSender>,
+    conns: Option<Connections>,
 }
 
 impl Ctx {
@@ -32,6 +34,7 @@ impl Ctx {
             stores,
             devices: None,
             push: None,
+            conns: None,
         }
     }
 
@@ -46,6 +49,13 @@ impl Ctx {
     #[must_use]
     pub fn with_push(mut self, push: SharedSender) -> Self {
         self.push = Some(push);
+        self
+    }
+
+    /// The same context, reporting the open connections in `/v1/health`.
+    #[must_use]
+    pub fn with_connections(mut self, conns: Connections) -> Self {
+        self.conns = Some(conns);
         self
     }
 }
@@ -83,7 +93,7 @@ pub fn handle(ctx: &Ctx, req: &Request) -> Response {
         );
     }
     if segments == ["v1", "health"] {
-        return Response::ok(api::health());
+        return Response::ok(api::health(ctx.conns.as_ref()));
     }
     if !ctx.token.authorizes(req.authorization.as_deref()) {
         return Response::error(
