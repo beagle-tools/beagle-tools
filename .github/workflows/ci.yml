@@ -224,13 +224,18 @@ jobs:
 
   # The scout iPhone app (scout/ios/): swift-format lint, unit + UI tests on
   # an iPhone simulator, and an unsigned release build. One job: macOS
-  # runners are capacity-limited.
+  # runners are capacity-limited. The image and Xcode are pinned so the
+  # compiler can't change under us: macos-26 has no Xcode 27 (2026-11), so CI
+  # builds with Xcode 26.6 while local machines may be newer. The code must
+  # build on both. Bump DEVELOPER_DIR deliberately, together with the image.
   scout-ios:
     name: scout ios (simulator build + test)
     needs: changes
     if: needs.changes.outputs.scout-ios == 'true'
-    runs-on: macos-latest
+    runs-on: macos-26
     timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - run: ./scripts/ci/ios.sh scout/ios

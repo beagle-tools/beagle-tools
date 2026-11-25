@@ -16,6 +16,9 @@ struct ScoutApp: App {
   /// UI tests launch with `-ui-testing`: a throwaway Keychain service and
   /// defaults suite, so they never see or change a real pairing.
   private static func makePairing() -> Pairing {
+    #if DEBUG
+      if CommandLine.arguments.contains("-demo-server") { return Pairing.demo() }
+    #endif
     guard CommandLine.arguments.contains("-ui-testing") else { return Pairing() }
     let suite = "dev.beagletools.scout.uitests"
     let defaults = UserDefaults(suiteName: suite) ?? .standard

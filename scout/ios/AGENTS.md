@@ -24,11 +24,23 @@ Scout/              the app target
   API/              BeagleAPI (async URLSession, bearer token), Codable models, APIError
   Pairing/          PairingLink (parse beagle://pair?url=…&token=…), Keychain,
                     Pairing (health → version → save), PairView, QRScanner (VisionKit)
+  Scout/            the screens: ProjectListView → ProjectView (Tasks · Project · Log)
+                    → TaskView (Task · Outcome); StatusViews (the TUI's glyphs,
+                    colours and braille spinner); Remote (load state, pull to
+                    refresh + 10 s auto-refresh while visible and active)
+  Markdown/         Markdown (block parser, `## ` sections) and MarkdownView
+  Demo/DemoServer.swift   Debug only: an in-app fake beagle serve (`-demo-server`)
 ScoutTests/         unit tests (Swift Testing), hosted by the app
   Support/StubServer.swift   URLProtocol stub, one host per test (safe in parallel)
   Fixtures/*.json   real `beagle serve` answers for a neutral example store
-ScoutUITests/       XCUITest smoke tests (+ an opt-in end-to-end pairing test)
+ScoutUITests/       XCUITest: launch/pairing smoke tests, the scout screens against
+                    the demo server (screenshots kept in the .xcresult), and an
+                    opt-in end-to-end test against a real local beagle serve
 ```
+
+The app target is main-actor by default: anything a unit test calls
+synchronously (models, parsers, pure helpers such as `TaskView.sections`)
+must be `nonisolated`, or the hosted test crashes on an isolation check.
 
 ## Pairing and secrets
 
@@ -54,6 +66,10 @@ the UI test `testPairsWithALocalServer` pairs the app with it:
 TEST_RUNNER_SCOUT_E2E_SERVER=http://127.0.0.1:18787 \
 TEST_RUNNER_SCOUT_E2E_TOKEN=<the fake token> make check-ios
 ```
+
+Add `TEST_RUNNER_SCOUT_E2E_PROJECT=<id>`, `TEST_RUNNER_SCOUT_E2E_TASK=<task id>`
+and `TEST_RUNNER_SCOUT_E2E_TASK_PROGRESS="1 of 5 done"` to also open that
+project and check the task row against `beagle scout show`.
 
 It skips itself without those variables (as in CI).
 
