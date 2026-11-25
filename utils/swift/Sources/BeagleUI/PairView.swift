@@ -20,6 +20,7 @@ public struct PairView: View {
   @State private var working = false
   @State private var problem: String?
 
+  /// The view's content.
   public var body: some View {
     NavigationStack {
       Form {

@@ -1,8 +1,9 @@
 import Foundation
 
-/// A small Markdown block parser for scout's files: enough for headings,
-/// paragraphs, checkbox and bullet lists, numbered lists, quotes and code
-/// fences. Inline styling (bold, code, links) is left to AttributedString.
+/// A small Markdown block parser for scout's files: enough for headings, paragraphs, checkbox and
+/// bullet lists, numbered lists, quotes and code fences.
+///
+/// Inline styling (bold, code, links) is left to AttributedString.
 public enum Markdown {
   /// One block of a document.
   public enum Block: Equatable, Sendable {
@@ -22,8 +23,9 @@ public enum Markdown {
     public let body: String
   }
 
-  /// Splits a document at its `## ` headings. Text before the first one is a
-  /// section with no title. Headings inside code fences don't split.
+  /// Splits a document at its `## ` headings.
+  ///
+  /// Text before the first one is a section with no title. Headings inside code fences don't split.
   public static func sections(_ text: String) -> [Section] {
     var sections: [Section] = []
     var title: String?

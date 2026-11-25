@@ -6,8 +6,9 @@ import Foundation
 // snake_case and are decoded with `.convertFromSnakeCase`. Timestamps stay
 // RFC 3339 strings; `Timestamp` turns them into dates for display.
 
-/// A project's status. Unknown values (a newer server) decode as `.unknown`
-/// instead of failing the whole response.
+/// A project's status.
+///
+/// Unknown values (a newer server) decode as `.unknown` instead of failing the whole response.
 nonisolated enum ProjectStatus: String, Decodable, Sendable, CaseIterable {
   case planning, active, paused, done, dropped, unknown
 

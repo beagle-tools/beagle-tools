@@ -5,9 +5,10 @@ import Testing
 
 @testable import BeaglePairing
 
-/// Pairing against a stubbed server, with an in-memory secret store and a
-/// throwaway defaults suite per test. (The real Keychain is tested in the
-/// app, whose tests are hosted and may use it.)
+/// Pairing against a stubbed server, with an in-memory secret store and a throwaway defaults suite
+/// per test.
+///
+/// (The real Keychain is tested in the app, whose tests are hosted and may use it.)
 @MainActor
 @Suite(.serialized)
 struct PairingTests {

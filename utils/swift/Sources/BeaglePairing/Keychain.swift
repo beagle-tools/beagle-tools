@@ -2,6 +2,7 @@ import Foundation
 import Security
 
 /// Small wrapper over the iOS Keychain for string secrets (generic passwords).
+///
 /// Items stay on this device and are readable after its first unlock.
 public struct Keychain: SecretStore {
   /// The Keychain service the items are filed under.
@@ -14,6 +15,7 @@ public struct Keychain: SecretStore {
   public struct Failure: Error, Equatable, LocalizedError {
     /// The Security framework status code.
     public let status: OSStatus
+    /// A message for the person holding the phone.
     public var errorDescription: String? {
       let reason = SecCopyErrorMessageString(status, nil) as String? ?? "status \(status)"
       return "Keychain error: \(reason)"
@@ -54,7 +56,7 @@ public struct Keychain: SecretStore {
     guard added == errSecSuccess else { throw Failure(status: added) }
   }
 
-  /// Removes `account`'s value; missing is fine.
+  /// Removes the value stored for `account`; a missing one is fine.
   public func delete(_ account: String) throws {
     let status = SecItemDelete(query(account) as CFDictionary)
     guard status == errSecSuccess || status == errSecItemNotFound else {

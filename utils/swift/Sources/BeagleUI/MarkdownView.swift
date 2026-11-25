@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// Renders scout Markdown natively: blocks from `Markdown.blocks`, inline
-/// styling through AttributedString. Template placeholders are dimmed, as in the TUI.
+/// Renders scout Markdown natively: blocks from `Markdown.blocks`, inline styling through
+/// AttributedString.
+///
+/// Template placeholders are dimmed, as in the TUI.
 public struct MarkdownView: View {
   /// The Markdown to show.
   public let text: String
@@ -9,6 +11,7 @@ public struct MarkdownView: View {
   /// Shows `text`.
   public init(text: String) { self.text = text }
 
+  /// The view's content.
   public var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       ForEach(Array(Markdown.blocks(text).enumerated()), id: \.offset) { _, block in

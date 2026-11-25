@@ -26,8 +26,8 @@ export function checkIos(read, files) {
 
   for (const f of files) {
     const base = f.split("/").pop();
-    if ([".swift-format", ".swiftformat", ".swiftlint.yml"].includes(base) && f !== ".swift-format") {
-      errors.push(`${f}: per-app Swift config is not allowed; edit the root .swift-format`);
+    if ([".swift-format", ".swiftformat", ".swiftlint.yml"].includes(base)) {
+      errors.push(`${f}: per-app Swift config is not allowed; edit standards/swift/swift-format.json`);
     }
     if (base === "Package.swift" && !SWIFT_PACKAGES.includes(f.slice(0, -"/Package.swift".length))) {
       errors.push(`${f}: Swift package outside SWIFT_PACKAGES (scripts/ci/ios-standards.mjs) — shared Swift code goes in utils/swift`);

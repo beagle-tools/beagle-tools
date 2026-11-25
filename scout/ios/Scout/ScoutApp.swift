@@ -18,9 +18,11 @@ struct ScoutApp: App {
   /// first version, so an existing pairing survives updates).
   static let keychainService = "dev.beagletools.scout"
 
-  /// The app's pairing. UI tests launch with `-ui-testing` (a throwaway
-  /// Keychain service and defaults suite, so they never see or change a real
-  /// pairing) or `-demo-server` (Debug only: paired with the in-app DemoServer).
+  /// The app's pairing.
+  ///
+  /// UI tests launch with `-ui-testing` (a throwaway Keychain service and defaults suite, so they
+  /// never see or change a real pairing) or `-demo-server` (Debug only: paired with the in-app
+  /// DemoServer).
   private static func makePairing() -> Pairing {
     #if DEBUG
       if CommandLine.arguments.contains("-demo-server") {

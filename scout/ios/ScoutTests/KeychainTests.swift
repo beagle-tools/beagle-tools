@@ -2,8 +2,9 @@ import BeaglePairing
 import Foundation
 import Testing
 
-/// BeagleKit's Keychain against the real iOS Keychain. Runs here because the
-/// app hosts these tests; a package test bundle has no Keychain access.
+/// BeagleKit's Keychain against the real iOS Keychain.
+///
+/// Runs here because the app hosts these tests; a package test bundle has no Keychain access.
 struct KeychainTests {
   let keychain = Keychain(service: "dev.beagletools.scout.tests.\(UUID().uuidString)")
 

@@ -1,0 +1,1 @@
+let strict: [SwiftSetting] = [.treatAllWarnings(as: .error)]

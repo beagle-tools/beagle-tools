@@ -23,7 +23,7 @@ function fake(overrides = {}) {
     Makefile: GOOD_MAKE,
     [PBX]: GOOD_PBX,
     [SCHEME]: "<Scheme/>",
-    ".swift-format": "{}",
+
     "utils/swift/Package.swift": "// swift-tools-version: 6.0",
     ...overrides,
   };
@@ -32,7 +32,7 @@ function fake(overrides = {}) {
 }
 
 test("the repo's own iPhone apps pass", () => {
-  const files = [".swift-format", PBX, SCHEME, "utils/swift/Package.swift"];
+  const files = [PBX, SCHEME, "utils/swift/Package.swift"];
   assert.deepEqual(checkIos(repoRead, files), []);
 });
 

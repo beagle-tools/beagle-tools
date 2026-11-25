@@ -2,8 +2,9 @@ import BeagleAPI
 import Foundation
 import SwiftUI
 
-/// Something fetched from `beagle serve`: the last good value, and the last
-/// error. A failed refresh keeps showing the last value with the error above it.
+/// Something fetched from `beagle serve`: the last good value, and the last error.
+///
+/// A failed refresh keeps showing the last value with the error above it.
 ///
 /// A value type kept in `@State`: a generic `@Observable` class here crashed
 /// the Swift 6.3 optimizer (Release builds, Xcode 26.6).
@@ -62,6 +63,7 @@ public struct RemoteContent<Value, Content: View>: View {
     self.content = content
   }
 
+  /// The view's content.
   public var body: some View {
     if let value = remote.value {
       VStack(spacing: 0) {
@@ -97,6 +99,7 @@ public struct AutoRefresh: ViewModifier {
   let action: () async -> Void
   @Environment(\.scenePhase) private var phase
 
+  /// Adds pull to refresh and the timed refresh to `content`.
   public func body(content: Content) -> some View {
     content
       .refreshable { await action() }

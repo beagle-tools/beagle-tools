@@ -40,9 +40,9 @@ on the Mac logs every phone out; pair again afterwards.
 ## Develop
 
 ```sh
-make check-ios                      # what CI runs: swift-format lint, unit + UI tests, release build
+make check-ios                      # what CI runs: lint, tests, coverage, docs, analyzer, release build
 IOS_SIMULATOR="iPhone 17" make check-ios   # pick the simulator
-xcrun swift-format format -i -r scout/ios  # fix formatting (config: the root .swift-format)
+xcrun swift-format format -i -r --configuration standards/swift/swift-format.json scout/ios utils/swift  # fix formatting
 ```
 
 The project uses Xcode's synchronized folders: any `.swift` file you add under

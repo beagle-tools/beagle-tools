@@ -7,6 +7,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkIos } from "./ci/ios-standards.mjs";
+import { checkSwiftStandards } from "./ci/swift-standards.mjs";
 import { checkLayout } from "./ci/layout.mjs";
 import { checkTuiStandards } from "./ci/tui-standards.mjs";
 
@@ -200,6 +201,10 @@ for (const e of checkLayout(read, layoutFiles)) fail(e);
 
 // The iPhone apps (scripts/ci/ios-standards.mjs): known, gated, unsigned.
 for (const e of checkIos(read, layoutFiles)) fail(e);
+
+// The shared Swift settings (scripts/ci/swift-standards.mjs): Shared.xcconfig,
+// package swiftSettings, locked dependencies.
+for (const e of checkSwiftStandards(read, layoutFiles)) fail(e);
 
 if (errors.length) {
   for (const e of errors) console.error(`FAIL: ${e}`);

@@ -24,6 +24,7 @@ public enum APIError: Error, Equatable, Sendable, LocalizedError {
     return .server(status: status, code: nil, message: message)
   }
 
+  /// A message for the person holding the phone.
   public var errorDescription: String? {
     switch self {
     case .unauthorized:
