@@ -47,6 +47,20 @@ The app checks the server answers and accepts the token before saving
 anything. The token is kept in the iOS Keychain. `beagle serve pair --rotate`
 on the Mac logs every phone out; pair again afterwards.
 
+## App icon
+
+`Beagle/Assets.xcassets/AppIcon.appiconset/AppIcon.png` is the Beagle desktop
+app's icon ([`rca/desktop/app-icon.png`](../rca/desktop/app-icon.png), part of
+this repo under its [LICENSE](../LICENSE)), made full-bleed for iOS: the cream
+rounded square is filled out to a 1024×1024 opaque square with no baked-in
+corners (iOS rounds them), and the dog keeps the size and position it has on
+the desktop icon. There is one universal image, and iOS derives the dark and
+tinted versions from it. A hand-made dark variant would need the dog cut out of
+its cream background, and its chest has no outline to cut along. When the
+desktop icon changes, redo it the same way: crop the dog with a cream margin,
+scale it by 1024 / 824 (the square's width), and paste it at the same spot on
+a `#F5EBD4` square.
+
 ## Develop
 
 ```sh
