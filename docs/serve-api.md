@@ -6,7 +6,8 @@ reviews. It reads each store through that tool's own crate, the same way
 `beagle <tool>` does, so the phone sees exactly what the terminal sees.
 
 Nothing here writes. Posting comments, approving PRs and changing statuses
-stay on the Mac in v1.
+stay on the Mac in v1. Push notifications, and the device endpoints they
+need, are designed in [`serve-push.md`](serve-push.md).
 
 ## Transport
 
