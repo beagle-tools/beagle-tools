@@ -19,6 +19,7 @@ the tool.
 | `recap` | `beagle-recap` | `../recap/tui` |
 | `scout` | `beagle-scout` | `../scout/tui` |
 | `serve` | `beagle-serve` | `serve/` — the tools' stores as a read-only HTTPS JSON API ([`../docs/serve-api.md`](../docs/serve-api.md)); it reads each store through that tool's crate |
+| `server-mode` | `beagle-server-mode` | `../server-mode/tui` (CLI only, macOS) |
 | `standup` | `beagle-standup` | `../standup/tui` |
 | `tandem` | `tandem-cli` (linked through `run_as("beagle tandem", …)`) | `../tandem/tui` — also ships inside the Tandem app |
 

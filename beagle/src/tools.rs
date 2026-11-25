@@ -47,6 +47,11 @@ pub const TOOLS: &[Tool] = &[
         run: beagle_serve::run,
     },
     Tool {
+        name: "server-mode",
+        about: server_mode::ABOUT,
+        run: server_mode::run,
+    },
+    Tool {
         name: "standup",
         about: standup::ABOUT,
         run: standup::run,
@@ -121,7 +126,14 @@ mod tests {
     #[test]
     fn every_tool_is_findable() {
         for name in [
-            "agent", "rca", "recap", "scout", "serve", "standup", "tandem",
+            "agent",
+            "rca",
+            "recap",
+            "scout",
+            "serve",
+            "server-mode",
+            "standup",
+            "tandem",
         ] {
             assert!(find(name).is_some(), "{name}");
         }

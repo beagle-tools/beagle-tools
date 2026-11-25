@@ -20,6 +20,7 @@ members = [
   "scout/tui",
   "recap/tui",
   "standup/tui",
+  "server-mode/tui",
   # rca: the `beagle` (rca) crate, its agent engine and daemon.
   "rca/tui",
   "rca/daemon",
@@ -46,6 +47,7 @@ beagle-tui = { path = "utils/tui" }
 beagle-recap = { path = "recap/tui" }
 beagle-scout = { path = "scout/tui" }
 beagle-serve = { path = "beagle/serve" }
+beagle-server-mode = { path = "server-mode/tui" }
 beagle-standup = { path = "standup/tui" }
 # rca's crate is named `beagle`, so it is renamed here to say which tool it is.
 beagle-rca = { package = "beagle", path = "rca/tui" }

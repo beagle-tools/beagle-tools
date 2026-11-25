@@ -50,6 +50,7 @@ export const CRATES = [
   "serve",
   "../recap/tui",
   "../scout/tui",
+  "../server-mode/tui",
   "../standup/tui",
 ];
 

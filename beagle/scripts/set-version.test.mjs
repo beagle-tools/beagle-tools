@@ -41,7 +41,7 @@ test("stamps every version location of the real tree", () => {
   for (const path of memberManifests(dir)) {
     assert.match(readFileSync(path, "utf8"), /^\[package\]\nname = "[^"]+"\n(?:description = .*\n)?version = "7\.8\.9"\n/m, path);
   }
-  for (const name of ["beagle-cli", "beagle-recap", "beagle-scout", "beagle-standup", "beagle-serve"]) {
+  for (const name of ["beagle-cli", "beagle-recap", "beagle-scout", "beagle-standup", "beagle-serve", "beagle-server-mode"]) {
     assert.equal(lockVersion(read("../Cargo.lock"), name), "7.8.9", name);
   }
   // Path dependencies from other apps keep their own versions.

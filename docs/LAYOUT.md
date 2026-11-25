@@ -17,6 +17,8 @@ scout/           beagle scout
   tui/           the beagle scout crate (TUI + CLI, embedded skills)
 recap/           beagle recap
   tui/
+server-mode/     beagle server-mode
+  tui/           CLI only (macOS): on, off, status, log, lock
 standup/         beagle standup
   tui/
 rca/             beagle rca
