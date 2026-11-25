@@ -227,6 +227,7 @@ dependencies = [
  "beagle-recap",
  "beagle-scout",
  "beagle-serve",
+ "beagle-server-mode",
  "beagle-standup",
  "beagle-tui",
  "beagle-utils",
@@ -299,6 +300,14 @@ dependencies = [
  "time",
  "tokio",
  "toml",
+]
+
+[[package]]
+name = "beagle-server-mode"
+version = "0.1.0"
+dependencies = [
+ "beagle-utils",
+ "tempfile",
 ]
 
 [[package]]

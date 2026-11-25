@@ -16,6 +16,7 @@ with one folder per runnable part (`tui/`, `daemon/`, `desktop/`, `web/`,
 | `beagle rca` | `rca/` | `tui/`, `daemon/` (`beagle rca agentd`), `desktop/` Beagle app, `web/` postmortem site, `lib/agent`, `examples/rcas` | `rca/AGENTS.md` |
 | `beagle recap` | `recap/` | `tui/` | `recap/tui/README.md` |
 | `beagle scout` | `scout/` | `tui/` (its phone screens are in `ios/Beagle/Tools/Scout/`) | `scout/tui/AGENTS.md` |
+| `beagle server-mode` | `server-mode/` | `tui/` (CLI only) | `server-mode/AGENTS.md` |
 | `beagle standup` | `standup/` | `tui/` | `standup/tui/README.md` |
 | `beagle tandem` | `tandem/` | `tui/` tandem-cli, `desktop/` Tandem app, `lib/{core,github,cache,agents,queue}` | `tandem/AGENTS.md` |
 
@@ -100,7 +101,7 @@ The scripts behind these:
 ## Cargo workspaces and frontends (all gated in CI)
 
 - **Rust:**
-  - `.` (the root `Cargo.toml`): `utils`, `beagle`, `beagle/serve`, `scout/tui`, `recap/tui`, `standup/tui`, `rca/tui`,
+  - `.` (the root `Cargo.toml`): `utils`, `beagle`, `beagle/serve`, `scout/tui`, `recap/tui`, `standup/tui`, `server-mode/tui`, `rca/tui`,
     `rca/daemon`, `rca/lib/agent`, `tandem/tui`, `tandem/lib/*`, `agent/tui`, `agent/daemon`, `agent/lib/*`
   - `tandem/desktop/src-tauri`
   - `rca/desktop/src-tauri`

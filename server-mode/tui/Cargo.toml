@@ -1,0 +1,21 @@
+[package]
+name = "beagle-server-mode"
+description = "beagle server-mode: keep a Mac awake as a server while the screen locks"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+name = "server_mode"
+path = "src/lib.rs"
+
+[dependencies]
+beagle-utils.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

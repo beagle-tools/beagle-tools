@@ -67,6 +67,7 @@ export const LINKED_PREFIXES = {
     "scout/tui/",
     "recap/",
     "standup/",
+    "server-mode/",
     "rca/tui/",
     // `beagle rca agentd`: the daemon and the engine it hosts.
     "rca/daemon/",

@@ -33,6 +33,7 @@
   "not_tuis": {
     "utils/tui": "the shared crate itself",
     "beagle": "uses only the release picker behind `beagle version list`",
-    "beagle/serve": "an HTTPS API, no terminal UI"
+    "beagle/serve": "an HTTPS API, no terminal UI",
+    "server-mode/tui": "a CLI only: on, off, status, log, lock"
   }
 }
