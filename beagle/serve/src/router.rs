@@ -1,25 +1,42 @@
 //! Request → response: method check, authentication, then the endpoint.
 //!
-//! Pure apart from the stores the endpoints read, so it is tested without
-//! sockets.
+//! Pure apart from the stores the endpoints read (and `devices.json`,
+//! which the device API writes), so it is tested without sockets.
+
+use std::sync::Arc;
 
 use crate::api;
 use crate::auth::Token;
 use crate::http::{Method, Request, Response};
+use crate::push::devices::DeviceStore;
 use crate::stores::Stores;
 
-/// Everything a request needs: the token it must carry, and the stores.
+/// Everything a request needs: the token it must carry, the stores, and
+/// the registered phones.
 #[derive(Debug)]
 pub struct Ctx {
     token: Token,
     stores: Stores,
+    devices: Option<Arc<DeviceStore>>,
 }
 
 impl Ctx {
-    /// A context accepting `token`, serving `stores`.
+    /// A context accepting `token`, serving `stores`, with no device store
+    /// (the device API answers `500` until [`Ctx::with_devices`]).
     #[must_use]
     pub fn new(token: Token, stores: Stores) -> Self {
-        Self { token, stores }
+        Self {
+            token,
+            stores,
+            devices: None,
+        }
+    }
+
+    /// The same context, keeping phones in `devices`.
+    #[must_use]
+    pub fn with_devices(mut self, devices: Arc<DeviceStore>) -> Self {
+        self.devices = Some(devices);
+        self
     }
 }
 
@@ -27,14 +44,15 @@ impl Ctx {
 ///
 /// Order matters: the method is checked first, then `/v1/health` is
 /// answered without a token, then everything else needs the token, so an
-/// unauthenticated caller learns nothing about which paths exist.
+/// unauthenticated caller learns nothing about which paths exist. Only
+/// `/v1/devices/…` takes methods that write.
 #[must_use]
 pub fn handle(ctx: &Ctx, req: &Request) -> Response {
     if let Method::Other(method) = &req.method {
         return Response::error(
             405,
             "method_not_allowed",
-            format!("{method} is not supported: this API is read-only (GET, HEAD)"),
+            format!("{method} is not supported (GET, HEAD; PUT, DELETE, POST on /v1/devices)"),
         );
     }
     let segments: Vec<&str> = req
@@ -42,6 +60,18 @@ pub fn handle(ctx: &Ctx, req: &Request) -> Response {
         .split('/')
         .filter(|segment| !segment.is_empty())
         .collect();
+    let writes = matches!(req.method, Method::Put | Method::Delete | Method::Post);
+    let devices = segments.get(1) == Some(&"devices") && segments.first() == Some(&"v1");
+    if writes && !devices {
+        return Response::error(
+            405,
+            "method_not_allowed",
+            format!(
+                "{} is not supported here: this endpoint is read-only (GET, HEAD)",
+                req.method.as_str()
+            ),
+        );
+    }
     if segments == ["v1", "health"] {
         return Response::ok(api::health());
     }
@@ -54,6 +84,12 @@ pub fn handle(ctx: &Ctx, req: &Request) -> Response {
     }
     let result = match segments.as_slice() {
         ["v1", "version"] => Ok(api::version()),
+        ["v1", rest @ ..] if devices => {
+            let Some(store) = &ctx.devices else {
+                return api::ApiError::internal("no device store").into();
+            };
+            return api::devices::route(store, rest, req).unwrap_or_else(Into::into);
+        }
         ["v1", "scout", rest @ ..] => api::root("scout", &ctx.stores.scout)
             .and_then(|root| api::scout::route(root, rest, req)),
         ["v1", "rca", rest @ ..] => {

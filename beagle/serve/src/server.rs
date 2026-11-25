@@ -110,7 +110,7 @@ pub fn exchange<S: Read + Write>(stream: &mut S, ctx: &Ctx, peer: &str) -> Optio
         Err(ReadError::Closed) => return None,
         Err(ReadError::TooLarge) => (
             None,
-            Response::error(413, "too_large", "request head over 16 KiB"),
+            Response::error(413, "too_large", "request head or body over 16 KiB"),
         ),
         Err(ReadError::Malformed(why)) => (None, Response::error(400, "bad_request", why)),
     };
@@ -139,14 +139,7 @@ pub fn log_line(
     status: u16,
     elapsed: Duration,
 ) -> String {
-    let (method, path) = request.map_or(("-", "-"), |r| {
-        let method = match &r.method {
-            Method::Get => "GET",
-            Method::Head => "HEAD",
-            Method::Other(m) => m.as_str(),
-        };
-        (method, r.path.as_str())
-    });
+    let (method, path) = request.map_or(("-", "-"), |r| (r.method.as_str(), r.path.as_str()));
     format!(
         "{time} {peer} {method} {path} {status} {}ms",
         elapsed.as_millis()

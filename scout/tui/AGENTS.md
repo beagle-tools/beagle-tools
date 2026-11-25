@@ -31,6 +31,7 @@ src/autopause.rs      `[auto] pause_after`: pause working tasks that went quiet
 src/transcript/       Claude transcript → scout entries (parse); incremental sync (sync)
 src/transcript_view/  render sessions (Session tab, `beagle scout session show`), ANSI both ways
 src/notify.rs         macOS notifications on status changes; click focuses the Herdr pane
+src/events.rs         the event spool for `beagle serve`'s push (same events, every time; docs/serve-push.md)
 src/notify_app.rs     `beagle scout notify setup`: build the dog-iconed Scout.app notifier
 src/picker.rs         the session picker (fzf, or a numbered prompt)
 src/ui/               App state (mod), pane loading, keys, drawing (view/), event loop

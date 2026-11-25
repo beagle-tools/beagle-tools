@@ -17,6 +17,7 @@ use std::path::Path;
 use std::time::SystemTime;
 
 use crate::config::Config;
+use crate::events;
 use crate::notify;
 use crate::store::{self, AutoPaused, Project, Store, Task};
 use crate::transcript;
@@ -37,6 +38,12 @@ pub fn sweep(store: &Store, config: &Config, home: Option<&Path>) -> Vec<AutoPau
             task: p.task.clone(),
             quiet: p.quiet.clone(),
         };
+        events::emit(&events::record(
+            (&p.project_id, &p.project_title),
+            Some((&p.task_id, &p.task_title)),
+            &event,
+            time::OffsetDateTime::now_utc(),
+        ));
         if let Some(n) = notify::build(config, &p.project_id, &p.project_title, &event) {
             notify::send(&n, &notify::Origin::default());
         }

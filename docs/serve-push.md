@@ -1,9 +1,10 @@
 # Push notifications: Mac → Apple → phone (design)
 
-> **Status: proposed.** This is a design for review. Nothing in it is built
-> yet. When it is approved, the pieces below are built in the order in
-> [Build order](#build-order), and this file becomes the contract for the
-> device API, as [`serve-api.md`](serve-api.md) is for the read API.
+> **Status: approved; being built** in the order in [Build order](#build-order).
+> Step 1 (the event spool, phones and settings, the follower) is in:
+> `scout/tui/src/events.rs` and `beagle/serve/src/push/`. Until step 2
+> lands, serve logs the notifications it would send. The device endpoints
+> are also listed in [`serve-api.md`](serve-api.md).
 
 `beagle scout` already shows a macOS banner when an agent changes a status
 (`scout/tui/src/notify.rs`): a task is blocked (with a sound), a project

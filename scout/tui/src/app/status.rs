@@ -1,6 +1,7 @@
 //! Status changes and the notifications they trigger, plus `notify`.
 
 use crate::config::{self, Config, NotifyEvents};
+use crate::events;
 use crate::model::{ProjectStatus, TaskStatus};
 use crate::notify;
 use crate::store::{Project, Store, Task};
@@ -73,7 +74,7 @@ pub(super) fn set_task(
         TaskStatus::Todo | TaskStatus::Paused | TaskStatus::Skipped => None,
     };
     if let Some(event) = event {
-        notify_event(&p, &event);
+        notify_event(&p, Some(&task), &event);
     }
     Ok(())
 }
@@ -105,12 +106,20 @@ pub(super) fn set_project(store: &Store, project: &str, status: ProjectStatus) -
         | ProjectStatus::Dropped => None,
     };
     if let Some(event) = event {
-        notify_event(&p, &event);
+        notify_event(&p, None, &event);
     }
     Ok(())
 }
 
-fn notify_event(project: &Project, event: &notify::Event) {
+/// Shows the macOS banner for `event` (when the config wants one) and
+/// writes it to the event spool for the phone (always).
+fn notify_event(project: &Project, task: Option<&Task>, event: &notify::Event) {
+    events::emit(&events::record(
+        (project.id.as_str(), &project.meta.title),
+        task.map(|t| (t.id.as_str(), t.meta.title.as_str())),
+        event,
+        time::OffsetDateTime::now_utc(),
+    ));
     let (config, warning) = config::load();
     if let Some(warning) = warning {
         eprintln!("warning: {warning}");

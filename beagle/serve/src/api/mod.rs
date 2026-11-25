@@ -1,6 +1,7 @@
 //! The endpoints, one module per tool. Each reads its store through the
 //! tool's own crate and returns JSON shaped as `docs/serve-api.md` says.
 
+pub mod devices;
 pub mod rca;
 pub mod recap;
 pub mod scout;
