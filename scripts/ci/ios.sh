@@ -73,6 +73,10 @@ derived="$root/$dir/build"
 # Dependencies come only from the committed Package.resolved (cargo --locked).
 what=(-scheme "$scheme" -onlyUsePackageVersionsFromResolvedFile)
 [ -n "$package" ] || what=(-project "$project" "${what[@]}")
+# A package gets warnings-as-errors here, not in Package.swift: as an app's
+# dependency Xcode builds it with -suppress-warnings, which conflicts.
+# (Apps get it from standards/swift/Shared.xcconfig.)
+[ -z "$package" ] || what+=(SWIFT_TREAT_WARNINGS_AS_ERRORS=YES GCC_TREAT_WARNINGS_AS_ERRORS=YES)
 common=("${what[@]}" -destination "$destination" -derivedDataPath "$derived")
 
 # Boot the simulator first and wait for it: a cold simulator on a CI runner

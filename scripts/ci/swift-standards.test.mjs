@@ -51,8 +51,20 @@ test("a package target without the shared settings fails", () => {
 });
 
 test("a package that weakens the shared settings fails", () => {
-  const pkg = real(PKG).replace("[.treatAllWarnings(as: .error)]", "[]");
+  const pkg = real(PKG).replace("[.swiftLanguageMode(.v6)]", "[]");
   assert.match(checkSwiftStandards(...tree({ [PKG]: pkg }))[0], /must define `let strict/);
+});
+
+test("treatAllWarnings in a package fails (it breaks apps that depend on it)", () => {
+  const pkg = real(PKG).replace("[.swiftLanguageMode(.v6)]", "[.swiftLanguageMode(.v6), .treatAllWarnings(as: .error)]");
+  const errors = checkSwiftStandards(...tree({ [PKG]: pkg }));
+  assert.ok(errors.some((e) => /`treatAllWarnings` breaks builds/.test(e)), errors.join("\n"));
+});
+
+test("a package gate without warnings-as-errors fails", () => {
+  const gate = real("scripts/ci/ios.sh").replaceAll("SWIFT_TREAT_WARNINGS_AS_ERRORS=YES", "");
+  const errors = checkSwiftStandards(...tree({ "scripts/ci/ios.sh": gate }));
+  assert.match(errors[0], /must build Swift packages with SWIFT_TREAT_WARNINGS_AS_ERRORS=YES/);
 });
 
 test("a dependency without Package.resolved fails", () => {

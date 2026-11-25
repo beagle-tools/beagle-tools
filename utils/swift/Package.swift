@@ -5,10 +5,14 @@
 import PackageDescription
 
 // The shared Swift settings for every target (docs/CODING_STANDARDS.md, Swift):
-// Swift 6 language mode (the tools version's default, so complete concurrency
-// checking) and every warning an error. `make standards` checks this line and
-// that every target uses it.
-let strict: [SwiftSetting] = [.treatAllWarnings(as: .error)]
+// Swift 6 language mode, so complete concurrency checking. `make standards`
+// checks this line and that every target uses it.
+//
+// Warnings are errors too, but not set here: an app building this package as a
+// dependency gets -suppress-warnings from Xcode, which conflicts with
+// treatAllWarnings. The package's own gate (scripts/ci/ios.sh) passes
+// SWIFT_TREAT_WARNINGS_AS_ERRORS=YES instead.
+let strict: [SwiftSetting] = [.swiftLanguageMode(.v6)]
 
 let package = Package(
   name: "BeagleKit",

@@ -7,6 +7,7 @@ import { IOS_APPS, SWIFT_PACKAGES } from "./ios-standards.mjs";
 
 const XCCONFIG = "standards/swift/Shared.xcconfig";
 const PACKAGE_SETTINGS = "standards/swift/package-settings.txt";
+const GATE = "scripts/ci/ios.sh";
 
 /** The keys an xcconfig sets. */
 export function xcconfigKeys(text) {
@@ -66,6 +67,14 @@ function checkPackage(dir, text, setting, files, errors) {
   if (targets !== strict) {
     errors.push(`${path}: ${targets} targets but ${strict} use \`swiftSettings: strict\` — every target must`);
   }
+  // Settings Xcode rejects or overrides when an app builds the package as a
+  // dependency (warnings-as-errors comes from the package gate instead).
+  const code = text.replace(/\/\/.*$/gm, "");
+  for (const banned of ["treatAllWarnings", "unsafeFlags"]) {
+    if (code.includes(banned)) {
+      errors.push(`${path}: \`${banned}\` breaks builds of apps that depend on the package — the gate sets warnings-as-errors`);
+    }
+  }
   if (/\.package\(/.test(text) && !files.includes(`${dir}/Package.resolved`)) {
     errors.push(`${dir}/Package.resolved: missing — commit it with any package dependency`);
   }
@@ -84,6 +93,10 @@ export function checkSwiftStandards(read, files) {
   }
   for (const pkg of SWIFT_PACKAGES) {
     if (files.includes(`${pkg}/Package.swift`)) checkPackage(pkg, read(`${pkg}/Package.swift`), setting, files, errors);
+  }
+  // The package gate is where packages get warnings-as-errors.
+  if (!read(GATE).includes("SWIFT_TREAT_WARNINGS_AS_ERRORS=YES")) {
+    errors.push(`${GATE}: must build Swift packages with SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`);
   }
   for (const f of files.filter((p) => p.endsWith(".xcconfig") && p !== XCCONFIG)) {
     errors.push(`${f}: per-project xcconfig is not allowed; settings live in ${XCCONFIG} or the project`);
