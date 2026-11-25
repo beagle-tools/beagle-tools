@@ -2,6 +2,7 @@ import SwiftUI
 import VisionKit
 
 /// A full-screen camera that reports the first QR code it reads.
+///
 /// Uses VisionKit's DataScannerViewController (needs a camera; not in the simulator).
 public struct QRScanner: UIViewControllerRepresentable {
   let onScan: (String) -> Void
@@ -14,6 +15,7 @@ public struct QRScanner: UIViewControllerRepresentable {
     DataScannerViewController.isSupported && DataScannerViewController.isAvailable
   }
 
+  /// Makes the VisionKit scanner, looking for QR codes only.
   public func makeUIViewController(context: Context) -> DataScannerViewController {
     let scanner = DataScannerViewController(
       recognizedDataTypes: [.barcode(symbologies: [.qr])],
@@ -23,18 +25,21 @@ public struct QRScanner: UIViewControllerRepresentable {
     return scanner
   }
 
+  /// Starts scanning once the scanner is on screen.
   public func updateUIViewController(_ scanner: DataScannerViewController, context: Context) {
     if !scanner.isScanning {
       try? scanner.startScanning()
     }
   }
 
+  /// Stops scanning when the scanner goes away.
   public static func dismantleUIViewController(
     _ scanner: DataScannerViewController, coordinator: Coordinator
   ) {
     scanner.stopScanning()
   }
 
+  /// The delegate that receives the scanner's results.
   public func makeCoordinator() -> Coordinator { Coordinator(onScan: onScan) }
 
   /// Receives the scanner's results.
@@ -44,6 +49,7 @@ public struct QRScanner: UIViewControllerRepresentable {
 
     init(onScan: @escaping (String) -> Void) { self.onScan = onScan }
 
+    /// Reports the first QR code's text, once.
     public func dataScanner(
       _ dataScanner: DataScannerViewController, didAdd addedItems: [RecognizedItem],
       allItems: [RecognizedItem]

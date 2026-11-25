@@ -78,9 +78,13 @@ It skips itself without those variables (as in CI).
 ## Rules
 
 - **Gate:** `make check-ios` (= `scripts/ci/ios.sh scout/ios`, the CI job
-  `scout-ios`): `swift-format lint --strict` with the root `.swift-format`,
-  then `xcodebuild test` on an iPhone simulator, then an unsigned Release
-  build. Warnings are errors.
+  `scout-ios`): `swift-format lint --strict` with
+  `standards/swift/swift-format.json` (no force unwraps or `try!` outside
+  tests, every public declaration documented), unit and UI tests on an iPhone
+  simulator, `xcodebuild analyze`, then an unsigned Release build. The project
+  builds on `standards/swift/Shared.xcconfig` (Swift 6, complete concurrency,
+  warnings are errors) and may not override it. See
+  `docs/CODING_STANDARDS.md`, section Swift.
 - **400 lines per file** applies to `.swift` too (`scripts/check-file-length.sh`).
 - **Signing stays automatic with no team ID.** Never commit
   `DEVELOPMENT_TEAM`, a provisioning profile or manual signing;

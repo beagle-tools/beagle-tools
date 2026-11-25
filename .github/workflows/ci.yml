@@ -107,7 +107,8 @@ jobs:
               - "scout/ios/**"
               - "utils/swift/**"
               - "scripts/ci/ios.sh"
-              - ".swift-format"
+              - "standards/swift/**"
+              - "scripts/ci/swift-coverage.mjs"
 
   standards:
     name: standards (400-line rule, affiliation, shared config)

@@ -1,0 +1,7 @@
+{
+  "utils/swift": {
+    "BeagleAPI": 80,
+    "BeaglePairing": 60,
+    "BeagleUI": 15
+  }
+}

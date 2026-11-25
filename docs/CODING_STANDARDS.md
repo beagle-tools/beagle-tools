@@ -1,7 +1,7 @@
 # Coding standards
 
 These are the coding standards for **every app in this monorepo**:
-`tandem/`, `rca/`, `agent/`, and the shared crate `utils/`. Every app
+`tandem/`, `rca/`, `agent/`, the iPhone apps, and the shared code in `utils/`. Every app
 follows the same rules. Each app's `AGENTS.md` adds only app-specific facts:
 architecture, commands and domain invariants. It never loosens a rule here.
 
@@ -26,6 +26,9 @@ Most rules are enforced by tooling. The configuration is shared, and
 | Formatting (TS/CSS/JSON/MD) | `.prettierrc.json` (root) | `prettier --check` |
 | Node / pnpm | `.nvmrc`, plus `packageManager` in each `package.json` | the drift check |
 | 400-line rule | `scripts/check-file-length.sh` | CI `standards` job |
+| Swift format and lint rules | `standards/swift/swift-format.json` (the only swift-format config) | `swift-format lint --strict` in `scripts/ci/ios.sh` |
+| Swift build settings | `standards/swift/Shared.xcconfig` (projects), `standards/swift/package-settings.txt` (packages) | the compiler, and `scripts/ci/swift-standards.mjs` |
+| Swift coverage floors | `standards/swift/coverage.json` | `scripts/ci/swift-coverage.mjs` |
 | Repo layout (one folder per tool) | `docs/LAYOUT.md` | `scripts/ci/layout.mjs`, run by `scripts/check-standards.mjs` |
 
 ---
@@ -316,7 +319,43 @@ Full strategy: [`TESTING.md`](TESTING.md). The rules:
   type, its guard test and the e2e fixture in the same PR.
 - No snapshot tests, no `.only`/`.skip`, no fixed sleeps.
 
-## 4. Workflow
+## 4. Swift (iPhone apps and `utils/swift`)
+
+Swift gets the same bar as Rust. `scripts/ci/ios.sh` runs it all for each app
+(`scout/ios`) and package (`utils/swift`), through `make check-ios` and CI's
+`scout-ios` job. `scripts/ci/swift-standards.mjs` and
+`scripts/ci/ios-standards.mjs` (run by `make standards`) fail drift.
+
+| Rust | Swift equivalent | Where |
+|---|---|---|
+| `cargo fmt --check` + clippy pedantic `-D warnings` | `swift-format lint --strict` with every strict rule on | `standards/swift/swift-format.json` |
+| `unwrap_used` / `expect_used` denied | `NeverForceUnwrap`, `NeverUseForceTry`, `NeverUseImplicitlyUnwrappedOptionals` | same file |
+| `missing_docs` | `AllPublicDeclarationsHaveDocumentation`, `ValidateDocumentationComments`, `BeginDocumentationCommentWithOneLineSummary` | same file |
+| `cargo doc -D warnings` | DocC with `--warnings-as-errors` (`xcodebuild docbuild`) for `utils/swift` | `scripts/ci/ios.sh` |
+| `[workspace.lints]` copied, never overridden | every Xcode project's project-level configurations are based on `standards/swift/Shared.xcconfig` (Swift 6, complete concurrency checking, warnings as errors, analyzer on, dead-code stripping); no project or target may set one of its keys | `scripts/ci/swift-standards.mjs` |
+| the same, for packages | every package target uses `swiftSettings: strict`, defined exactly as `standards/swift/package-settings.txt` (Swift 6 mode); warnings-as-errors comes from the package gate (`SWIFT_TREAT_WARNINGS_AS_ERRORS=YES`), because `treatAllWarnings` in `Package.swift` breaks apps that build the package as a dependency (Xcode passes them `-suppress-warnings`) | same check |
+| `--locked` | `-onlyUsePackageVersionsFromResolvedFile` on every build; a package or project with a remote dependency must commit its `Package.resolved` | `ios.sh`, same check |
+| clippy's deeper lints | `xcodebuild analyze`; any analyzer warning fails (it covers C and Objective-C; Swift's own checks are the compiler's, already errors) | `ios.sh` |
+| (none) | a line-coverage floor per `utils/swift` library, measured on every run | `standards/swift/coverage.json`, `scripts/ci/swift-coverage.mjs` |
+
+- **No force unwraps or `try!` in tests either.** Use `try #require(…)` and
+  throwing tests. (Newer swift-format skips these rules in test files, but the
+  pinned CI toolchain does not, and one rule for both is simpler.)
+- **Coverage floors only go up.** Measured on Xcode 27.2 when they were
+  set: BeagleAPI 81.8% (floor 80), BeaglePairing 62.1% (60; the Keychain is
+  tested by the app, which has a host), BeagleUI 17.9% (15; mostly SwiftUI views,
+  covered by the apps' UI tests). Raise a floor when coverage rises; never
+  lower one to get green.
+- **Main actor by default in apps, explicit in packages.** App targets set
+  `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`; anything a unit test calls
+  synchronously must be `nonisolated`. Package code marks UI types
+  `@MainActor` itself.
+- **No third-party dependencies** without a reason written in the PR; the
+  resolved file is committed with the first one.
+- **Signing is the developer's own:** automatic, no `DEVELOPMENT_TEAM`, no
+  provisioning profile in the repo.
+
+## 5. Workflow
 
 - Branch from `main`, named `feat/<slug>`, `fix/<slug>`, `docs/<slug>`,
   `perf/<slug>` or `chore/<slug>`. _(from rca)_

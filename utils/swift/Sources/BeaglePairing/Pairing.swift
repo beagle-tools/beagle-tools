@@ -2,8 +2,9 @@ import BeagleAPI
 import Foundation
 import Observation
 
-/// The Mac an app is paired with: its address (UserDefaults) and token
-/// (Keychain). Pairing checks the server before saving anything.
+/// The Mac an app is paired with: its address (UserDefaults) and token (Keychain).
+///
+/// Pairing checks the server before saving anything.
 @MainActor
 @Observable
 public final class Pairing {
@@ -29,6 +30,7 @@ public final class Pairing {
     /// The server doesn't serve this app's tool.
     case toolNotServed(String)
 
+    /// A message for the person holding the phone.
     public var errorDescription: String? {
       switch self {
       case .unsupportedAPI(let api):
@@ -74,8 +76,9 @@ public final class Pairing {
     current.map { BeagleAPI(server: $0.server, token: $0.token, session: session) }
   }
 
-  /// Checks the server answers (`/v1/health`, no token) and accepts the token
-  /// (`/v1/version`, API v1, serving ``tool``), then saves the pairing.
+  /// Checks the server answers (`/v1/health`, no token) and accepts the token (`/v1/version`, API
+  /// v1, serving ``tool``), then saves the pairing.
+  ///
   /// Nothing is saved on failure.
   @discardableResult
   public func pair(_ link: PairingLink) async throws -> ServerVersion {

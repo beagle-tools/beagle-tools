@@ -1,8 +1,9 @@
 import Foundation
 
-/// Where a pairing keeps its token. Apps use ``Keychain``; tests and previews
-/// use ``MemorySecretStore`` (a package test bundle has no Keychain access in
-/// the simulator).
+/// Where a pairing keeps its token.
+///
+/// Apps use ``Keychain``; tests and previews use ``MemorySecretStore`` (a package test bundle has
+/// no Keychain access in the simulator).
 public protocol SecretStore: Sendable {
   /// The value stored for `account`, or nil.
   func read(_ account: String) throws -> String?
@@ -20,14 +21,17 @@ public final class MemorySecretStore: SecretStore, @unchecked Sendable {
   /// An empty store.
   public init() {}
 
+  /// The value stored for `account`, or nil.
   public func read(_ account: String) throws -> String? {
     lock.withLock { values[account] }
   }
 
+  /// Stores `value` for `account`, replacing any old value.
   public func write(_ value: String, for account: String) throws {
     lock.withLock { values[account] = value }
   }
 
+  /// Removes the value stored for `account`; a missing one is fine.
   public func delete(_ account: String) throws {
     _ = lock.withLock { values.removeValue(forKey: account) }
   }

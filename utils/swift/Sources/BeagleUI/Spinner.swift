@@ -15,6 +15,7 @@ public struct Spinner: View {
   /// A spinner in the working colour.
   public init() {}
 
+  /// The view's content.
   public var body: some View {
     TimelineView(.periodic(from: .now, by: 0.08)) { context in
       let tick = Int(context.date.timeIntervalSinceReferenceDate / 0.08)

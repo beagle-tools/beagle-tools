@@ -1,0 +1,1 @@
+let strict: [SwiftSetting] = [.swiftLanguageMode(.v6)]

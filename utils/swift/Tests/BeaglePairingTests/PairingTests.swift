@@ -5,9 +5,10 @@ import Testing
 
 @testable import BeaglePairing
 
-/// Pairing against a stubbed server, with an in-memory secret store and a
-/// throwaway defaults suite per test. (The real Keychain is tested in the
-/// app, whose tests are hosted and may use it.)
+/// Pairing against a stubbed server, with an in-memory secret store and a throwaway defaults suite
+/// per test.
+///
+/// (The real Keychain is tested in the app, whose tests are hosted and may use it.)
 @MainActor
 @Suite(.serialized)
 struct PairingTests {
@@ -18,12 +19,11 @@ struct PairingTests {
   // One defaults instance per test, created once: CFPrefs in the simulator
   // has crashed when many suite instances are created and wiped in parallel.
   let defaults: UserDefaults
+  let link: PairingLink
 
-  init() {
-    defaults = UserDefaults(suiteName: suite)!
-  }
-  var link: PairingLink {
-    try! PairingLink(server: stub.server.absoluteString, token: StubServer.token)
+  init() throws {
+    defaults = try #require(UserDefaults(suiteName: suite))
+    link = try PairingLink(server: stub.server.absoluteString, token: StubServer.token)
   }
 
   func makePairing() -> Pairing {

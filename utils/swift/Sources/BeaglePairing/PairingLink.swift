@@ -17,6 +17,7 @@ public struct PairingLink: Equatable, Sendable {
     case missingToken
     case badToken
 
+    /// A message for the person holding the phone.
     public var errorDescription: String? {
       switch self {
       case .notAPairingLink:
@@ -31,7 +32,9 @@ public struct PairingLink: Equatable, Sendable {
     }
   }
 
-  /// Parses a scanned or pasted `beagle://pair?…` link. Query values are percent-decoded.
+  /// Parses a scanned or pasted `beagle://pair?…` link.
+  ///
+  /// Query values are percent-decoded.
   public static func parse(_ text: String) throws(Problem) -> PairingLink {
     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
     guard let parts = URLComponents(string: trimmed),

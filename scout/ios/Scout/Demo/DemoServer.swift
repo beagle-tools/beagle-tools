@@ -2,12 +2,19 @@
   import BeaglePairing
   import Foundation
 
-  /// A fake `beagle serve` inside the app, for UI tests and previews (Debug
-  /// builds only). Launch with `-demo-server` to pair with it. Its answers
-  /// follow docs/serve-api.md, with neutral example data.
+  /// A fake `beagle serve` inside the app, for UI tests and previews (Debug builds only).
+  ///
+  /// Launch with `-demo-server` to pair with it. Its answers follow docs/serve-api.md, with neutral
+  /// example data.
   nonisolated final class DemoServer: URLProtocol {
-    static let link = try! PairingLink(
-      server: "https://demo.example.ts.net:8787", token: String(repeating: "d", count: 64))
+    static let link: PairingLink = {
+      do {
+        return try PairingLink(
+          server: "https://demo.example.ts.net:8787", token: String(repeating: "d", count: 64))
+      } catch {
+        preconditionFailure("the demo pairing link is invalid: \(error)")
+      }
+    }()
 
     static var session: URLSession {
       let config = URLSessionConfiguration.ephemeral
@@ -35,9 +42,14 @@
           (404, DemoData.error("not_found", "no route \(path)"))
         }
       let data = (try? JSONSerialization.data(withJSONObject: body)) ?? Data()
-      let response = HTTPURLResponse(
-        url: request.url!, statusCode: status, httpVersion: "HTTP/1.1",
-        headerFields: ["Content-Type": "application/json; charset=utf-8"])!
+      guard let url = request.url,
+        let response = HTTPURLResponse(
+          url: url, statusCode: status, httpVersion: "HTTP/1.1",
+          headerFields: ["Content-Type": "application/json; charset=utf-8"])
+      else {
+        client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+        return
+      }
       client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
       client?.urlProtocol(self, didLoad: data)
       client?.urlProtocolDidFinishLoading(self)

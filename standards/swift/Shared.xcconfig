@@ -1,0 +1,27 @@
+// The build settings every beagle Xcode project inherits (the Swift
+// counterpart of standards/cargo-lints.toml). Each project points its
+// project-level Debug and Release configurations at this file
+// (baseConfigurationReference); `make standards` fails a project or target
+// that sets any of these keys itself. docs/CODING_STANDARDS.md, section Swift.
+
+// Language: Swift 6 with complete concurrency checking.
+SWIFT_VERSION = 6.0
+SWIFT_STRICT_CONCURRENCY = complete
+
+// Warnings are errors, Swift and C alike (clippy -D warnings).
+SWIFT_TREAT_WARNINGS_AS_ERRORS = YES
+GCC_TREAT_WARNINGS_AS_ERRORS = YES
+
+// The static analyzer on every build, deep mode in `xcodebuild analyze`.
+RUN_CLANG_STATIC_ANALYZER = YES
+CLANG_STATIC_ANALYZER_MODE = deep
+
+// Platform floor and hygiene.
+SDKROOT = iphoneos
+IPHONEOS_DEPLOYMENT_TARGET = 17.0
+ALWAYS_SEARCH_USER_PATHS = NO
+CLANG_ENABLE_MODULES = YES
+CLANG_ENABLE_OBJC_ARC = YES
+ENABLE_STRICT_OBJC_MSGSEND = YES
+ENABLE_USER_SCRIPT_SANDBOXING = YES
+DEAD_CODE_STRIPPING = YES

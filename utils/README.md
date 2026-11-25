@@ -83,8 +83,9 @@ Xcode project references it as a local package (`../../utils/swift`).
 
 Tool-specific models, endpoints (an `extension BeagleAPI` in the app) and
 screens stay in the app. Gate: `scripts/ci/ios.sh utils/swift` (in
-`make check-ios` and CI's `scout-ios` job): swift-format, the package tests
-on an iPhone simulator, an unsigned Release build. Package tests have no
+`make check-ios` and CI's `scout-ios` job): swift-format, the package tests with a
+coverage floor (`standards/swift/coverage.json`), DocC with warnings as errors,
+the static analyzer, and an unsigned Release build. Package tests have no
 Keychain access in the simulator, so `Keychain` itself is tested by the app
 (`scout/ios/ScoutTests/KeychainTests.swift`).
 

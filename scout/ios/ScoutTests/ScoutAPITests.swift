@@ -5,8 +5,9 @@ import Testing
 
 @testable import Scout
 
-/// The scout endpoints (Scout/API/ScoutAPI.swift) against JSON captured from a
-/// real `beagle serve`. Transport, auth and errors are tested in BeagleKit.
+/// The scout endpoints (Scout/API/ScoutAPI.swift) against JSON captured from a real `beagle serve`.
+///
+/// Transport, auth and errors are tested in BeagleKit.
 struct ScoutAPITests {
   let stub = StubServer()
 

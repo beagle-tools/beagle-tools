@@ -2,9 +2,10 @@ import BeagleAPI
 import BeaglePairing
 import SwiftUI
 
-/// The "Server" section of an app's Settings: which Mac it's paired with,
-/// whether it answers, and Pair / Pair again / Unpair. Reads the ``Pairing``
-/// from the environment.
+/// The "Server" section of an app's Settings: which Mac it's paired with, whether it answers, and
+/// Pair / Pair again / Unpair.
+///
+/// Reads the `Pairing` from the environment.
 public struct ServerSection: View {
   @Environment(Pairing.self) private var pairing
   @State private var showPair = false
@@ -20,6 +21,7 @@ public struct ServerSection: View {
   /// The section; checks the connection whenever the pairing changes.
   public init() {}
 
+  /// The view's content.
   public var body: some View {
     Section("Server") {
       if let current = pairing.current {

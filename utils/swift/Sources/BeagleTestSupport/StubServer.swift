@@ -1,8 +1,9 @@
 import BeagleAPI
 import Foundation
 
-/// A fake `beagle serve` behind URLProtocol, for tests. Each instance gets its
-/// own host, so tests running in parallel never see each other's routes.
+/// A fake `beagle serve` behind URLProtocol, for tests.
+///
+/// Each instance gets its own host, so tests running in parallel never see each other's routes.
 public final class StubServer: Sendable {
   /// One HTTP answer.
   public struct Reply: Sendable {

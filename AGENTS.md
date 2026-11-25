@@ -48,6 +48,8 @@ Read the doc for the stage you are in:
    - `rust-toolchain.toml`, `rustfmt.toml`, `.prettierrc.json` and `.nvmrc`
    - `standards/cargo-lints.toml`, `standards/tsconfig.base.json` and
      `standards/eslint.base.js`
+   - `standards/swift/` (swift-format rules, `Shared.xcconfig`, package
+     settings, coverage floors)
 
    `scripts/check-standards.mjs` fails CI on any drift.
 3. **The gate is the merge contract.** CI's `gate` job runs the same scripts
@@ -80,7 +82,7 @@ Run these from the repo root. Each runs exactly what CI runs:
 make standards          # 400-line rule, affiliation guard, shared-config drift, CI-script tests
 make check-rust         # the root cargo workspace (every crate but the Tauri shells)
 make check-tandem       # or check-rca / check-agent: root workspace + that app's desktop shell + frontends
-make check-ios          # the scout iPhone app (macOS + Xcode): swift-format, unit + UI tests on a simulator
+make check-ios          # BeagleKit + the scout app (macOS + Xcode): swift-format, tests, coverage, DocC, analyzer
 make test-affected      # only the cargo tests your change affects (vs origin/main)
 make e2e-tandem         # Playwright for one frontend (see docs/TESTING.md)
 make check              # everything

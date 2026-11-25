@@ -34,8 +34,13 @@ fi
 
 echo "==> [$dir] $(xcodebuild -version | head -1)"
 
-echo "==> [$dir] swift-format lint (strict, root .swift-format)"
-xcrun swift-format lint --strict --recursive --parallel .
+# Lint what git tracks (or would track): never build output.
+echo "==> [$dir] swift-format lint (strict, standards/swift/swift-format.json)"
+swift_files=()
+while IFS= read -r f; do swift_files+=("$f"); done < <(
+  git ls-files --cached --others --exclude-standard -- '*.swift')
+xcrun swift-format lint --strict --parallel \
+  --configuration "$root/standards/swift/swift-format.json" "${swift_files[@]}"
 
 if [ -n "${IOS_SIMULATOR:-}" ]; then
   destination="platform=iOS Simulator,name=$IOS_SIMULATOR"
@@ -65,8 +70,13 @@ echo "==> [$dir] destination: $destination"
 # Build output stays in the app dir (gitignored), not in ~/Library.
 derived="$root/$dir/build"
 
-what=(-scheme "$scheme")
-[ -n "$package" ] || what=(-project "$project" -scheme "$scheme")
+# Dependencies come only from the committed Package.resolved (cargo --locked).
+what=(-scheme "$scheme" -onlyUsePackageVersionsFromResolvedFile)
+[ -n "$package" ] || what=(-project "$project" "${what[@]}")
+# A package gets warnings-as-errors here, not in Package.swift: as an app's
+# dependency Xcode builds it with -suppress-warnings, which conflicts.
+# (Apps get it from standards/swift/Shared.xcconfig.)
+[ -z "$package" ] || what+=(SWIFT_TREAT_WARNINGS_AS_ERRORS=YES GCC_TREAT_WARNINGS_AS_ERRORS=YES)
 common=("${what[@]}" -destination "$destination" -derivedDataPath "$derived")
 
 # Boot the simulator first and wait for it: a cold simulator on a CI runner
@@ -83,8 +93,19 @@ xcodebuild build-for-testing "${common[@]}" -quiet
 # One simulator, no clones: parallel clones are a frequent source of launch
 # failures on CI and the suite is small.
 if [ -n "$package" ]; then
-  echo "==> [$dir] package tests ($scheme)"
-  xcodebuild test-without-building "${common[@]}" -parallel-testing-enabled NO -quiet
+  echo "==> [$dir] package tests ($scheme, with coverage)"
+  rm -rf "$derived/coverage.xcresult"
+  xcodebuild test-without-building "${common[@]}" -parallel-testing-enabled NO \
+    -enableCodeCoverage YES -resultBundlePath "$derived/coverage.xcresult" -quiet
+
+  echo "==> [$dir] coverage floor (standards/swift/coverage.json)"
+  xcrun xccov view --report --only-targets --json "$derived/coverage.xcresult" >"$derived/coverage.json"
+  node "$root/scripts/ci/swift-coverage.mjs" "$dir" "$derived/coverage.json"
+
+  # cargo doc -D warnings: a broken doc link or bad doc comment fails.
+  echo "==> [$dir] docs (DocC, warnings as errors)"
+  xcodebuild docbuild "${what[@]}" -destination "generic/platform=iOS Simulator" \
+    -derivedDataPath "$derived" OTHER_DOCC_FLAGS="--warnings-as-errors" -quiet
 else
   echo "==> [$dir] unit tests (${scheme}Tests)"
   xcodebuild test-without-building "${common[@]}" -only-testing:"${scheme}Tests" \
@@ -96,6 +117,21 @@ else
   echo "==> [$dir] UI tests (${scheme}UITests, one retry per failing test)"
   xcodebuild test-without-building "${common[@]}" -only-testing:"${scheme}UITests" \
     -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 -quiet
+fi
+
+# The static analyzer, warnings fail (it covers C/Objective-C; Swift's checks
+# are the compiler's, already errors).
+echo "==> [$dir] static analyzer"
+analyze_log="$derived/analyze.log"
+mkdir -p "$derived"
+xcodebuild analyze "${what[@]}" -destination "generic/platform=iOS Simulator" \
+  -derivedDataPath "$derived" CODE_SIGNING_ALLOWED=NO -quiet >"$analyze_log" 2>&1 || {
+  cat "$analyze_log"
+  exit 1
+}
+if grep -E "^/.*: warning: " "$analyze_log"; then
+  echo "FAIL: [$dir] the static analyzer reported warnings" >&2
+  exit 1
 fi
 
 echo "==> [$dir] release build (simulator, unsigned)"
