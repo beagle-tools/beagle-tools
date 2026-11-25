@@ -15,6 +15,9 @@ export const REPO_DIRS = new Set([
   "standards",
   "packaging",
   "skills",
+  // The one exception to "every app is a tool's part": the Beagle iPhone app
+  // shows every tool, so it belongs to none (rule 9).
+  "ios",
   ".github",
   ".claude",
 ]);
@@ -26,7 +29,7 @@ export const REPO_DIRS = new Set([
 export const UTILS_ENTRIES = new Set(["Cargo.toml", "src", "tui", "swift", "README.md", ".gitignore"]);
 
 /** A tool's runnable parts (rule 2). */
-export const PARTS = new Set(["tui", "daemon", "desktop", "web", "ios"]);
+export const PARTS = new Set(["tui", "daemon", "desktop", "web"]);
 /** What else a tool's top level may hold (rule 6). */
 export const TOOL_DIRS = new Set(["lib", "docs", "assets", "scripts", "deploy", "examples", "skills"]);
 export const TOOL_FILES = new Set(["README.md", "AGENTS.md", "CLAUDE.md", "CHANGELOG.md", "Makefile", ".gitignore"]);
@@ -110,7 +113,12 @@ export function checkLayout(read, files) {
       const entry = parts[1];
       const isDir = parts.length > 2;
       const ok = isDir ? PARTS.has(entry) || TOOL_DIRS.has(entry) : TOOL_FILES.has(entry);
-      if (!ok && !seenToolEntry.has(`${top}/${entry}`)) {
+      if (!ok && entry === "ios" && isDir && !seenToolEntry.has(`${top}/ios`)) {
+        seenToolEntry.add(`${top}/ios`);
+        errors.push(
+          `${top}/ios/: not allowed — the one iPhone app is ios/ at the repo root; a tool's screens go in ios/Beagle/Tools/ (docs/LAYOUT.md)`,
+        );
+      } else if (!ok && !seenToolEntry.has(`${top}/${entry}`)) {
         seenToolEntry.add(`${top}/${entry}`);
         errors.push(
           `${top}/${entry}${isDir ? "/" : ""}: not allowed in a tool folder — use a part (${[...PARTS].map((p) => `${p}/`).join(", ")}), lib/<name>/, or ${[...TOOL_DIRS].filter((d) => d !== "lib").map((d) => `${d}/`).join(", ")} (docs/LAYOUT.md)`,

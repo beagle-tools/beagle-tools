@@ -3,11 +3,12 @@
 // Pure (no fs), so scripts/ci/ios-standards.test.mjs can feed it any tree.
 
 /**
- * The iPhone apps, each an `<tool>/ios/` folder holding one `<Name>.xcodeproj`
- * with a shared `<Name>` scheme. Adding one means adding it here, to
- * .github/workflows/ci.yml and to the root Makefile (AGENTS.md).
+ * The iPhone apps, each a folder holding one `<Name>.xcodeproj` with a shared
+ * `<Name>` scheme: today the one Beagle app at `ios/` (docs/LAYOUT.md). Adding
+ * one means adding it here, to .github/workflows/ci.yml and to the root
+ * Makefile (AGENTS.md).
  */
-export const IOS_APPS = ["scout/ios"];
+export const IOS_APPS = ["ios"];
 
 /**
  * The Swift packages the apps share (like the Rust `utils/` crates), each a

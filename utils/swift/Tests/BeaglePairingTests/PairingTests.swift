@@ -14,7 +14,7 @@ import Testing
 struct PairingTests {
   let stub = StubServer()
   let keychain = MemorySecretStore()
-  let suite = "dev.beagletools.scout.tests.\(UUID().uuidString)"
+  let suite = "dev.beagletools.beagle.tests.\(UUID().uuidString)"
 
   // One defaults instance per test, created once: CFPrefs in the simulator
   // has crashed when many suite instances are created and wiped in parallel.

@@ -15,7 +15,6 @@ beagle/          the beagle command (help, update, doctor, setup, version)
   serve/         beagle serve: the read-only HTTPS API for the phone app
 scout/           beagle scout
   tui/           the beagle scout crate (TUI + CLI, embedded skills)
-  ios/           the scout iPhone app (SwiftUI, reads beagle serve)
 recap/           beagle recap
   tui/
 standup/         beagle standup
@@ -35,6 +34,7 @@ agent/           beagle agent (today's workflows/)
   daemon/        agentd, the scheduler daemon
   desktop/       Agentdesk (Tauri)
   lib/core/  lib/top/
+ios/             the Beagle iPhone app: every tool's phone screens (SwiftUI, reads beagle serve)
 utils/           code shared by two or more tools: Rust beagle-utils (src/) and
                  beagle-tui (tui/); Swift BeagleKit (swift/) for the iPhone apps
 docs/  scripts/  standards/  packaging/  skills/  .github/   repo-wide
@@ -52,7 +52,9 @@ docs/  scripts/  standards/  packaging/  skills/  .github/   repo-wide
    - `daemon/`: a long-running background service.
    - `desktop/`: a Tauri desktop app (Rust shell plus frontend).
    - `web/`: a website or web service.
-   - `ios/`: an iPhone app.
+
+   There is no per-tool `ios/`: every tool's phone screens live in the one
+   Beagle app (rule 9).
 3. **Libraries shared by a tool's own parts** go in `<tool>/lib/<name>/`.
    The folder name is short and drops the tool prefix (`tandem/lib/core`,
    not `tandem/lib/tandem-core`).
@@ -74,6 +76,11 @@ docs/  scripts/  standards/  packaging/  skills/  .github/   repo-wide
 8. **Package names don't follow folder names.** Folders say where code is;
    package names stay what they are, so imports, `cargo -p` and release
    builds don't churn. Rename a package only when it has a reason of its own.
+
+9. **The one exception: the Beagle iPhone app is `ios/` at the repo root.**
+   It shows every tool (a home screen of tools), so it is no tool's part. A
+   tool's phone screens go in `ios/Beagle/Tools/<Tool>/`; code every tool's
+   screens share goes in `utils/swift` (BeagleKit).
 
 `make standards` enforces these rules (`scripts/ci/layout.mjs`, tested by
 `scripts/ci/layout.test.mjs`).

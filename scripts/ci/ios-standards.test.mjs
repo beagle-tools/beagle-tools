@@ -9,13 +9,13 @@ import { checkIos } from "./ios-standards.mjs";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const repoRead = (p) => readFileSync(join(root, p), "utf8");
 
-const PBX = "scout/ios/Scout.xcodeproj/project.pbxproj";
-const SCHEME = "scout/ios/Scout.xcodeproj/xcshareddata/xcschemes/Scout.xcscheme";
+const PBX = "ios/Beagle.xcodeproj/project.pbxproj";
+const SCHEME = "ios/Beagle.xcodeproj/xcshareddata/xcschemes/Beagle.xcscheme";
 const GOOD_PBX = "CODE_SIGN_STYLE = Automatic;\nPRODUCT_BUNDLE_IDENTIFIER = dev.example.app;\n";
 const GOOD_CI =
-  'filters: |\n  scout-ios:\n    - "scout/ios/**"\n    - "utils/swift/**"\n' +
-  'run: ./scripts/ci/ios.sh utils/swift\nrun: ./scripts/ci/ios.sh scout/ios\n';
-const GOOD_MAKE = "check-ios:\n\t./scripts/ci/ios.sh utils/swift;\n\t./scripts/ci/ios.sh scout/ios;\n";
+  'filters: |\n  ios:\n    - "ios/**"\n    - "utils/swift/**"\n' +
+  'run: ./scripts/ci/ios.sh utils/swift\nrun: ./scripts/ci/ios.sh ios\n';
+const GOOD_MAKE = "check-ios:\n\t./scripts/ci/ios.sh utils/swift;\n\t./scripts/ci/ios.sh ios;\n";
 
 function fake(overrides = {}) {
   const tree = {
@@ -62,12 +62,12 @@ test("an Xcode project outside IOS_APPS fails", () => {
 });
 
 test("a per-app swift-format config fails", () => {
-  assert.match(checkIos(...fake({ "scout/ios/.swift-format": "{}" }))[0], /per-app Swift config/);
+  assert.match(checkIos(...fake({ "ios/.swift-format": "{}" }))[0], /per-app Swift config/);
 });
 
 test("a Swift package outside SWIFT_PACKAGES fails", () => {
-  const errors = checkIos(...fake({ "scout/ios/Kit/Package.swift": "" }));
-  assert.match(errors[0], /^scout\/ios\/Kit\/Package\.swift: Swift package outside SWIFT_PACKAGES/);
+  const errors = checkIos(...fake({ "ios/Kit/Package.swift": "" }));
+  assert.match(errors[0], /^ios\/Kit\/Package\.swift: Swift package outside SWIFT_PACKAGES/);
 });
 
 test("a shared Swift package without its gate fails", () => {

@@ -19,38 +19,38 @@
 			containerPortal = 5C0000000000000000000001 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 5C0000000000000000000030;
-			remoteInfo = Scout;
+			remoteInfo = Beagle;
 		};
 		5C0000000000000000000052 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5C0000000000000000000001 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 5C0000000000000000000030;
-			remoteInfo = Scout;
+			remoteInfo = Beagle;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		5C0000000000000000000010 /* Scout.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scout.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		5C0000000000000000000011 /* ScoutTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScoutTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		5C0000000000000000000012 /* ScoutUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScoutUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		5C0000000000000000000080 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Shared.xcconfig; path = ../../standards/swift/Shared.xcconfig; sourceTree = SOURCE_ROOT; };
+		5C0000000000000000000010 /* Beagle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Beagle.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C0000000000000000000011 /* BeagleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeagleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C0000000000000000000012 /* BeagleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeagleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C0000000000000000000080 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Shared.xcconfig; path = ../standards/swift/Shared.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		5C0000000000000000000020 /* Scout */ = {
+		5C0000000000000000000020 /* Beagle */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Scout;
+			path = Beagle;
 			sourceTree = "<group>";
 		};
-		5C0000000000000000000021 /* ScoutTests */ = {
+		5C0000000000000000000021 /* BeagleTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ScoutTests;
+			path = BeagleTests;
 			sourceTree = "<group>";
 		};
-		5C0000000000000000000022 /* ScoutUITests */ = {
+		5C0000000000000000000022 /* BeagleUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ScoutUITests;
+			path = BeagleUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -87,9 +87,9 @@
 		5C0000000000000000000002 = {
 			isa = PBXGroup;
 			children = (
-				5C0000000000000000000020 /* Scout */,
-				5C0000000000000000000021 /* ScoutTests */,
-				5C0000000000000000000022 /* ScoutUITests */,
+				5C0000000000000000000020 /* Beagle */,
+				5C0000000000000000000021 /* BeagleTests */,
+				5C0000000000000000000022 /* BeagleUITests */,
 				5C0000000000000000000003 /* Products */,
 				5C0000000000000000000080 /* Shared.xcconfig */,
 			);
@@ -98,9 +98,9 @@
 		5C0000000000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				5C0000000000000000000010 /* Scout.app */,
-				5C0000000000000000000011 /* ScoutTests.xctest */,
-				5C0000000000000000000012 /* ScoutUITests.xctest */,
+				5C0000000000000000000010 /* Beagle.app */,
+				5C0000000000000000000011 /* BeagleTests.xctest */,
+				5C0000000000000000000012 /* BeagleUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,9 +108,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		5C0000000000000000000030 /* Scout */ = {
+		5C0000000000000000000030 /* Beagle */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 5C0000000000000000000063 /* Build configuration list for PBXNativeTarget "Scout" */;
+			buildConfigurationList = 5C0000000000000000000063 /* Build configuration list for PBXNativeTarget "Beagle" */;
 			buildPhases = (
 				5C0000000000000000000040 /* Sources */,
 				5C0000000000000000000043 /* Frameworks */,
@@ -121,21 +121,21 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				5C0000000000000000000020 /* Scout */,
+				5C0000000000000000000020 /* Beagle */,
 			);
-			name = Scout;
+			name = Beagle;
 			packageProductDependencies = (
 				5C0000000000000000000071 /* BeagleAPI */,
 				5C0000000000000000000072 /* BeaglePairing */,
 				5C0000000000000000000073 /* BeagleUI */,
 			);
-			productName = Scout;
-			productReference = 5C0000000000000000000010 /* Scout.app */;
+			productName = Beagle;
+			productReference = 5C0000000000000000000010 /* Beagle.app */;
 			productType = "com.apple.product-type.application";
 		};
-		5C0000000000000000000031 /* ScoutTests */ = {
+		5C0000000000000000000031 /* BeagleTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 5C0000000000000000000066 /* Build configuration list for PBXNativeTarget "ScoutTests" */;
+			buildConfigurationList = 5C0000000000000000000066 /* Build configuration list for PBXNativeTarget "BeagleTests" */;
 			buildPhases = (
 				5C0000000000000000000041 /* Sources */,
 				5C0000000000000000000044 /* Frameworks */,
@@ -147,19 +147,19 @@
 				5C0000000000000000000051 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				5C0000000000000000000021 /* ScoutTests */,
+				5C0000000000000000000021 /* BeagleTests */,
 			);
-			name = ScoutTests;
+			name = BeagleTests;
 			packageProductDependencies = (
 				5C0000000000000000000074 /* BeagleTestSupport */,
 			);
-			productName = ScoutTests;
-			productReference = 5C0000000000000000000011 /* ScoutTests.xctest */;
+			productName = BeagleTests;
+			productReference = 5C0000000000000000000011 /* BeagleTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		5C0000000000000000000032 /* ScoutUITests */ = {
+		5C0000000000000000000032 /* BeagleUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 5C0000000000000000000069 /* Build configuration list for PBXNativeTarget "ScoutUITests" */;
+			buildConfigurationList = 5C0000000000000000000069 /* Build configuration list for PBXNativeTarget "BeagleUITests" */;
 			buildPhases = (
 				5C0000000000000000000042 /* Sources */,
 				5C0000000000000000000045 /* Frameworks */,
@@ -171,13 +171,13 @@
 				5C0000000000000000000053 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				5C0000000000000000000022 /* ScoutUITests */,
+				5C0000000000000000000022 /* BeagleUITests */,
 			);
-			name = ScoutUITests;
+			name = BeagleUITests;
 			packageProductDependencies = (
 			);
-			productName = ScoutUITests;
-			productReference = 5C0000000000000000000012 /* ScoutUITests.xctest */;
+			productName = BeagleUITests;
+			productReference = 5C0000000000000000000012 /* BeagleUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -203,7 +203,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 5C0000000000000000000060 /* Build configuration list for PBXProject "Scout" */;
+			buildConfigurationList = 5C0000000000000000000060 /* Build configuration list for PBXProject "Beagle" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -213,16 +213,16 @@
 			mainGroup = 5C0000000000000000000002;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				5C0000000000000000000070 /* XCLocalSwiftPackageReference "../../utils/swift" */,
+				5C0000000000000000000070 /* XCLocalSwiftPackageReference "../utils/swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5C0000000000000000000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				5C0000000000000000000030 /* Scout */,
-				5C0000000000000000000031 /* ScoutTests */,
-				5C0000000000000000000032 /* ScoutUITests */,
+				5C0000000000000000000030 /* Beagle */,
+				5C0000000000000000000031 /* BeagleTests */,
+				5C0000000000000000000032 /* BeagleUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -278,12 +278,12 @@
 /* Begin PBXTargetDependency section */
 		5C0000000000000000000051 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 5C0000000000000000000030 /* Scout */;
+			target = 5C0000000000000000000030 /* Beagle */;
 			targetProxy = 5C0000000000000000000050 /* PBXContainerItemProxy */;
 		};
 		5C0000000000000000000053 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 5C0000000000000000000030 /* Scout */;
+			target = 5C0000000000000000000030 /* Beagle */;
 			targetProxy = 5C0000000000000000000052 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -329,9 +329,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Scout-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = Scout;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Scout scans the QR code `beagle serve pair` shows on your Mac to connect to it.";
+				INFOPLIST_FILE = "Beagle-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Beagle;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Beagle scans the QR code `beagle serve pair` shows on your Mac to connect to it.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -340,7 +340,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.beagletools.scout;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.beagletools.beagle;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -354,9 +354,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Scout-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = Scout;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Scout scans the QR code `beagle serve pair` shows on your Mac to connect to it.";
+				INFOPLIST_FILE = "Beagle-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Beagle;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Beagle scans the QR code `beagle serve pair` shows on your Mac to connect to it.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -365,7 +365,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.beagletools.scout;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.beagletools.beagle;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -380,10 +380,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.beagletools.scout.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.beagletools.beagle.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = 1;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Scout.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Scout";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Beagle.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Beagle";
 			};
 			name = Debug;
 		};
@@ -395,10 +395,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.beagletools.scout.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.beagletools.beagle.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = 1;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Scout.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Scout";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Beagle.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Beagle";
 			};
 			name = Release;
 		};
@@ -409,10 +409,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.beagletools.scout.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.beagletools.beagle.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = 1;
-				TEST_TARGET_NAME = Scout;
+				TEST_TARGET_NAME = Beagle;
 			};
 			name = Debug;
 		};
@@ -423,17 +423,17 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.beagletools.scout.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.beagletools.beagle.uitests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = 1;
-				TEST_TARGET_NAME = Scout;
+				TEST_TARGET_NAME = Beagle;
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		5C0000000000000000000060 /* Build configuration list for PBXProject "Scout" */ = {
+		5C0000000000000000000060 /* Build configuration list for PBXProject "Beagle" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5C0000000000000000000061 /* Debug */,
@@ -442,7 +442,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		5C0000000000000000000063 /* Build configuration list for PBXNativeTarget "Scout" */ = {
+		5C0000000000000000000063 /* Build configuration list for PBXNativeTarget "Beagle" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5C0000000000000000000064 /* Debug */,
@@ -451,7 +451,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		5C0000000000000000000066 /* Build configuration list for PBXNativeTarget "ScoutTests" */ = {
+		5C0000000000000000000066 /* Build configuration list for PBXNativeTarget "BeagleTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5C0000000000000000000067 /* Debug */,
@@ -460,7 +460,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		5C0000000000000000000069 /* Build configuration list for PBXNativeTarget "ScoutUITests" */ = {
+		5C0000000000000000000069 /* Build configuration list for PBXNativeTarget "BeagleUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5C000000000000000000006A /* Debug */,
@@ -472,31 +472,31 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		5C0000000000000000000070 /* XCLocalSwiftPackageReference "../../utils/swift" */ = {
+		5C0000000000000000000070 /* XCLocalSwiftPackageReference "../utils/swift" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../utils/swift;
+			relativePath = ../utils/swift;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		5C0000000000000000000071 /* BeagleAPI */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 5C0000000000000000000070 /* XCLocalSwiftPackageReference "../../utils/swift" */;
+			package = 5C0000000000000000000070 /* XCLocalSwiftPackageReference "../utils/swift" */;
 			productName = BeagleAPI;
 		};
 		5C0000000000000000000072 /* BeaglePairing */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 5C0000000000000000000070 /* XCLocalSwiftPackageReference "../../utils/swift" */;
+			package = 5C0000000000000000000070 /* XCLocalSwiftPackageReference "../utils/swift" */;
 			productName = BeaglePairing;
 		};
 		5C0000000000000000000073 /* BeagleUI */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 5C0000000000000000000070 /* XCLocalSwiftPackageReference "../../utils/swift" */;
+			package = 5C0000000000000000000070 /* XCLocalSwiftPackageReference "../utils/swift" */;
 			productName = BeagleUI;
 		};
 		5C0000000000000000000074 /* BeagleTestSupport */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 5C0000000000000000000070 /* XCLocalSwiftPackageReference "../../utils/swift" */;
+			package = 5C0000000000000000000070 /* XCLocalSwiftPackageReference "../utils/swift" */;
 			productName = BeagleTestSupport;
 		};
 /* End XCSwiftPackageProductDependency section */

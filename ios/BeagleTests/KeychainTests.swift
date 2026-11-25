@@ -6,7 +6,7 @@ import Testing
 ///
 /// Runs here because the app hosts these tests; a package test bundle has no Keychain access.
 struct KeychainTests {
-  let keychain = Keychain(service: "dev.beagletools.scout.tests.\(UUID().uuidString)")
+  let keychain = Keychain(service: "dev.beagletools.beagle.tests.\(UUID().uuidString)")
 
   @Test func overwritesReadsAndDeletes() throws {
     defer { try? keychain.delete("test") }
@@ -20,7 +20,7 @@ struct KeychainTests {
   }
 
   @Test @MainActor func aPairingSurvivesARestartThroughTheKeychain() throws {
-    let suite = "dev.beagletools.scout.tests.\(UUID().uuidString)"
+    let suite = "dev.beagletools.beagle.tests.\(UUID().uuidString)"
     let defaults = try #require(UserDefaults(suiteName: suite))
     defer {
       try? keychain.delete(Pairing.tokenAccount)

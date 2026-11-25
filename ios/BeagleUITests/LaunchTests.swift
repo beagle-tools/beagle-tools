@@ -19,19 +19,27 @@ final class LaunchTests: XCTestCase {
   func testLaunchesUnpairedAndSettingsOffersPairing() {
     let app = launch()
 
-    // Tab buttons are matched anywhere: newer iOS versions don't always put
-    // them under `tabBars`.
-    XCTAssertTrue(app.navigationBars["Scout"].waitForExistence(timeout: 10))
-    XCTAssertTrue(app.staticTexts["Not paired"].exists)
-    app.buttons["Settings"].firstMatch.tap()
+    // The home screen lists the tools and says it isn't paired.
+    XCTAssertTrue(app.navigationBars["Beagle"].waitForExistence(timeout: 10))
+    XCTAssertTrue(app.buttons["home.notPaired"].exists)
+    XCTAssertTrue(app.buttons["tool.scout"].exists)
+
+    // Scout says it needs pairing and offers Settings.
+    app.buttons["tool.scout"].tap()
+    XCTAssertTrue(app.staticTexts["Not paired"].waitForExistence(timeout: 5))
+    app.buttons["Open Settings"].tap()
     XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
     XCTAssertTrue(app.staticTexts["settings.notPaired"].exists)
+
+    // Settings replaced the stack: back goes home, not to Scout.
+    app.navigationBars["Settings"].buttons.firstMatch.tap()
+    XCTAssertTrue(app.navigationBars["Beagle"].waitForExistence(timeout: 5))
   }
 
   @MainActor
   func testPairScreenRejectsABadLink() {
     let app = launch()
-    app.buttons["Settings"].firstMatch.tap()
+    app.buttons["home.settings"].tap()
     app.buttons["settings.pair"].tap()
 
     let field = app.textFields["pair.link"]
@@ -53,7 +61,7 @@ final class LaunchTests: XCTestCase {
       throw XCTSkip("set SCOUT_E2E_SERVER and SCOUT_E2E_TOKEN to run against a local beagle serve")
     }
     let app = launch()
-    app.buttons["Settings"].firstMatch.tap()
+    app.buttons["home.settings"].tap()
     app.buttons["settings.pair"].tap()
 
     let serverField = app.textFields["pair.server"]
@@ -73,9 +81,17 @@ final class LaunchTests: XCTestCase {
     guard let project = env["SCOUT_E2E_PROJECT"], let task = env["SCOUT_E2E_TASK"] else { return }
     // iOS may still offer to save the typed token as a password.
     if app.buttons["Not Now"].waitForExistence(timeout: 2) { app.buttons["Not Now"].tap() }
+    // Back home, then Scout. The first tap can land while the pair sheet is still closing.
+    let back = app.navigationBars["Settings"].buttons["BackButton"]
+    let scout = app.buttons["tool.scout"]
+    for _ in 0..<3 where !scout.exists {
+      if back.exists { back.tap() }
+      _ = scout.waitForExistence(timeout: 5)
+    }
+    XCTAssertTrue(scout.exists)
     let row = app.buttons["project.\(project)"]
     for _ in 0..<3 where !row.exists {
-      app.buttons["Scout"].firstMatch.tap()
+      if scout.exists { scout.tap() }
       _ = row.waitForExistence(timeout: 5)
     }
     XCTAssertTrue(row.exists)

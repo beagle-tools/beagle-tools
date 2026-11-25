@@ -35,7 +35,7 @@ jobs:
       rca: ${{ steps.filter.outputs.rca }}
       agent: ${{ steps.filter.outputs.agent }}
       beagle: ${{ steps.filter.outputs.beagle }}
-      scout-ios: ${{ steps.filter.outputs.scout-ios }}
+      ios: ${{ steps.filter.outputs.ios }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
@@ -57,7 +57,7 @@ jobs:
               - ".nvmrc"
               - ".prettierrc.json"
               # The Rust utils crates; utils/swift (BeagleKit) is Swift and
-              # gated by scout-ios only.
+              # gated by the ios job only.
               - "utils/Cargo.toml"
               - "utils/src/**"
               - "utils/tui/**"
@@ -77,8 +77,7 @@ jobs:
             beagle:
               - *shared
               - "beagle/**"
-              # Tools in their own folders, linked into `beagle`. Only scout's
-              # crate: scout/ios/ is the iPhone app, gated by scout-ios.
+              # Tools in their own folders, linked into `beagle`.
               - "scout/tui/**"
               - "recap/**"
               - "standup/**"
@@ -101,10 +100,10 @@ jobs:
               - "agent/scripts/build-notifier.sh"
               - "skills/beagle/**"
               - "skills/beagle-review/**"
-            # The scout iPhone app runs on a macOS runner (scarce), so only
+            # The Beagle iPhone app runs on a macOS runner (scarce), so only
             # its own files and its gate's script and format config select it.
-            scout-ios:
-              - "scout/ios/**"
+            ios:
+              - "ios/**"
               - "utils/swift/**"
               - "scripts/ci/ios.sh"
               - "standards/swift/**"
@@ -228,16 +227,16 @@ jobs:
     with:
       dir: agent/desktop
 
-  # The scout iPhone app (scout/ios/): swift-format lint, unit + UI tests on
+  # The Beagle iPhone app (ios/): swift-format lint, unit + UI tests on
   # an iPhone simulator, and an unsigned release build. One job: macOS
   # runners are capacity-limited. The image and Xcode are pinned so the
   # compiler can't change under us: macos-26 has no Xcode 27 (2026-11), so CI
   # builds with Xcode 26.6 while local machines may be newer. The code must
   # build on both. Bump DEVELOPER_DIR deliberately, together with the image.
-  scout-ios:
-    name: scout ios (BeagleKit + app, simulator build + test)
+  ios:
+    name: ios (BeagleKit + Beagle app, simulator build + test)
     needs: changes
-    if: needs.changes.outputs.scout-ios == 'true'
+    if: needs.changes.outputs.ios == 'true'
     runs-on: macos-26
     timeout-minutes: 45
     env:
@@ -245,7 +244,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - run: ./scripts/ci/ios.sh utils/swift
-      - run: ./scripts/ci/ios.sh scout/ios
+      - run: ./scripts/ci/ios.sh ios
 
   gate:
     name: gate
@@ -262,7 +261,7 @@ jobs:
       - rca-web-image
       - agent-desktop-rust
       - agent-desktop-frontend
-      - scout-ios
+      - ios
     runs-on: ubuntu-latest
     steps:
       - name: every gate that ran is green

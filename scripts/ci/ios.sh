@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# The gate for one iPhone app (<tool>/ios/) or Swift package (utils/swift). CI and
+# The gate for one iPhone app (ios/) or Swift package (utils/swift). CI and
 # `make check-ios` both run this script, so a green local run is a green CI
 # run. macOS with Xcode only.
 #
-#   scripts/ci/ios.sh <dir>    e.g. scout/ios (an app) or utils/swift (a package)
+#   scripts/ci/ios.sh <dir>    e.g. ios (an app) or utils/swift (a package)
 #
 # The app dir holds exactly one <Name>.xcodeproj with a shared scheme of the
 # same name. Tests run on an iPhone simulator: $IOS_SIMULATOR (a device name

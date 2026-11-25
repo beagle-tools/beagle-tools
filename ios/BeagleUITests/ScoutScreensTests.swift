@@ -1,7 +1,7 @@
 import XCTest
 
-/// The Scout screens against the in-app demo server (`-demo-server`, Debug
-/// builds): projects → project tabs → task tabs.
+/// The home screen, then the Scout screens against the in-app demo server
+/// (`-demo-server`, Debug builds): home → projects → project tabs → task tabs.
 final class ScoutScreensTests: XCTestCase {
   override func setUp() {
     continueAfterFailure = false
@@ -12,6 +12,15 @@ final class ScoutScreensTests: XCTestCase {
     let app = XCUIApplication()
     app.launchArguments = ["-demo-server"]
     app.launch()
+
+    // Home: every tool, Scout available, the rest coming soon.
+    XCTAssertTrue(app.navigationBars["Beagle"].waitForExistence(timeout: 10))
+    XCTAssertFalse(app.buttons["home.notPaired"].exists)
+    for tool in ["recap", "standup", "rca", "tandem", "agent"] {
+      XCTAssertTrue(app.descendants(matching: .any)["tool.\(tool)"].exists, tool)
+    }
+    snapshot(app, "home")
+    app.buttons["tool.scout"].tap()
 
     // Projects: open and closed sections, the working project first.
     let project = app.buttons["project.rate-limit-the-api"]

@@ -2,7 +2,7 @@ import BeagleAPI
 import Foundation
 import Testing
 
-@testable import Scout
+@testable import Beagle
 
 struct TaskViewTests {
   @Test func taskTabsSplitPlanFromOutcome() throws {

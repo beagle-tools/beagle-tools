@@ -9,7 +9,7 @@ import { checkSwiftStandards, xcconfigKeys } from "./swift-standards.mjs";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const real = (p) => readFileSync(join(root, p), "utf8");
 
-const PBX = "scout/ios/Scout.xcodeproj/project.pbxproj";
+const PBX = "ios/Beagle.xcodeproj/project.pbxproj";
 const PKG = "utils/swift/Package.swift";
 const FILES = ["standards/swift/Shared.xcconfig", "standards/swift/package-settings.txt", PBX, PKG];
 
@@ -76,6 +76,6 @@ test("a dependency without Package.resolved fails", () => {
 });
 
 test("a per-project xcconfig fails", () => {
-  const errors = checkSwiftStandards(...tree({}, ["scout/ios/Local.xcconfig"]));
-  assert.match(errors[0], /^scout\/ios\/Local\.xcconfig: per-project xcconfig is not allowed/);
+  const errors = checkSwiftStandards(...tree({}, ["ios/Local.xcconfig"]));
+  assert.match(errors[0], /^ios\/Local\.xcconfig: per-project xcconfig is not allowed/);
 });
