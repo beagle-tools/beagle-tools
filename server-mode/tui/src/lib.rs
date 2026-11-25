@@ -17,6 +17,10 @@
 //!                              └──▶ procs (spawn detached, signal, stop)
 //! ```
 
+// Only macOS runs the commands; elsewhere they still build (and their
+// tests run) but nothing calls them.
+#![cfg_attr(not(target_os = "macos"), allow(dead_code))]
+
 mod cli;
 #[cfg(unix)]
 mod procs;
