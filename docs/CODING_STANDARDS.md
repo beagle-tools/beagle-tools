@@ -338,9 +338,9 @@ Swift gets the same bar as Rust. `scripts/ci/ios.sh` runs it all for each app
 | clippy's deeper lints | `xcodebuild analyze`; any analyzer warning fails (it covers C and Objective-C; Swift's own checks are the compiler's, already errors) | `ios.sh` |
 | (none) | a line-coverage floor per `utils/swift` library, measured on every run | `standards/swift/coverage.json`, `scripts/ci/swift-coverage.mjs` |
 
-- **Tests may force-unwrap and force-try.** swift-format skips those rules in
-  files that import `Testing` or `XCTest` (as Rust allows `unwrap` in tests);
-  prefer `#require` anyway.
+- **No force unwraps or `try!` in tests either.** Use `try #require(…)` and
+  throwing tests. (Newer swift-format skips these rules in test files, but the
+  pinned CI toolchain does not, and one rule for both is simpler.)
 - **Coverage floors only go up.** Measured on Xcode 27.2 when they were
   set: BeagleAPI 81.8% (floor 80), BeaglePairing 62.1% (60; the Keychain is
   tested by the app, which has a host), BeagleUI 17.9% (15; mostly SwiftUI views,
