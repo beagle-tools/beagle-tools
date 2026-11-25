@@ -178,7 +178,7 @@ one folder per part you can run ([`docs/LAYOUT.md`](docs/LAYOUT.md);
 | `beagle agent` | [`agent/`](agent/README.md) | [`tui/`](agent/tui/) agentctl · [`daemon/`](agent/daemon/) agentd · [`desktop/`](agent/desktop/README.md) Agentdesk · [`lib/core`](agent/lib/core/) · [`lib/top`](agent/lib/top/) agenttop · [`examples/demo`](agent/examples/demo/) |
 | `beagle rca` | [`rca/`](rca/README.md) | [`tui/`](rca/tui/) · [`daemon/`](rca/daemon/) `beagle rca agentd` · [`desktop/`](rca/desktop/README.md) Beagle app · [`web/`](rca/web/README.md) postmortem site · [`lib/agent`](rca/lib/agent/) · [`examples/rcas`](rca/examples/rcas/) |
 | `beagle recap` | [`recap/`](recap/README.md) | [`tui/`](recap/tui/README.md) |
-| `beagle scout` | [`scout/`](scout/README.md) | [`tui/`](scout/tui/README.md) · [`ios/`](scout/ios/README.md) (the iPhone app) |
+| `beagle scout` | [`scout/`](scout/README.md) | [`tui/`](scout/tui/README.md) |
 | `beagle standup` | [`standup/`](standup/README.md) | [`tui/`](standup/tui/README.md) |
 | `beagle tandem` | [`tandem/`](tandem/README.md) | [`tui/`](tandem/tui/) tandem-cli · [`desktop/`](tandem/desktop/) Tandem app · [`lib/`](tandem/lib/) core, github, cache, agents, queue |
 
@@ -186,6 +186,8 @@ Shared by every tool:
 
 | Folder | What's in it |
 | --- | --- |
+| [`ios/`](ios/README.md) | The Beagle iPhone app: a home screen of every tool (Scout first), read-only through `beagle serve` |
+| [`ios/`](ios/README.md) | The Beagle iPhone app: a home screen of every tool (Scout first), read-only through `beagle serve` |
 | [`utils/`](utils/README.md) | `beagle-utils` and `beagle-tui`, Rust helpers shared by two or more tools |
 | [`skills/`](skills/README.md) | Agent skills: `/beagle`, `/beagle-review`, `/beagle-create-issue`, `/beagle-complete-issue` |
 | [`standards/`](standards/) | Shared lint and compiler config every tool uses unchanged |

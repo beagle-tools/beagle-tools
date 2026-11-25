@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "5C0000000000000000000030"
-               BuildableName = "Scout.app"
-               BlueprintName = "Scout"
-               ReferencedContainer = "container:Scout.xcodeproj">
+               BuildableName = "Beagle.app"
+               BlueprintName = "Beagle"
+               ReferencedContainer = "container:Beagle.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -34,9 +34,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "5C0000000000000000000031"
-               BuildableName = "ScoutTests.xctest"
-               BlueprintName = "ScoutTests"
-               ReferencedContainer = "container:Scout.xcodeproj">
+               BuildableName = "BeagleTests.xctest"
+               BlueprintName = "BeagleTests"
+               ReferencedContainer = "container:Beagle.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -45,9 +45,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "5C0000000000000000000032"
-               BuildableName = "ScoutUITests.xctest"
-               BlueprintName = "ScoutUITests"
-               ReferencedContainer = "container:Scout.xcodeproj">
+               BuildableName = "BeagleUITests.xctest"
+               BlueprintName = "BeagleUITests"
+               ReferencedContainer = "container:Beagle.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -67,9 +67,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "5C0000000000000000000030"
-            BuildableName = "Scout.app"
-            BlueprintName = "Scout"
-            ReferencedContainer = "container:Scout.xcodeproj">
+            BuildableName = "Beagle.app"
+            BlueprintName = "Beagle"
+            ReferencedContainer = "container:Beagle.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -84,9 +84,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "5C0000000000000000000030"
-            BuildableName = "Scout.app"
-            BlueprintName = "Scout"
-            ReferencedContainer = "container:Scout.xcodeproj">
+            BuildableName = "Beagle.app"
+            BlueprintName = "Beagle"
+            ReferencedContainer = "container:Beagle.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

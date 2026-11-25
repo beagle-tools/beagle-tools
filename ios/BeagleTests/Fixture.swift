@@ -1,7 +1,7 @@
 import Foundation
 
 /// JSON captured from a real `beagle serve --no-tls` on loopback, reading a
-/// neutral example scout store (ScoutTests/Fixtures).
+/// neutral example scout store (BeagleTests/Fixtures).
 enum Fixture {
   private final class Token {}
 

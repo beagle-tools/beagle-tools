@@ -1,11 +1,13 @@
 import BeaglePairing
 import SwiftUI
 
-/// The Scout iPhone app: a read-only view of the scout store, served live
-/// by `beagle serve` on the Mac (docs/serve-api.md).
+/// The Beagle iPhone app: every beagle tool, read-only.
+///
+/// Served live by `beagle serve` on the Mac (docs/serve-api.md); it opens on a home screen of
+/// tools.
 @main
-struct ScoutApp: App {
-  @State private var pairing = ScoutApp.makePairing()
+struct BeagleApp: App {
+  @State private var pairing = BeagleApp.makePairing()
 
   var body: some Scene {
     WindowGroup {
@@ -14,9 +16,10 @@ struct ScoutApp: App {
     }
   }
 
-  /// The Keychain service the token is filed under (unchanged since the
-  /// first version, so an existing pairing survives updates).
-  static let keychainService = "dev.beagletools.scout"
+  /// The Keychain service the token is filed under.
+  ///
+  /// Keep it unchanged, so an existing pairing survives updates.
+  static let keychainService = "dev.beagletools.beagle"
 
   /// The app's pairing.
   ///
@@ -32,7 +35,7 @@ struct ScoutApp: App {
     guard CommandLine.arguments.contains("-ui-testing") else {
       return Pairing(tool: "scout", secrets: Keychain(service: keychainService))
     }
-    let suite = "dev.beagletools.scout.uitests"
+    let suite = "dev.beagletools.beagle.uitests"
     let defaults = UserDefaults(suiteName: suite) ?? .standard
     defaults.removePersistentDomain(forName: suite)
     let keychain = Keychain(service: suite)

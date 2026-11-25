@@ -322,8 +322,8 @@ Full strategy: [`TESTING.md`](TESTING.md). The rules:
 ## 4. Swift (iPhone apps and `utils/swift`)
 
 Swift gets the same bar as Rust. `scripts/ci/ios.sh` runs it all for each app
-(`scout/ios`) and package (`utils/swift`), through `make check-ios` and CI's
-`scout-ios` job. `scripts/ci/swift-standards.mjs` and
+(`ios`) and package (`utils/swift`), through `make check-ios` and CI's
+`ios` job. `scripts/ci/swift-standards.mjs` and
 `scripts/ci/ios-standards.mjs` (run by `make standards`) fail drift.
 
 | Rust | Swift equivalent | Where |

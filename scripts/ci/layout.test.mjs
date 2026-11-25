@@ -63,6 +63,13 @@ test("a new tool needs its folder", () => {
   assert.match(errors[0], /^notes\/tui\/Cargo\.toml: missing/);
 });
 
+test("the Beagle iPhone app lives at ios/, not in a tool", () => {
+  assert.deepEqual(check(["ios/Beagle/Tools/Recap/RecapView.swift"]), []);
+  const errors = check(["scout/ios/Scout.xcodeproj/project.pbxproj", "scout/ios/Scout/App.swift"]);
+  assert.equal(errors.length, 1, errors.join("\n"));
+  assert.match(errors[0], /^scout\/ios\/: not allowed — the one iPhone app is ios\//);
+});
+
 test("utils/ holds the Rust crates and the Swift package, nothing else", () => {
   assert.deepEqual(check(["utils/swift/Package.swift", "utils/tui/src/lib.rs", "utils/src/lib.rs"]), []);
   const errors = check(["utils/kotlin/build.gradle"]);
