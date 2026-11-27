@@ -396,13 +396,18 @@ working key, stores each as a generic-password item in the login Keychain
 as `[secrets] command` in `serve.toml`, and restarts the service. Then:
 
 - `beagle serve secrets sync` (no `--from`) reruns the saved command, e.g.
-  after rotating the key. `beagle serve` also reruns it at startup; if it
-  fails (offline, logged out) the server logs it and keeps what the
-  Keychain already has. It never blocks startup beyond the timeout.
+  after rotating the key. `beagle serve` also reruns it at startup, in
+  the background: the server answers at once with what the Keychain
+  already has, and reloads push when the sync finishes (bounded by the
+  timeout). If it fails (offline, logged out) the server logs it and keeps
+  what the Keychain has.
 - `beagle serve secrets status` lists which names the Keychain holds
   (never values), the saved command, and where push config comes from.
 - `beagle serve secrets clear` removes the three items.
-- `beagle serve status` and `beagle doctor` name the source.
+- `beagle serve status` and `beagle doctor` name the source. They read the
+  Keychain without ever showing a dialog: when macOS wants approval (often
+  after an update), they say "Keychain access needs approval — run
+  `beagle serve secrets sync`" instead of waiting for a click.
 
 **Where the key comes from**, first match wins:
 

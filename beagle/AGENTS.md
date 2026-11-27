@@ -87,7 +87,10 @@ tool may be named after one:
   password logins, TCP listeners beyond loopback and Tailscale, firewall
   stealth off, Screen Sharing / Remote Management, a pairing token older
   than 90 days by `serve.toml`'s `token_created`). `beagle server-mode`
-  can call `beagle_utils::exposure::gather` for the same warnings.
+  shows the same warnings (`beagle_utils::exposure::gather`). The push
+  check reads the Keychain non-interactively
+  (`beagle_serve::secrets::Keychain::non_interactive`), so doctor never
+  hangs on a Keychain dialog.
 
 **Tools never update themselves under `beagle`.** One tool's download
 would replace every other tool in the binary, so under `beagle` a tool has

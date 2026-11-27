@@ -2,6 +2,8 @@
 //! against fake programs; nothing here touches the real system.
 #![allow(clippy::expect_used, clippy::unwrap_used, clippy::panic)] // panicking is the correct failure mode in tests
 
+mod ready;
+mod rig;
 mod session;
 
 use std::path::PathBuf;
@@ -25,7 +27,7 @@ fn no_arguments_and_bare_flags_mean_on() {
     assert_eq!(parse(&[]), Ok(Cmd::On(OnOpts::default())));
     assert_eq!(on(&["on"]), OnOpts::default());
     let opts = on(&["--no-lock", "-t", "2"]);
-    assert!(!opts.lock);
+    assert_eq!(opts.lock, Some(false));
     assert_eq!(opts.secs, Some(7200));
 }
 
@@ -43,10 +45,15 @@ fn on_takes_every_flag_of_the_script() {
     assert_eq!(opts.hours.as_deref(), Some("0.01"));
     assert_eq!(opts.secs, Some(36));
     assert_eq!(opts.file, Some(PathBuf::from("run.sh")));
-    assert!(!opts.lock);
+    assert_eq!(opts.lock, Some(false));
     let long = on(&["on", "--hours", "8", "--startup", "--file", "a.sh"]);
     assert_eq!(long.secs, Some(8 * 3600));
     assert_eq!(long.file, Some(PathBuf::from("a.sh")));
+    let more = on(&["on", "--no-serve", "--new-pairing", "--on-stop", "s.sh"]);
+    assert_eq!(more.serve, Some(false));
+    assert_eq!(more.new_pairing, Some(true));
+    assert_eq!(more.on_stop, Some(PathBuf::from("s.sh")));
+    assert_eq!(on(&["--serve"]).serve, Some(true));
     let inline = on(&["on", "--hours=1.5", "--file=b.sh"]);
     assert_eq!(inline.secs, Some(5400));
     assert_eq!(inline.file, Some(PathBuf::from("b.sh")));
@@ -75,8 +82,8 @@ fn usage_errors_name_the_problem() {
         "unknown command: nap (see beagle server-mode --help)"
     );
     assert_eq!(
-        err(&["on", "--lid"]),
-        "unknown option: --lid (see beagle server-mode --help)"
+        err(&["on", "--nap"]),
+        "unknown option: --nap (see beagle server-mode --help)"
     );
     assert_eq!(err(&["on", "-t"]), "-t needs a number of hours");
     assert_eq!(err(&["on", "--file"]), "--file needs a file");
@@ -154,7 +161,7 @@ fn tail_keeps_the_last_lines() {
 
 #[test]
 fn lock_delay_reads_sysadminctl_output() {
-    use crate::session::lock_delay;
+    use crate::report::lock_delay;
     assert_eq!(
         lock_delay("screenLock delay is 5 seconds").as_deref(),
         Some("5 seconds")

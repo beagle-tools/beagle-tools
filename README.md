@@ -43,7 +43,7 @@ o'')}____//     beagle setup     # skills, hooks and stores, all in one go
 | <img src="docs/assets/agentdesk-logo.svg" alt="" width="28"> | **[agent](agent/README.md)** (agentd) | Schedule coding agents from YAML. Each run gets its own tmux session and is recorded in SQLite | CLI/TUI, daemon, macOS desktop |
 | <img src="docs/assets/beagle-logo.png" alt="" width="28"> | **[recap](recap/README.md)** | A PR's diff next to a plain-language write-up of what it fixes and why | CLI/TUI |
 | <img src="docs/assets/beagle-logo.png" alt="" width="28"> | **[standup](standup/README.md)** | Your standup, written for you: one overview, then a short write-up per ticket | CLI/TUI |
-| <img src="docs/assets/beagle-logo.png" alt="" width="28"> | **[server-mode](server-mode/README.md)** | Keep a Mac awake as a server while the screen locks, with an optional timer and startup file | CLI (macOS) |
+| <img src="docs/assets/beagle-logo.png" alt="" width="28"> | **[server-mode](server-mode/README.md)** | Get a Mac ready to serve the phone app in one command: your own setup steps, beagle serve up and checked, awake and locked | CLI (macOS) |
 | <img src="docs/assets/beagle-logo.png" alt="" width="28"> | **[Beagle for iPhone](ios/README.md)** | Every tool in your pocket, read-only, served from your Mac by `beagle serve` | iOS |
 
 Every terminal tool and daemon lives in **one binary, `beagle`**

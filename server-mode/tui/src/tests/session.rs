@@ -1,97 +1,13 @@
-//! The commands end to end over a temp state dir, with fake `caffeinate`,
-//! `osascript`, `pmset` and `sysadminctl`: the real ones never run here.
+//! The commands end to end over a temp state dir, with a fake `caffeinate`
+//! and a fake host (`rig.rs`): nothing real is started, stopped or locked.
 #![allow(clippy::expect_used, clippy::unwrap_used, clippy::panic)] // panicking is the correct failure mode in tests
 
 use std::fs;
-use std::os::unix::fs::PermissionsExt as _;
-use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::thread;
-use std::time::{Duration, Instant};
 
+use super::rig::{eventually, pid, script, Rig};
 use crate::cli::{parse, Cmd};
 use crate::procs::{alive, spawn_detached, stop, Programs, Target};
-use crate::session::Ctx;
-use crate::state::StateDir;
-
-/// A temp dir with fake programs and two state dirs.
-struct Rig {
-    tmp: tempfile::TempDir,
-    ctx: Ctx,
-}
-
-fn script(path: &Path, body: &str) -> PathBuf {
-    fs::write(path, format!("#!/bin/sh\n{body}\n")).unwrap();
-    fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
-    path.to_path_buf()
-}
-
-impl Rig {
-    /// `osascript` fails (no Accessibility) unless `lock_ok`.
-    fn new(lock_ok: bool) -> Self {
-        let tmp = tempfile::tempdir().unwrap();
-        let bin = tmp.path().join("bin");
-        fs::create_dir(&bin).unwrap();
-        let rec = tmp.path().join("calls");
-        let log = |name: &str| format!("echo \"{name} $*\" >> '{}'", rec.display());
-        let mut progs = Programs::system();
-        progs.caffeinate = script(
-            &bin.join("caffeinate"),
-            &format!("{}\nexec sleep 30", log("caffeinate")),
-        );
-        progs.osascript = script(
-            &bin.join("osascript"),
-            &format!("{}\nexit {}", log("osascript"), u8::from(!lock_ok)),
-        );
-        progs.pmset = script(
-            &bin.join("pmset"),
-            &format!(
-                "{}\n[ \"$1\" = -g ] && echo \"Now drawing from 'Battery Power'\"\nexit 0",
-                log("pmset")
-            ),
-        );
-        progs.sysadminctl = script(
-            &bin.join("sysadminctl"),
-            "echo 'screenLock delay is 5 seconds' >&2",
-        );
-        let exe = script(&bin.join("beagle"), &log("beagle"));
-        let ctx = Ctx {
-            state: StateDir::new(tmp.path().join("state")),
-            legacy: Some(StateDir::new(tmp.path().join("legacy"))),
-            progs,
-            exe,
-        };
-        Self { tmp, ctx }
-    }
-
-    fn run(&self, args: &[&str]) -> Result<String, String> {
-        let words: Vec<String> = args.iter().map(|s| (*s).to_owned()).collect();
-        let cmd = parse(&words)?;
-        let mut out = Vec::new();
-        self.ctx.exec(cmd, &mut out)?;
-        Ok(String::from_utf8(out).unwrap())
-    }
-
-    fn calls(&self) -> String {
-        fs::read_to_string(self.tmp.path().join("calls")).unwrap_or_default()
-    }
-}
-
-fn pid(dir: &StateDir, name: &str) -> u32 {
-    dir.read_pid(name).unwrap_or_else(|| panic!("no {name}"))
-}
-
-/// Polls `check` for up to `secs` seconds.
-fn eventually(secs: u64, mut check: impl FnMut() -> bool) -> bool {
-    let end = Instant::now() + Duration::from_secs(secs);
-    while Instant::now() < end {
-        if check() {
-            return true;
-        }
-        thread::sleep(Duration::from_millis(50));
-    }
-    check()
-}
 
 #[test]
 fn stop_kills_a_whole_process_group() {
@@ -129,7 +45,7 @@ fn stop_kills_what_ignores_term() {
 
 #[test]
 fn on_status_log_off_round_trip() {
-    let rig = Rig::new(true);
+    let rig = Rig::new();
     let file = script(
         &rig.tmp.path().join("run.sh"),
         "echo started; exec sleep 30",
@@ -141,7 +57,10 @@ fn on_status_log_off_round_trip() {
         out,
         format!(
             "server mode on — awake for 2h\n  running {} (log: beagle server-mode log)\n  \
-             on battery: it stays awake, but plug in for anything long\n  screen locked\n",
+             ✓ beagle serve: answering at https://mac.example.net:8443\n  \
+             ✓ certificate: 80 days left\n  ✓ agentd: running\n  \
+             ✓ exposure: nothing found answering beyond this Mac\n  screen locked\n\
+             Ready — open Beagle on your phone\n",
             file.display()
         )
     );
@@ -177,8 +96,9 @@ fn on_status_log_off_round_trip() {
 
     assert_eq!(
         rig.run(&["off"]).unwrap(),
-        "server mode off — the Mac can sleep again\n"
+        "server mode off — the Mac can sleep again\n  beagle serve stopped\n"
     );
+    assert_eq!(rig.host.called(), ["serve start", "lock", "serve stop"]);
     for pid in [caf, timer, startup] {
         assert!(eventually(5, || !alive(progs, Target::Pid(pid))), "{pid}");
     }
@@ -194,7 +114,7 @@ fn on_status_log_off_round_trip() {
 
 #[test]
 fn without_hours_there_is_no_timer() {
-    let rig = Rig::new(true);
+    let rig = Rig::new();
     let out = rig.run(&["--no-lock"]).unwrap();
     assert!(out.starts_with("server mode on — awake until 'beagle server-mode off'\n"));
     assert!(!out.contains("screen locked"));
@@ -207,7 +127,7 @@ fn without_hours_there_is_no_timer() {
 
 #[test]
 fn the_timer_runs_off_when_it_ends() {
-    let rig = Rig::new(true);
+    let rig = Rig::new();
     rig.run(&["on", "-t", "0.0001", "--no-lock"]).unwrap();
     assert!(eventually(10, || rig
         .calls()
@@ -217,7 +137,7 @@ fn the_timer_runs_off_when_it_ends() {
 
 #[test]
 fn a_file_that_is_not_executable_runs_with_bash() {
-    let rig = Rig::new(true);
+    let rig = Rig::new();
     let file = rig.tmp.path().join("plain.sh");
     fs::write(&file, "echo \"via ${BASH_VERSION:+bash}\"\n").unwrap();
     rig.run(&["on", "--no-lock", "-f", file.to_str().unwrap()])
@@ -237,7 +157,7 @@ fn a_file_that_is_not_executable_runs_with_bash() {
 
 #[test]
 fn a_missing_file_is_refused_before_anything_starts() {
-    let rig = Rig::new(true);
+    let rig = Rig::new();
     let err = rig.run(&["on", "-f", "/nonexistent/run.sh"]).unwrap_err();
     assert_eq!(err, "no such file: /nonexistent/run.sh");
     assert_eq!(rig.ctx.state.read("caffeinate.pid"), None);
@@ -246,17 +166,31 @@ fn a_missing_file_is_refused_before_anything_starts() {
 
 #[test]
 fn lock_falls_back_to_display_sleep() {
-    let rig = Rig::new(false);
+    let rig = Rig::new();
+    rig.host.lock_ok.set(false);
     let out = rig.run(&["lock"]).unwrap();
     assert!(out.starts_with("  couldn't lock: give your terminal Accessibility access\n"));
     assert!(out.ends_with("it only locks after 5 seconds\n"), "{out}");
-    assert!(rig.calls().contains("pmset displaysleepnow"));
-    assert_eq!(Rig::new(true).run(&["lock"]).unwrap(), "  screen locked\n");
+    assert_eq!(rig.host.called(), ["lock", "display sleep"]);
+    assert_eq!(Rig::new().run(&["lock"]).unwrap(), "  screen locked\n");
+}
+
+#[test]
+fn on_battery_is_said_whatever_this_mac_is_on() {
+    let rig = Rig::new();
+    rig.host.battery.set(true);
+    let out = rig.run(&["--no-lock", "--no-serve"]).unwrap();
+    assert!(out.contains("  on battery: it stays awake, but plug in for anything long\n"));
+    rig.run(&["off"]).unwrap();
+    let plugged = Rig::new();
+    let out = plugged.run(&["--no-lock", "--no-serve"]).unwrap();
+    assert!(!out.contains("on battery"), "{out}");
+    plugged.run(&["off"]).unwrap();
 }
 
 #[test]
 fn a_session_the_old_script_started_is_seen_and_stopped() {
-    let rig = Rig::new(true);
+    let rig = Rig::new();
     let legacy = rig.ctx.legacy.clone().unwrap();
     let caf = spawn_detached(Command::new("sleep").arg("30")).unwrap();
     legacy.write("caffeinate.pid", caf).unwrap();
@@ -279,7 +213,7 @@ fn a_session_the_old_script_started_is_seen_and_stopped() {
 
 #[test]
 fn help_is_answered_without_touching_state() {
-    let rig = Rig::new(true);
+    let rig = Rig::new();
     assert_eq!(rig.run(&["help"]).unwrap(), "");
     assert!(matches!(parse(&["help".to_owned()]), Ok(Cmd::Help)));
     assert!(!rig.ctx.state.dir.exists());

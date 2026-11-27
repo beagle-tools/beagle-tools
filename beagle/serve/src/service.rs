@@ -352,6 +352,40 @@ pub fn restart_if_loaded() -> Result<bool> {
     Ok(true)
 }
 
+/// Starts the server for `beagle server-mode on`: installs and loads the
+/// agent when it isn't loaded, starts a loaded one that isn't running, and
+/// leaves a running one alone. Returns what it did.
+///
+/// # Errors
+/// As [`install`] and [`status`]; [`Error::Service`] when `kickstart` fails.
+pub fn start() -> Result<String> {
+    match status()? {
+        Status::NotInstalled | Status::NotLoaded(_) => install(),
+        Status::Loaded { pid: Some(_), .. } => Ok("already running".to_owned()),
+        Status::Loaded { .. } => {
+            checked(
+                "launchctl",
+                &["kickstart", &format!("{}/{LABEL}", domain()?)],
+            )?;
+            Ok("started".to_owned())
+        }
+    }
+}
+
+/// Stops the server and unloads the agent (`bootout`, so launchd doesn't
+/// restart it), keeping its plist, token, phones and settings. `Ok(false)`
+/// when it wasn't loaded.
+///
+/// # Errors
+/// As [`status`]; [`Error::Service`] when `bootout` fails.
+pub fn stop() -> Result<bool> {
+    if !matches!(status()?, Status::Loaded { .. }) {
+        return Ok(false);
+    }
+    checked("launchctl", &["bootout", &format!("{}/{LABEL}", domain()?)])?;
+    Ok(true)
+}
+
 #[cfg(test)]
 #[path = "tests/service.rs"]
 mod tests;
