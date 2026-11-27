@@ -3,6 +3,7 @@
 //!
 //! ```toml
 //! token = "…64 hex characters…"           # written by `beagle serve pair`
+//! token_created = 2026-01-01T00:00:00Z     # when pair made it (`beagle doctor` warns when old)
 //! host = "mac.example-tailnet.ts.net"     # MagicDNS name, for the cert and the pairing URL
 //! port = 8787
 //! # addr = "100.64.0.1"                   # default: `tailscale ip -4`
@@ -38,6 +39,14 @@ pub struct Config {
     /// The bearer token (secret).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
+    /// When `pair` made the token; unknown for tokens made before this was
+    /// recorded.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "time::serde::rfc3339::option"
+    )]
+    pub token_created: Option<time::OffsetDateTime>,
     /// The Mac's `MagicDNS` name (`<mac>.<tailnet>.ts.net`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub host: Option<String>,
@@ -114,6 +123,7 @@ impl fmt::Debug for Config {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Config")
             .field("token", &self.token.as_ref().map(|_| "<redacted>"))
+            .field("token_created", &self.token_created)
             .field("host", &self.host)
             .field("port", &self.port)
             .field("addr", &self.addr)
@@ -130,6 +140,12 @@ impl Config {
     #[must_use]
     pub fn port(&self) -> u16 {
         self.port.unwrap_or(DEFAULT_PORT)
+    }
+
+    /// When the token was made, if known.
+    #[must_use]
+    pub fn token_created_at(&self) -> Option<std::time::SystemTime> {
+        self.token_created.map(std::time::SystemTime::from)
     }
 
     /// The certificate and key paths for `host`: the configured ones

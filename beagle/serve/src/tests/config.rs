@@ -19,6 +19,7 @@ fn save_then_load_round_trips_with_mode_0600() {
     let path = dir.path().join("beagle/serve.toml");
     let config = Config {
         token: Some("ab".repeat(32)),
+        token_created: Some(time::macros::datetime!(2026-01-02 03:04:05 UTC)),
         host: Some("mac.example-tailnet.ts.net".into()),
         port: Some(9000),
         addr: Some("100.64.0.1".parse().unwrap()),
@@ -84,4 +85,18 @@ fn cert_paths_default_to_the_host_under_the_dir() {
         ..Config::default()
     };
     assert_eq!(custom.cert_paths(dir, "h").0, Path::new("/etc/c.pem"));
+}
+
+#[test]
+fn token_created_is_rfc3339_and_optional() {
+    let config: Config = toml::from_str("token_created = \"2026-01-02T03:04:05Z\"\n").unwrap();
+    assert_eq!(
+        config.token_created_at(),
+        Some(std::time::UNIX_EPOCH + std::time::Duration::from_secs(1_767_323_045))
+    );
+    assert!(toml::to_string(&config)
+        .unwrap()
+        .contains("2026-01-02T03:04:05Z"));
+    // Tokens made before it was recorded have no age.
+    assert_eq!(Config::default().token_created_at(), None);
 }

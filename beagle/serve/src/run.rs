@@ -77,6 +77,12 @@ fn pair_command(opts: &PairOptions) -> Result<()> {
     let port = opts.port.unwrap_or_else(|| config.port());
     let updated = config::Config {
         token: Some(token.as_str().to_owned()),
+        // Rotation records when, so `beagle doctor` can flag an old token.
+        token_created: if new {
+            time::OffsetDateTime::now_utc().replace_nanosecond(0).ok()
+        } else {
+            config.token_created
+        },
         host: Some(host.clone()),
         port: opts.port.or(config.port),
         ..config.clone()

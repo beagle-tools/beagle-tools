@@ -6,7 +6,10 @@
 //! On macOS it also reports whether the `beagle serve` launchd agent is
 //! running (`launchctl print`, read-only), and it runs the setup checks in
 //! `health` (gh, agent services, tmux, skills, scout hooks), which only
-//! warn: the exit code is non-zero only for old binaries or a down service.
+//! warn, and the exposure checks in `beagle_utils::exposure` (password SSH,
+//! listeners on every network, stealth mode off, Screen Sharing or Remote
+//! Management on, an old pairing token), which also only warn: the exit
+//! code is non-zero only for old binaries or a down service.
 //!
 //! The PATH scan only reads directory entries; it never runs what it finds.
 
@@ -67,6 +70,9 @@ pub fn run() -> ExitCode {
             println!("{}", check.line());
         }
     }
+    for line in exposure_lines(&beagle_utils::exposure::gather(serve_token_created())) {
+        println!("{line}");
+    }
     if findings.is_empty() {
         println!("✓ no old standalone binaries on PATH — `beagle` is the only one");
         return if serve_ok {
@@ -100,6 +106,25 @@ fn report_serve() -> bool {
         println!("{}", push_line(&beagle_serve::push::status()));
     }
     ok
+}
+
+/// When `beagle serve`'s pairing token was made, if its config records it.
+fn serve_token_created() -> Option<std::time::SystemTime> {
+    let path = beagle_serve::config::path().ok()?;
+    beagle_serve::config::load(&path).ok()?.token_created_at()
+}
+
+/// The doctor's lines for the exposure warnings: one `⚠` each, or one `✓`.
+pub fn exposure_lines(warnings: &[String]) -> Vec<String> {
+    if warnings.is_empty() {
+        return vec![
+            "✓ exposure: nothing found answering beyond this Mac and its tailnet".to_owned(),
+        ];
+    }
+    warnings
+        .iter()
+        .map(|w| format!("⚠ exposure: {w}"))
+        .collect()
 }
 
 /// The doctor's line for push notifications: a warning (never a failure)

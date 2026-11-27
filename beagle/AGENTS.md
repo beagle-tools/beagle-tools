@@ -83,7 +83,11 @@ tool may be named after one:
   it — and, when it is installed, whether push is set up (a warning),
   plus setup checks that only warn (`health.rs`: `gh` signed in,
   agent services still running a retired binary, `tmux`, skills, scout
-  hooks).
+  hooks), and exposure warnings (`beagle_utils::exposure`, macOS: SSH
+  password logins, TCP listeners beyond loopback and Tailscale, firewall
+  stealth off, Screen Sharing / Remote Management, a pairing token older
+  than 90 days by `serve.toml`'s `token_created`). `beagle server-mode`
+  can call `beagle_utils::exposure::gather` for the same warnings.
 
 **Tools never update themselves under `beagle`.** One tool's download
 would replace every other tool in the binary, so under `beagle` a tool has
