@@ -157,3 +157,11 @@ fn each_retired_binary_names_the_command_that_replaced_it() {
     });
     assert!(line.contains("it is `beagle agent` now"), "{line}");
 }
+
+#[test]
+fn exposure_lines_warn_one_per_problem() {
+    assert_eq!(exposure_lines(&[]).len(), 1);
+    assert!(exposure_lines(&[])[0].starts_with('✓'));
+    let lines = exposure_lines(&["a — fix a".to_owned(), "b — fix b".to_owned()]);
+    assert_eq!(lines, ["⚠ exposure: a — fix a", "⚠ exposure: b — fix b"]);
+}

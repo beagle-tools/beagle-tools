@@ -9,6 +9,7 @@
 
 pub mod agent_env;
 pub mod duration;
+pub mod exposure;
 pub mod fs;
 #[cfg(feature = "gh")]
 pub mod gh;
