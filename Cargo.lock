@@ -306,8 +306,13 @@ dependencies = [
 name = "beagle-server-mode"
 version = "0.1.0"
 dependencies = [
+ "beagle-serve",
  "beagle-utils",
+ "reqwest",
+ "serde",
  "tempfile",
+ "time",
+ "toml",
 ]
 
 [[package]]

@@ -22,7 +22,7 @@ use beagle_utils::process::output_with_timeout;
 use crate::config::{self, SecretsConfig};
 use crate::error::{Error, Result};
 use crate::push::source::{self, ENV_VARS};
-pub use keychain::Keychain;
+pub use keychain::{Keychain, NEEDS_APPROVAL};
 
 /// Bound on the secret manager's command.
 pub const COMMAND_TIMEOUT: Duration = Duration::from_secs(30);
@@ -173,7 +173,7 @@ pub fn sync_command(from: Option<&str>) -> Result<()> {
 /// The config's error.
 pub fn status_command() -> Result<()> {
     let config = config::load(&config::path()?)?;
-    for (name, present) in present(&Keychain::default()) {
+    for (name, present) in present(&Keychain::non_interactive()) {
         let state = match present {
             Ok(true) => "in the Keychain".to_owned(),
             Ok(false) => "not stored".to_owned(),
@@ -212,20 +212,38 @@ pub fn clear_command() -> Result<()> {
     Ok(())
 }
 
-/// At `beagle serve` startup: reruns the saved command, if any. A failure
-/// keeps what the Keychain already has and is only logged.
-pub fn sync_at_startup(config: &config::Config) {
-    let Some(secrets) = &config.secrets else {
-        return;
-    };
-    let result = run_command(&secrets.command, COMMAND_TIMEOUT)
-        .and_then(|out| sync_output(&Keychain::default(), &out));
-    match result {
-        Ok(stored) => eprintln!("beagle serve:   secrets: synced {}", stored.join(", ")),
-        Err(why) => {
-            eprintln!("beagle serve:   secrets: sync failed, using what the Keychain has: {why}");
-        }
-    }
+/// The outcome of a sync: the names stored, or why nothing was.
+pub type SyncResult = std::result::Result<Vec<&'static str>, String>;
+
+/// At `beagle serve` startup, on its own thread so the server answers at
+/// once with what `store` already has: reruns the saved `command` (bounded
+/// by [`COMMAND_TIMEOUT`]; a secret manager can be slow, or wait on a
+/// locked screen), stores its values, logs the result and hands it to
+/// `done`. A failure keeps what the store already has.
+///
+/// # Errors
+/// The thread could not be started.
+pub fn spawn_startup_sync<S>(
+    command: String,
+    store: S,
+    done: impl FnOnce(&SyncResult) + Send + 'static,
+) -> std::io::Result<std::thread::JoinHandle<()>>
+where
+    S: SecretStore + Send + 'static,
+{
+    std::thread::Builder::new()
+        .name("serve-secrets-sync".into())
+        .spawn(move || {
+            let result =
+                run_command(&command, COMMAND_TIMEOUT).and_then(|out| sync_output(&store, &out));
+            match &result {
+                Ok(stored) => eprintln!("beagle serve:   secrets: synced {}", stored.join(", ")),
+                Err(why) => eprintln!(
+                    "beagle serve:   secrets: sync failed, using what the Keychain has: {why}"
+                ),
+            }
+            done(&result);
+        })
 }
 
 #[cfg(test)]

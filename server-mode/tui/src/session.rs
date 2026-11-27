@@ -1,24 +1,29 @@
-//! The commands: `on`, `off`, `status`, `log` and `lock`.
+//! The commands: `on` and `off` (`status`, `log` and `lock` are in
+//! `report.rs`).
 
 use std::fs;
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt as _;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::rc::Rc;
+use std::thread;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::cli::{Cmd, OnOpts};
-use crate::procs::{alive, output, spawn_detached, stop, Programs, Target};
-use crate::state::{fmt_dur, tail, StateDir, LOG_FILE};
+use crate::config::{self, Step};
+use crate::host::{Host, Svc};
+use crate::procs::{alive, spawn_detached, stop, Programs, Target};
+use crate::report::{Line, Mark};
+use crate::state::{StateDir, LOG_FILE};
+use crate::steps;
 
 /// What the timer runs: sleep, then become `<beagle> server-mode off`
 /// (`exec`, so `off` sees its own pid in `timer.pid` and spares itself).
 const TIMER_SCRIPT: &str = r#"sleep "$1"; exec "$2" server-mode off"#;
 
-/// Ctrl-Cmd-Q, the Apple menu → Lock Screen shortcut. Needs Accessibility access
-/// for the terminal; without it `lock` falls back to display sleep.
-const LOCK_SCRIPT: &str =
-    r#"tell application "System Events" to keystroke "q" using {control down, command down}"#;
+/// How long `on` waits for `beagle serve` to answer its health check.
+pub(crate) const HEALTH_WAIT: Duration = Duration::from_secs(30);
 
 /// Everything a command needs; tests build one over temp dirs and fakes.
 #[derive(Debug, Clone)]
@@ -30,15 +35,20 @@ pub(crate) struct Ctx {
     pub progs: Programs,
     /// The `beagle` binary the timer runs as `<exe> server-mode off`.
     pub exe: PathBuf,
+    /// `server-mode.toml` (a missing file is an empty config).
+    pub config: Option<PathBuf>,
+    pub host: Rc<dyn Host>,
+    /// How long `on` waits for the server's health check.
+    pub health_wait: Duration,
 }
 
-type Res = Result<(), String>;
+pub(crate) type Res = Result<(), String>;
 
-fn io_err(what: &str) -> impl Fn(io::Error) -> String + '_ {
+pub(crate) fn io_err(what: &str) -> impl Fn(io::Error) -> String + '_ {
     move |e| format!("{what}: {e}")
 }
 
-fn now() -> i64 {
+pub(crate) fn now() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
@@ -50,18 +60,26 @@ impl Ctx {
         let state = crate::state::default_dir().ok_or("no home directory")?;
         let legacy = beagle_utils::paths::home_dir().map(|h| crate::state::legacy_dir(&h));
         let exe = std::env::current_exe().map_err(io_err("can't find the beagle binary"))?;
+        let exe = beagle_utils::paths::stable_exe(&exe);
+        let progs = Programs::system();
         Ok(Self {
             state: StateDir::new(state),
             legacy: legacy.map(StateDir::new),
-            progs: Programs::system(),
-            exe: beagle_utils::paths::stable_exe(&exe),
+            host: Rc::new(crate::host::System {
+                progs: progs.clone(),
+                exe: exe.clone(),
+            }),
+            progs,
+            exe,
+            config: config::default_path(),
+            health_wait: HEALTH_WAIT,
         })
     }
 
     pub fn exec(&self, cmd: Cmd, out: &mut dyn Write) -> Res {
         let res = match cmd {
             Cmd::On(opts) => self.on(&opts, out),
-            Cmd::Off => self.off(false, out),
+            Cmd::Off => self.off(out),
             Cmd::Status => self.status(out),
             Cmd::Log => self.log(out),
             Cmd::Lock => self.lock_screen(out),
@@ -71,7 +89,7 @@ impl Ctx {
     }
 
     /// This tool's dir, then the old script's.
-    fn dirs(&self) -> impl Iterator<Item = &StateDir> {
+    pub(crate) fn dirs(&self) -> impl Iterator<Item = &StateDir> {
         std::iter::once(&self.state).chain(self.legacy.as_ref())
     }
 
@@ -81,8 +99,14 @@ impl Ctx {
     }
 
     /// The dir holding the running session, if any.
-    fn active(&self) -> Option<&StateDir> {
+    pub(crate) fn active(&self) -> Option<&StateDir> {
         self.dirs().find(|d| self.is_on(d))
+    }
+
+    fn load_config(&self) -> Result<config::Config, String> {
+        self.config
+            .as_deref()
+            .map_or_else(|| Ok(config::Config::default()), config::load)
     }
 
     fn on(&self, opts: &OnOpts, out: &mut dyn Write) -> Res {
@@ -91,50 +115,63 @@ impl Ctx {
                         (or 'beagle server-mode status')"
                 .into());
         }
-        let file = opts.file.as_deref().map(absolute_file).transpose()?;
-        self.off(true, out)?; // clear stale state from a crash or reboot
-
-        let state = &self.state;
-        let start = now();
-        state.write("since", start).map_err(io_err("write state"))?;
-
-        // -t is a backstop: the timer also stops the startup file, but if
-        // it dies caffeinate still lets the Mac sleep on schedule.
-        let mut caf = self.progs.nohup(&self.progs.caffeinate);
-        caf.args(["-i", "-s"]);
-        if let Some(secs) = opts.secs {
-            caf.args(["-t", &secs.to_string()]);
+        let plan = config::plan(opts, &self.load_config()?)?;
+        let file = plan.file.as_deref().map(absolute_file).transpose()?;
+        let on_stop = plan.on_stop.as_deref().map(absolute_file).transpose()?;
+        // Clear stale state from a crash or reboot (its serve is restarted
+        // below anyway, so nothing else of it needs finishing).
+        for dir in self.dirs() {
+            self.stop_session(dir);
         }
-        caf.stdout(Stdio::null()).stderr(Stdio::null());
-        let pid = spawn_detached(&mut caf).map_err(io_err("couldn't start caffeinate"))?;
-        state
-            .write("caffeinate.pid", pid)
-            .map_err(io_err("write state"))?;
+        let state = &self.state;
+        fs::create_dir_all(&state.dir).map_err(io_err("create the state dir"))?;
+        fs::File::create(state.path(LOG_FILE)).map_err(io_err("create the log"))?;
+        let w = io_err("write");
+        let mut lines = Vec::new();
 
-        if let Some(secs) = opts.secs {
-            let until = start.saturating_add(i64::try_from(secs).unwrap_or(i64::MAX));
-            state.write("until", until).map_err(io_err("write state"))?;
-            let mut timer = self.progs.nohup(&self.progs.sh);
-            timer
-                .args(["-c", TIMER_SCRIPT, "_", &secs.to_string()])
-                .arg(&self.exe)
-                .stdout(Stdio::null())
-                .stderr(Stdio::null());
-            let pid = spawn_detached(&mut timer).map_err(io_err("couldn't start the timer"))?;
+        for step in &plan.before {
+            match steps::run(&self.progs.sh, step, &state.path(LOG_FILE)) {
+                Ok(()) => lines.push(Line::ok(format!("step {}", step.name))),
+                Err(e) if step.optional => {
+                    lines.push(Line::warn(format!("step {}: {e}", step.name)));
+                }
+                Err(e) => {
+                    return Err(format!(
+                    "step '{}' failed: {e}\n  nothing was started (see 'beagle server-mode log')",
+                    step.name
+                ))
+                }
+            }
+        }
+
+        if plan.serve {
+            state.write("serve", 1).map_err(io_err("write state"))?;
+            if plan.new_pairing {
+                self.host.new_pairing()?;
+            }
+            if let Err(e) = self.host.serve_start() {
+                lines.push(Line::fail(format!("beagle serve: couldn't start: {e}")));
+            } else {
+                self.wait_healthy();
+            }
+        }
+        if let Some(path) = &on_stop {
             state
-                .write("timer.pid", pid)
+                .write("on_stop", path.display())
                 .map_err(io_err("write state"))?;
         }
 
+        let start = now();
+        state.write("since", start).map_err(io_err("write state"))?;
+        self.start_awake(start, plan.secs)?;
         if let Some(file) = &file {
             self.start_file(file)?;
         }
 
-        let until = match &opts.hours {
+        let until = match &plan.hours {
             Some(h) => format!(" for {h}h"),
             None => " until 'beagle server-mode off'".into(),
         };
-        let w = io_err("write");
         writeln!(out, "server mode on — awake{until}").map_err(&w)?;
         if let Some(file) = &file {
             writeln!(
@@ -144,17 +181,64 @@ impl Ctx {
             )
             .map_err(&w)?;
         }
-        if self.on_battery() {
+        if self.host.on_battery() {
             writeln!(
                 out,
                 "  on battery: it stays awake, but plug in for anything long"
             )
             .map_err(&w)?;
         }
-        if opts.lock {
+        lines.extend(self.checks(plan.serve));
+        for line in &lines {
+            writeln!(out, "  {line}").map_err(&w)?;
+        }
+        if plan.lock {
             self.lock_screen(out)?;
         }
-        Ok(())
+        let ready = if lines.iter().any(|l| l.mark == Mark::Fail) {
+            "Not ready — fix the ✗ lines above, then 'beagle server-mode status'"
+        } else {
+            "Ready — open Beagle on your phone"
+        };
+        writeln!(out, "{ready}").map_err(&w)
+    }
+
+    /// Polls the server's health check for up to [`Ctx::health_wait`].
+    fn wait_healthy(&self) {
+        let end = Instant::now() + self.health_wait;
+        while self.host.serve_health().is_err() && Instant::now() < end {
+            thread::sleep(Duration::from_millis(500));
+        }
+    }
+
+    /// `caffeinate -i -s`, and the timer when `secs` is set.
+    fn start_awake(&self, start: i64, secs: Option<u64>) -> Res {
+        let state = &self.state;
+        // -t is a backstop: the timer also stops the startup file, but if
+        // it dies caffeinate still lets the Mac sleep on schedule.
+        let mut caf = self.progs.nohup(&self.progs.caffeinate);
+        caf.args(["-i", "-s"]);
+        if let Some(secs) = secs {
+            caf.args(["-t", &secs.to_string()]);
+        }
+        caf.stdout(Stdio::null()).stderr(Stdio::null());
+        let pid = spawn_detached(&mut caf).map_err(io_err("couldn't start caffeinate"))?;
+        state
+            .write("caffeinate.pid", pid)
+            .map_err(io_err("write state"))?;
+        let Some(secs) = secs else {
+            return Ok(());
+        };
+        let until = start.saturating_add(i64::try_from(secs).unwrap_or(i64::MAX));
+        state.write("until", until).map_err(io_err("write state"))?;
+        let mut timer = self.progs.nohup(&self.progs.sh);
+        timer
+            .args(["-c", TIMER_SCRIPT, "_", &secs.to_string()])
+            .arg(&self.exe)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        let pid = spawn_detached(&mut timer).map_err(io_err("couldn't start the timer"))?;
+        state.write("timer.pid", pid).map_err(io_err("write state"))
     }
 
     /// Runs the startup file in its own process group, output to the log.
@@ -164,8 +248,13 @@ impl Ctx {
         state
             .write("file", file.display())
             .map_err(io_err("write state"))?;
-        let log = fs::File::create(state.path(LOG_FILE)).map_err(io_err("create the log"))?;
-        let err = log.try_clone().map_err(io_err("open the log"))?;
+        let open = || {
+            fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(state.path(LOG_FILE))
+                .map_err(io_err("open the log"))
+        };
         let executable = fs::metadata(file).is_ok_and(|m| m.permissions().mode() & 0o111 != 0);
         let mut cmd = if executable {
             self.progs.nohup(file)
@@ -174,7 +263,7 @@ impl Ctx {
             c.arg(file);
             c
         };
-        cmd.stdout(log).stderr(err);
+        cmd.stdout(open()?).stderr(open()?);
         let pid = spawn_detached(&mut cmd)
             .map_err(|e| format!("couldn't start {}: {e}", file.display()))?;
         state
@@ -182,23 +271,46 @@ impl Ctx {
             .map_err(io_err("write state"))
     }
 
-    fn off(&self, quiet: bool, out: &mut dyn Write) -> Res {
+    /// `off`: stops the session, then `beagle serve` (if `on` started it),
+    /// then runs the `--on-stop` file and the `[[after]]` steps.
+    pub(crate) fn off(&self, out: &mut dyn Write) -> Res {
+        let w = io_err("write");
         let was_on = self.active().is_some();
+        let managed = self.state.read("serve").is_some();
+        let on_stop = self.state.read("on_stop");
         for dir in self.dirs() {
             self.stop_session(dir);
         }
-        if quiet {
-            return Ok(());
+        if !was_on && !managed && on_stop.is_none() {
+            return writeln!(out, "server mode was already off").map_err(&w);
         }
-        let msg = if was_on {
-            "server mode off — the Mac can sleep again"
-        } else {
-            "server mode was already off"
-        };
-        writeln!(out, "{msg}").map_err(io_err("write"))
+        writeln!(out, "server mode off — the Mac can sleep again").map_err(&w)?;
+        if managed {
+            match self.host.serve_stop() {
+                Ok(_) => writeln!(out, "  beagle serve stopped").map_err(&w)?,
+                Err(e) => writeln!(out, "  ✗ beagle serve: couldn't stop: {e}").map_err(&w)?,
+            }
+        }
+        let mut after: Vec<Step> = on_stop
+            .map(|f| Step::for_file("on-stop", Path::new(&f)))
+            .into_iter()
+            .collect();
+        match self.load_config() {
+            Ok(config) => after.extend(config.after),
+            Err(e) => writeln!(out, "  ✗ {e}").map_err(&w)?,
+        }
+        for step in &after {
+            let line = match steps::run(&self.progs.sh, step, &self.state.path(LOG_FILE)) {
+                Ok(()) => Line::ok(format!("step {}", step.name)),
+                Err(e) => Line::fail(format!("step {}: {e}", step.name)),
+            };
+            writeln!(out, "  {line}").map_err(&w)?;
+        }
+        Ok(())
     }
 
-    fn stop_session(&self, dir: &StateDir) {
+    /// Stops a session's processes and clears its files.
+    pub(crate) fn stop_session(&self, dir: &StateDir) {
         // The timer execs into `off`, so its pid can be this process.
         if let Some(tp) = dir.read_pid("timer.pid") {
             if tp != std::process::id() {
@@ -214,95 +326,35 @@ impl Ctx {
         dir.clear();
     }
 
-    fn status(&self, out: &mut dyn Write) -> Res {
-        let w = io_err("write");
-        let Some(dir) = self.active() else {
-            return writeln!(out, "server mode: off").map_err(&w);
-        };
-        let now = now();
-        let since = dir.read_i64("since").unwrap_or(now);
-        writeln!(out, "server mode: on (for {})", fmt_dur(now - since)).map_err(&w)?;
-        if let Some(until) = dir.read_i64("until") {
-            let clock = self
-                .clock(until)
-                .map(|c| format!(" ({c})"))
-                .unwrap_or_default();
-            writeln!(out, "  ends in {}{clock}", fmt_dur(until - now)).map_err(&w)?;
-        } else {
-            writeln!(out, "  no end time — runs until 'beagle server-mode off'").map_err(&w)?;
-        }
-        if let Some(file) = dir.read("file") {
-            match dir.read_pid("startup.pid") {
-                Some(sp) if alive(&self.progs, Target::Pid(sp)) => {
-                    writeln!(out, "  startup file: {file} (running, pid {sp})").map_err(&w)?;
+    /// The checklist: `beagle serve` (when server mode runs it), its
+    /// certificate, agentd (started when it is loaded but down), exposure.
+    pub(crate) fn checks(&self, serve: bool) -> Vec<Line> {
+        let host = &self.host;
+        let mut lines = Vec::new();
+        if serve {
+            let url = host.serve_url().unwrap_or_else(|| "?".into());
+            lines.push(match (host.serve(), host.serve_health()) {
+                (Ok(Svc::Running), Ok(())) => Line::ok(format!("beagle serve: answering at {url}")),
+                (Ok(Svc::Running), Err(e)) => Line::fail(format!(
+                    "beagle serve: running but {url}/v1/health fails ({e}) — see `beagle serve status`"
+                )),
+                (Ok(_), _) => Line::fail("beagle serve: stopped — `beagle server-mode on` starts it"),
+                (Err(e), _) => Line::fail(format!("beagle serve: {e}")),
+            });
+            lines.push(match host.cert_days_left() {
+                Ok(d) if d < 0 => {
+                    Line::fail("certificate: expired — renew it, then `beagle serve install`")
                 }
-                _ => writeln!(
-                    out,
-                    "  startup file: {file} (exited — see 'beagle server-mode log')"
-                )
-                .map_err(&w)?,
-            }
+                Ok(d) if d < 14 => Line::warn(format!(
+                    "certificate: {d} days left — renew it, then `beagle serve install`"
+                )),
+                Ok(d) => Line::ok(format!("certificate: {d} days left")),
+                Err(e) => Line::fail(format!("certificate: {e}")),
+            });
         }
-        Ok(())
-    }
-
-    /// `Tue 18:30` for an epoch second, in local time (`date -r`).
-    fn clock(&self, epoch: i64) -> Option<String> {
-        let at = epoch.to_string();
-        let ok = |args: &[&str]| {
-            output(&self.progs.date, args)
-                .filter(|o| o.status.success())
-                .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_owned())
-                .filter(|s| !s.is_empty())
-        };
-        ok(&["-r", &at, "+%a %H:%M"]).or_else(|| ok(&["-d", &format!("@{at}"), "+%a %H:%M"]))
-    }
-
-    fn log(&self, out: &mut dyn Write) -> Res {
-        let dir = self
-            .active()
-            .filter(|d| d.has_log())
-            .or_else(|| self.dirs().find(|d| d.has_log()))
-            .ok_or("no startup log yet")?;
-        let bytes = fs::read(dir.path(LOG_FILE)).map_err(io_err("read the log"))?;
-        out.write_all(tail(&String::from_utf8_lossy(&bytes), 50).as_bytes())
-            .map_err(io_err("write"))
-    }
-
-    fn on_battery(&self) -> bool {
-        output(&self.progs.pmset, &["-g", "batt"])
-            .is_some_and(|o| String::from_utf8_lossy(&o.stdout).contains("Battery Power"))
-    }
-
-    /// Lock for real. `pmset displaysleepnow` alone only darkens the
-    /// display and asks for the password only after the screen-lock delay,
-    /// so it is the fallback, not the way.
-    fn lock_screen(&self, out: &mut dyn Write) -> Res {
-        let w = io_err("write");
-        let locked =
-            output(&self.progs.osascript, &["-e", LOCK_SCRIPT]).is_some_and(|o| o.status.success());
-        if locked {
-            return writeln!(out, "  screen locked").map_err(&w);
-        }
-        let delay = output(&self.progs.sysadminctl, &["-screenLock", "status"])
-            .and_then(|o| {
-                let text = format!(
-                    "{}{}",
-                    String::from_utf8_lossy(&o.stdout),
-                    String::from_utf8_lossy(&o.stderr)
-                );
-                lock_delay(&text)
-            })
-            .unwrap_or_else(|| "the lock delay".into());
-        writeln!(
-            out,
-            "  couldn't lock: give your terminal Accessibility access\n  \
-             (System Settings → Privacy & Security → Accessibility), then 'beagle server-mode lock'\n  \
-             sleeping the display instead — it only locks after {delay}"
-        )
-        .map_err(&w)?;
-        output(&self.progs.pmset, &["displaysleepnow"]);
-        Ok(())
+        lines.push(crate::report::agentd_line(host.as_ref()));
+        lines.extend(crate::report::exposure_lines(&host.exposure()));
+        lines
     }
 }
 
@@ -312,19 +364,4 @@ fn absolute_file(file: &Path) -> Result<PathBuf, String> {
         return Err(format!("no such file: {}", file.display()));
     }
     std::path::absolute(file).map_err(|e| format!("no such file: {}: {e}", file.display()))
-}
-
-/// The screen-lock delay in `sysadminctl -screenLock status` output: the
-/// first of `<n> seconds`, `immediate` or `off`.
-pub(crate) fn lock_delay(text: &str) -> Option<String> {
-    let words: Vec<&str> = text.split_whitespace().collect();
-    words.iter().enumerate().find_map(|(i, w)| match *w {
-        "immediate" | "off" => Some((*w).to_owned()),
-        n if n.chars().all(|c| c.is_ascii_digit())
-            && words.get(i + 1).is_some_and(|s| s.starts_with("seconds")) =>
-        {
-            Some(format!("{n} seconds"))
-        }
-        _ => None,
-    })
 }

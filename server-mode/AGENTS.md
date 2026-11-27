@@ -12,19 +12,26 @@ terminal UI (`standards/tui-standards.json` lists it under `not_tuis`).
 
 ```text
 src/lib.rs      ABOUT, run, the help text; non-macOS prints "macOS only"
-src/cli.rs      arguments → Cmd (pure)
-src/session.rs  on / off / status / log / lock over a Ctx
+src/cli.rs      arguments → Cmd (pure); OnOpts fields are None when not given
+src/config.rs   server-mode.toml, [[before]]/[[after]] steps, plan (flags > file > defaults)
+src/steps.rs    one step: sh -c run, then wait retried, output to the log
+src/host.rs     the Host trait (power, lock, beagle serve, agentd, exposure) and System
+src/session.rs  on / off and the checklist over a Ctx
+src/report.rs   status / log / lock, checklist lines, cert end-date parsing
 src/state.rs    the state dir (one value per file), fmt_dur, tail
 src/procs.rs    Programs, spawn_detached (own process group), alive, stop
-src/tests/      parsing and state; session.rs runs the commands on fakes
+src/tests/      rig.rs (fake Host + fake caffeinate), session.rs, ready.rs
 ```
 
 ## Rules
 
-- **Never run the real system programs in tests.** `Ctx` takes a
-  `Programs`; tests point `caffeinate`, `osascript`, `pmset` and
-  `sysadminctl` at fake scripts in a temp dir, and the state dirs at temp
-  dirs. A test that starts processes stops them before it ends.
+- **Never touch the real machine in tests.** `Ctx` takes a `Host`; tests
+  use `FakeHost` (`tests/rig.rs`), so battery, screen lock, `beagle serve`
+  (launchd), agentd and exposure are whatever the test sets, never this
+  Mac's. `caffeinate` is a fake script and the state and config are temp
+  files. A test that starts processes stops them before it ends.
+- **No VPN or SaaS in code.** Network setup is the user's `[[before]]`
+  steps; examples in docs stay generic.
 - **No `unsafe`**: signals go through the `kill` program, process groups
   through `CommandExt::process_group`. Every helper command is bounded by
   `beagle_utils::process::output_with_timeout`.

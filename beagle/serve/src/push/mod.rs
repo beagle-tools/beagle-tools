@@ -318,7 +318,14 @@ pub fn spawn(store: Arc<DeviceStore>, sender: SharedSender) -> Result<()> {
 pub fn status() -> std::result::Result<String, String> {
     let path = config::path().map_err(|e| e.to_string())?;
     let config = config::load(&path).map_err(|e| e.to_string())?;
-    load(&config)?.map(|l| l.summary()).ok_or_else(|| {
+    // A status line must never wait on a Keychain dialog.
+    source::resolve(
+        &config,
+        &source::process_env,
+        &crate::secrets::Keychain::non_interactive(),
+    )?
+    .map(|l| l.summary())
+    .ok_or_else(|| {
         "not set up — run `beagle serve secrets sync` or `beagle serve push setup` (docs/serve-push.md)"
             .to_owned()
     })

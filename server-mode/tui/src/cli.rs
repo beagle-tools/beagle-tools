@@ -19,8 +19,9 @@ pub(crate) enum Cmd {
     Help,
 }
 
-/// The flags of `on`.
-#[derive(Debug, Clone, PartialEq)]
+/// The flags of `on`. Each is `None` when not given, so
+/// `server-mode.toml` (then the built-in default) decides.
+#[derive(Debug, Clone, Default, PartialEq)]
 pub(crate) struct OnOpts {
     /// `-t` as typed, for the message (`awake for 8h`).
     pub hours: Option<String>,
@@ -28,19 +29,14 @@ pub(crate) struct OnOpts {
     pub secs: Option<u64>,
     /// `-f`: the startup file, as given.
     pub file: Option<PathBuf>,
-    /// Lock the screen once on (`--no-lock` clears it).
-    pub lock: bool,
-}
-
-impl Default for OnOpts {
-    fn default() -> Self {
-        Self {
-            hours: None,
-            secs: None,
-            file: None,
-            lock: true,
-        }
-    }
+    /// `--on-stop`: a file run when server mode ends.
+    pub on_stop: Option<PathBuf>,
+    /// `--no-lock` → `Some(false)`.
+    pub lock: Option<bool>,
+    /// `--serve` / `--no-serve`: start and stop `beagle serve`.
+    pub serve: Option<bool>,
+    /// `--new-pairing`: rotate the pairing token first.
+    pub new_pairing: Option<bool>,
 }
 
 const SEE_HELP: &str = "(see beagle server-mode --help)";
@@ -85,7 +81,13 @@ fn parse_on(args: &[String]) -> Result<Cmd, String> {
             }
             // Reads as a label for -f.
             "--start-up" | "--startup" if inline.is_none() => {}
-            "--no-lock" if inline.is_none() => opts.lock = false,
+            "--on-stop" => {
+                opts.on_stop = Some(PathBuf::from(value(inline, &mut it, flag, "a file")?));
+            }
+            "--no-lock" if inline.is_none() => opts.lock = Some(false),
+            "--serve" if inline.is_none() => opts.serve = Some(true),
+            "--no-serve" if inline.is_none() => opts.serve = Some(false),
+            "--new-pairing" if inline.is_none() => opts.new_pairing = Some(true),
             "-h" | "--help" if inline.is_none() => return Ok(Cmd::Help),
             _ => return Err(format!("unknown option: {arg} {SEE_HELP}")),
         }

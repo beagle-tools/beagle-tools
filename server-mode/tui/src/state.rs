@@ -6,13 +6,17 @@ use std::path::{Path, PathBuf};
 
 /// Every file a session writes besides `startup.log`. `off` removes them;
 /// the log stays for `log`.
-pub(crate) const SESSION_FILES: [&str; 6] = [
+pub(crate) const SESSION_FILES: [&str; 8] = [
     "caffeinate.pid",
     "timer.pid",
     "startup.pid",
     "since",
     "until",
     "file",
+    // `on` started beagle serve, so `off` stops it.
+    "serve",
+    // The `--on-stop` file `off` runs.
+    "on_stop",
 ];
 
 /// The startup file's output.

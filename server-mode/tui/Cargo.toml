@@ -12,7 +12,14 @@ name = "server_mode"
 path = "src/lib.rs"
 
 [dependencies]
+# `on` starts and stops beagle serve and reads its config.
+beagle-serve.workspace = true
 beagle-utils.workspace = true
+# The server's local health check (`GET /v1/health`), blocking like serve.
+reqwest = { workspace = true, features = ["blocking"] }
+serde.workspace = true
+time.workspace = true
+toml.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

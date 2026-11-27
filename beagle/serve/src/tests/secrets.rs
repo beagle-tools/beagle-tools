@@ -120,3 +120,71 @@ fn a_hanging_command_times_out() {
     let why = run_command("sleep 5", Duration::from_millis(200)).unwrap_err();
     assert!(why.contains("timed out"), "{why}");
 }
+
+/// A [`SecretStore`] a background thread can own.
+#[derive(Debug, Default)]
+struct SharedStore(std::sync::Arc<std::sync::Mutex<Vec<String>>>);
+
+impl SecretStore for SharedStore {
+    fn get(&self, _: &str) -> std::result::Result<Option<String>, String> {
+        Ok(None)
+    }
+    fn set(&self, name: &str, _: &str) -> std::result::Result<(), String> {
+        self.0.lock().unwrap().push(name.to_owned());
+        Ok(())
+    }
+    fn delete(&self, _: &str) -> std::result::Result<bool, String> {
+        Ok(false)
+    }
+}
+
+/// `beagle serve` used to rerun the secrets command between binding and
+/// serving, so phones timed out while a slow secret manager ran.
+#[cfg(unix)]
+#[test]
+fn the_server_answers_while_a_slow_startup_sync_still_runs() {
+    use std::io::{Read as _, Write as _};
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+
+    // A secret manager that takes a while, then prints a working key.
+    let dir = tempfile::tempdir().unwrap();
+    let out = dir.path().join("secrets.json");
+    std::fs::write(&out, json_output(&p8())).unwrap();
+    let command = format!("sleep 2; cat '{}'", out.display());
+    let stored = SharedStore::default();
+    let names = Arc::clone(&stored.0);
+    let done = Arc::new(AtomicBool::new(false));
+    let flag = Arc::clone(&done);
+    let sync = spawn_startup_sync(command, stored, move |r| {
+        assert!(r.is_ok(), "{r:?}");
+        flag.store(true, Ordering::SeqCst);
+    })
+    .unwrap();
+
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    let ctx = Arc::new(crate::router::Ctx::new(
+        crate::auth::Token::parse(&"0".repeat(64)).unwrap(),
+        crate::router::tests::unavailable(),
+    ));
+    let limits = crate::conn::Limits::default();
+    let conns = crate::conn::Connections::new(limits.max);
+    std::thread::spawn(move || crate::server::serve(&listener, &ctx, None, &conns, limits));
+
+    let mut sock = std::net::TcpStream::connect(addr).unwrap();
+    sock.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+    sock.write_all(b"GET /v1/health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+        .unwrap();
+    let mut reply = String::new();
+    let _ = sock.read_to_string(&mut reply);
+    assert!(reply.starts_with("HTTP/1.1 200"), "{reply}");
+    assert!(
+        !done.load(Ordering::SeqCst),
+        "answered before the sync ended"
+    );
+
+    sync.join().unwrap();
+    assert!(done.load(Ordering::SeqCst));
+    assert_eq!(names.lock().unwrap().len(), 3);
+}

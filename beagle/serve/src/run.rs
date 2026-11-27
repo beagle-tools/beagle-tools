@@ -194,8 +194,6 @@ fn serve(opts: &ServeOptions) -> Result<()> {
         eprintln!("beagle serve:   {line}");
     }
     let devices = Arc::new(DeviceStore::new(push::devices_path()?));
-    // A failed sync keeps the Keychain's values; it never stops serving.
-    crate::secrets::sync_at_startup(&config);
     // A broken push config turns push off with a log line; it never stops
     // serving. The line names the source and ids, never the key.
     let loaded = push::load(&config).unwrap_or_else(|why| {
@@ -217,6 +215,24 @@ fn serve(opts: &ServeOptions) -> Result<()> {
     );
     let sender: push::SharedSender = Arc::new(std::sync::Mutex::new(sender));
     push::spawn(Arc::clone(&devices), Arc::clone(&sender))?;
+    // The saved secrets command runs in the background: serving starts now
+    // with what the Keychain has, and push reloads once the sync lands. A
+    // failed sync keeps the Keychain's values; it never stops serving.
+    if let Some(secrets) = &config.secrets {
+        let (config, devices, sender) = (config.clone(), Arc::clone(&devices), Arc::clone(&sender));
+        let spawned = crate::secrets::spawn_startup_sync(
+            secrets.command.clone(),
+            crate::secrets::Keychain::default(),
+            move |result| {
+                if result.is_ok() {
+                    reload_push(&config, devices, &sender);
+                }
+            },
+        );
+        if let Err(e) = spawned {
+            eprintln!("beagle serve:   secrets: could not start the sync: {e}");
+        }
+    }
     let limits = Limits::default();
     let conns = Connections::new(limits.max);
     let ctx = Ctx::new(token, stores)
@@ -225,6 +241,24 @@ fn serve(opts: &ServeOptions) -> Result<()> {
         .with_connections(conns.clone());
     server::serve(&listener, &Arc::new(ctx), tls.as_ref(), &conns, limits);
     Ok(())
+}
+
+/// Swaps in the push sender `config` now loads (after a secrets sync).
+fn reload_push(config: &config::Config, devices: Arc<DeviceStore>, sender: &push::SharedSender) {
+    let fresh = push::load(config).and_then(|loaded| {
+        let summary = loaded.as_ref().map(push::source::Loaded::summary);
+        push::sender_from(loaded, devices).map(|s| (s, summary))
+    });
+    match fresh {
+        Ok((fresh, Some(summary))) if fresh.configured() => {
+            if let Ok(mut held) = sender.lock() {
+                *held = fresh;
+                eprintln!("beagle serve:   push: reloaded, on (APNs), {summary}");
+            }
+        }
+        Ok(_) => {}
+        Err(why) => eprintln!("beagle serve:   push: reload failed, unchanged: {why}"),
+    }
 }
 
 /// Refuses the two dangerous binds: every interface without `--any-addr`,
